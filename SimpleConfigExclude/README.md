@@ -148,5 +148,5 @@ A: Depends on config type. Runtime configs (like Input) work, compile-time baked
 
 ## Support
 
-**Email**: mengzhishanghun@outlook.com
- 
+For questions or feedback, please leave a comment on the Fab product page.
+

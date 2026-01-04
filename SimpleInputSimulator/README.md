@@ -88,8 +88,7 @@ Simulate mouse movement or gamepad stick input.
 
 ---
 
-## 📬 Contact
+## Support
 
-Need help or custom features?
-📧 **mengzhishanghun@outlook.com**
- 
+For questions or feedback, please leave a comment on the Fab product page.
+

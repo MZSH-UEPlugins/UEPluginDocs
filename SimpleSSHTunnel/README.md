@@ -83,6 +83,7 @@ Closes all active SSH tunnels.
 
 ---
 
-For feedback or support, please contact: `mengzhishanghun@outlook.com`
+## Support
 
- 
+For questions or feedback, please leave a comment on the Fab product page.
+

@@ -115,9 +115,9 @@ The plugin automatically wraps your source control provider as a proxy to monito
 
 ---
 
-## 📬 Support
+## Support
 
-**Email**: mengzhishanghun@outlook.com
+For questions or feedback, please leave a comment on the Fab product page.
 
 **When reporting issues include**:
 - Unreal Engine version
@@ -131,4 +131,3 @@ The plugin automatically wraps your source control provider as a proxy to monito
 
 **Remember**: Start conservative. You can always delete assets later, but recovery requires source control history!
 
- 

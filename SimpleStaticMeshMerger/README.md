@@ -233,10 +233,7 @@ Clicking `Break Level Instances` recursively breaks all LevelInstances in the sc
 
 ---
 
-## 📮 Contact
+## Support
 
-For questions, suggestions, or technical support, please contact:
-**mengzhishanghun@outlook.com**
+For questions or feedback, please leave a comment on the Fab product page.
 
-
- 

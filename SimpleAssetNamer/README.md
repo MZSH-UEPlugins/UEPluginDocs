@@ -196,9 +196,7 @@ Try fixing redirectors first: Content Browser → Right-click folder → Fix Up 
 
 ---
 
-## Author
+## Support
 
-Copyright (c) 2025
-Author: mengzhishanghun
-Email: mengzhishanghun@outlook.com
- 
+For questions or feedback, please leave a comment on the Fab product page.
+

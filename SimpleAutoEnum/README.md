@@ -147,8 +147,7 @@ The plugin dynamically generates enum values based on your configuration, making
 
 ---
 
-## 📬 Contact
+## Support
 
-For technical support or custom features:
-📧 **mengzhishanghun@outlook.com**
- 
+For questions or feedback, please leave a comment on the Fab product page.
+

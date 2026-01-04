@@ -53,9 +53,7 @@ You can use GameInstance-level Blueprint functions to connect, send, receive, an
 
 ---
 
-## 📮 Contact
+## Support
 
-For questions, support, or licensing inquiries, contact:  
-**mengzhishanghun@outlook.com**
+For questions or feedback, please leave a comment on the Fab product page.
 
- 

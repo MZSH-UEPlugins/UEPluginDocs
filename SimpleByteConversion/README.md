@@ -88,9 +88,7 @@ Use them together to send structured messages via TCP/UDP and decode them easily
 
 ---
 
-## 📬 Contact
+## Support
 
-For custom features or technical support:  
-📧 **mengzhishanghun@outlook.com**
+For questions or feedback, please leave a comment on the Fab product page.
 
- 

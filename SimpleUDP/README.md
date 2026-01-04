@@ -133,9 +133,7 @@ Use with **SimpleByteConverter** plugin to easily serialize/deserialize between 
 
 ---
 
-## 📬 Contact
+## Support
 
-Need custom features or help?  
-📧 **mengzhishanghun@outlook.com**
+For questions or feedback, please leave a comment on the Fab product page.
 
- 
