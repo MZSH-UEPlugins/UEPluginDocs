@@ -6,13 +6,43 @@
 
 打开 **项目设置 → Plugins → Simple Launcher**，添加预设：
 
-| 字段 | 说明 |
-|------|------|
-| Key | 预设名称（如 `MyServer`） |
-| CommandLine | 要执行的命令（如 `server.exe --port 8080`） |
-| bLaunchHidden | 隐藏窗口 |
-| bLaunchDetached | 分离运行（见下方说明） |
-| WorkingDirectory | 工作目录（可选） |
+#### Key（预设名称）
+
+- **功能**：预设的唯一标识，用于 API 调用
+- **填写**：任意名称，如 `MyServer`、`Logger`
+- **示例**：`StartProcess(FName("MyServer"))`
+
+#### CommandLine（命令行）
+
+- **功能**：要执行的完整命令
+- **填写**：可执行文件路径 + 参数
+- **格式**：
+  - 无空格路径：`notepad.exe file.txt`
+  - 有空格路径：`"C:\Program Files\app.exe" -arg`
+  - Linux/Mac：`'/usr/bin/app' -arg`
+
+#### bLaunchHidden（隐藏窗口）
+
+- **功能**：是否隐藏进程窗口
+- **默认**：`false`（显示窗口）
+- **设为 true**：进程在后台运行，无窗口
+- **适用**：后台服务、不需要用户交互的工具
+
+#### bLaunchDetached（分离运行）
+
+- **功能**：控制游戏退出时进程的行为
+- **默认**：`false`（游戏退出时自动停止进程）
+- **设为 true**：游戏退出后进程继续运行
+- **适用**：
+  - `false`：游戏服务器、临时工具
+  - `true`：日志收集器、需要持续运行的后台服务
+
+#### WorkingDirectory（工作目录）
+
+- **功能**：进程的工作目录
+- **默认**：空（使用系统默认）
+- **填写**：绝对路径，如 `C:\MyApp` 或 `/home/user/app`
+- **影响**：进程中的相对路径会基于此目录解析
 
 ### 2. 启动进程
 
@@ -37,15 +67,6 @@ USimpleLauncherGameSubsystem::StopProcesses(FName("MyServer"));
 // 停止全部
 USimpleLauncherGameSubsystem::StopAllProcesses();
 ```
-
-## 分离运行
-
-`bLaunchDetached` 决定游戏退出时进程的行为：
-
-| 值 | 游戏退出时 | 适用场景 |
-|----|-----------|----------|
-| false（默认） | 自动停止进程 | 游戏服务器、临时工具 |
-| true | 进程继续运行 | 日志收集器、后台服务 |
 
 ## 多实例支持
 
