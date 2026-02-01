@@ -97,6 +97,8 @@ FProcessId Id = USimpleLauncherGameSubsystem::StartProcess(FName("MyServer"));
 | `BindProcessesExited(Name, Delegate)` | 绑定预设所有进程的退出回调 |
 | `UnbindProcessesExited(Name, Delegate)` | 解绑预设 |
 
+**绑定说明**：重复绑定相同委托会自动忽略。
+
 **回调参数**：
 - `ProcessId` - 退出的进程标识
 - `bNaturalExit` - `true` 进程自己结束，`false` 被 API 关闭
