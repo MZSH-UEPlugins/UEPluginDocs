@@ -84,7 +84,7 @@ FProcessId Id = USimpleLauncherGameSubsystem::StartProcess(FName("MyServer"));
 | 函数 | 说明 |
 |------|------|
 | `IsProcessRunning(ProcessId)` | 检查单个进程是否运行中 |
-| `HasRunningProcess(Name)` | 预设是否有运行中的进程 |
+| `HasRunningProcesses(Name)` | 预设是否有运行中的进程 |
 | `GetProcessCount(Name)` | 获取预设的运行进程数量 |
 | `GetProcesses(Name)` | 获取预设的所有 ProcessId |
 
@@ -94,8 +94,8 @@ FProcessId Id = USimpleLauncherGameSubsystem::StartProcess(FName("MyServer"));
 |------|------|
 | `BindProcessExited(ProcessId, Delegate)` | 绑定单个进程的退出回调 |
 | `UnbindProcessExited(ProcessId, Delegate)` | 解绑单个进程 |
-| `BindPresetExited(Name, Delegate)` | 绑定预设所有进程的退出回调 |
-| `UnbindPresetExited(Name, Delegate)` | 解绑预设 |
+| `BindProcessesExited(Name, Delegate)` | 绑定预设所有进程的退出回调 |
+| `UnbindProcessesExited(Name, Delegate)` | 解绑预设 |
 
 **回调参数**：
 - `ProcessId` - 退出的进程标识
