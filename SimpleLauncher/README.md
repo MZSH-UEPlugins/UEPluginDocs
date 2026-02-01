@@ -123,7 +123,8 @@ FProcessId Id = USimpleLauncherGameSubsystem::StartProcess(FName("MyServer"));
 
 ### 删除预设
 
-- `RemoveConfig` 会停止该预设的所有进程并清理回调
+- `RemoveConfig` 会停止该预设的所有进程
+- 回调不会被清理，重新创建同名预设时可复用
 - 运行时创建的预设在游戏重启后丢失
 
 ### 游戏退出
