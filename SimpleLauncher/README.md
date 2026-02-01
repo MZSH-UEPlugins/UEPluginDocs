@@ -294,6 +294,7 @@ USimpleLauncherGameSubsystem::StartProcess(FName("TempTask"));
 - 删除预设（`RemoveConfig`）会停止所有进程并清理相关回调
 - 更新预设（`UpdateConfig`）不会影响已运行的进程，新配置下次启动生效
 - 退出回调的 `bNaturalExit` 参数：`true` 表示进程自然退出，`false` 表示被 API 关闭
+- 游戏退出时自动停止的进程不触发回调
 
 ## 版本要求
 
