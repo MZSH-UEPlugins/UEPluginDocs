@@ -4,10 +4,10 @@
 
 ## 功能特性
 
-- 通过配置名快速启动预设进程
-- 支持运行时启用/禁用配置
+- 通过配置名启动/停止进程
+- 游戏启动时自动启动进程
+- 游戏结束时自动停止进程
 - 跨平台支持（Windows / Linux / macOS）
-- 蓝图完整支持
 
 ## 安装
 
@@ -21,65 +21,68 @@
 | 字段 | 说明 |
 |------|------|
 | Key (FName) | 配置名称，用于 API 调用 |
-| bEnabled | 是否启用 |
 | CommandLine | 完整命令行（可执行文件 + 参数） |
 | bLaunchHidden | 是否隐藏进程窗口 |
 | WorkingDirectory | 工作目录（可选） |
+| bAutoStart | 游戏启动时自动启动 |
+| bAutoStop | 游戏结束时自动停止 |
 
 ### 配置示例
 
-| 配置名 | CommandLine | 说明 |
-|--------|-------------|------|
-| Notepad | `notepad.exe` | 打开记事本 |
-| OpenFile | `notepad.exe C:\test.txt` | 打开指定文件 |
-| RunScript | `python script.py --verbose` | 运行 Python 脚本 |
-| BatchJob | `cmd /c build.bat arg1 arg2` | 执行批处理 |
+| 配置名 | CommandLine | bAutoStart | bAutoStop |
+|--------|-------------|------------|-----------|
+| Server | `server.exe --port 8080` | true | true |
+| Logger | `python logger.py` | true | false |
 
 ## 蓝图 API
 
-### 配置启动
-
 | 函数 | 说明 |
 |------|------|
-| `Launch(Name)` | 通过配置名启动进程，返回是否成功 |
-| `SetLauncherEnabled(Name, bEnabled)` | 设置配置启用状态 |
-| `IsLauncherEnabled(Name)` | 检查配置是否启用 |
+| `StartProcess(Name)` | 启动进程，返回是否成功 |
+| `StopProcess(Name)` | 停止进程，返回是否成功 |
+| `IsProcessRunning(Name)` | 检查进程是否运行中 |
+| `StopAllProcesses()` | 停止所有进程 |
 
-### 直接启动
+## 自动启动/停止
 
-| 函数 | 说明 |
-|------|------|
-| `LaunchWithConfig(Config)` | 传入配置结构启动 |
-| `LaunchProcess(CommandLine)` | 传入命令行字符串启动 |
+通过 `bAutoStart` 和 `bAutoStop` 配置，进程会在游戏启动/结束时自动管理：
+
+- **bAutoStart = true**：游戏启动时自动启动该进程
+- **bAutoStop = true**：游戏结束时自动停止该进程
 
 ## 平台支持
 
 | 平台 | 可执行类型 |
 |------|------------|
-| Windows | `.exe` `.bat` `.cmd` `.ps1`（需 powershell 调用） |
+| Windows | `.exe` `.bat` `.cmd` |
 | Linux | 二进制文件、`.sh` 脚本 |
-| macOS | 二进制文件、`.sh` `.command` 脚本 |
+| macOS | 二进制文件、`.sh` 脚本 |
 
 ## 使用示例
 
 ### 蓝图
 
-1. 在项目设置中添加配置 `MyApp`，CommandLine 设为 `notepad.exe`
-2. 蓝图中调用 `Launch` 节点，Name 填入 `MyApp`
+1. 在项目设置中添加配置 `MyServer`
+2. 蓝图中调用 `StartProcess` 节点，Name 填入 `MyServer`
+3. 需要停止时调用 `StopProcess` 节点
 
 ### C++
 
 ```cpp
 #include "SimpleLauncherLibrary.h"
 
-// 通过配置名启动
-USimpleLauncherLibrary::Launch(FName("MyApp"));
+// 启动进程
+USimpleLauncherLibrary::StartProcess(FName("MyServer"));
 
-// 直接命令行启动
-USimpleLauncherLibrary::LaunchProcess(TEXT("notepad.exe C:\\test.txt"));
+// 检查是否运行
+if (USimpleLauncherLibrary::IsProcessRunning(FName("MyServer")))
+{
+    // 停止进程
+    USimpleLauncherLibrary::StopProcess(FName("MyServer"));
+}
 
-// 运行时禁用配置
-USimpleLauncherLibrary::SetLauncherEnabled(FName("MyApp"), false);
+// 停止所有进程
+USimpleLauncherLibrary::StopAllProcesses();
 ```
 
 ## 版本要求
