@@ -219,6 +219,16 @@ static void BindPresetExited(const FName PresetName, const FOnProcessExitedDeleg
 static void UnbindPresetExited(const FName PresetName, const FOnProcessExitedDelegate& Delegate);
 ```
 
+### 回调触发行为
+
+| 场景 | 触发回调 | bNaturalExit |
+|------|----------|--------------|
+| 进程自然退出 | ✅ | true |
+| StopProcess | ✅ | false |
+| StopProcesses | ✅ | false |
+| RemoveConfig | ✅ | false |
+| 游戏退出自动停止 | ❌ | - |
+
 ## 使用示例
 
 ### 蓝图
