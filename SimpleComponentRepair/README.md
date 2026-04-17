@@ -1,4 +1,4 @@
-# 📘 SimpleComponentRepair 使用教程
+# 📘 SimpleBPInheritFix 使用教程
 
 一键修复 Actor 蓝图继承链的组件异常 bug。
 
@@ -11,7 +11,7 @@
 1. 安装插件，编译通过
 2. Content Browser 里 **右键任意受影响的 Actor 蓝图**（选祖先 / 自身 / 后代都可以，效果一样）
 3. 选择 **Component Repair → Fix Inheritance Pollution**
-4. 打开 Output Log，过滤 `LogSCR`，查看执行情况
+4. 打开 Output Log，过滤 `LogSBIF`，查看执行情况
 5. 编辑器会弹出保存对话框，**保存被标脏的蓝图** 即完成
 
 ---
@@ -19,7 +19,7 @@
 ## ❓ 常见问题
 
 **扫描结果 0 条但确有污染？**  
-你遇到的大概率不是本插件覆盖的问题（罕见）。贴完整 `LogSCR` 日志协助排查。
+你遇到的大概率不是本插件覆盖的问题（罕见）。贴完整 `LogSBIF` 日志协助排查。
 
 **CheckOut 失败怎么办？**  
 插件会继续完成内存修复，但你在保存前需要自己手动处理签出（`p4 edit` / `git lfs lock` / `svn lock`）。常见原因：文件被他人锁定、服务器不通、mapping 不包含该文件。
