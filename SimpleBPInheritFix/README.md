@@ -1,47 +1,47 @@
-# 📘 SimpleBPInheritFix 使用教程
+# 📘 SimpleBPInheritFix Tutorial
 
-一键修复 Actor 蓝图继承链的组件异常 bug。
+One-click fix for the Actor Blueprint inheritance component corruption bug.
 
-> ⚠️ 插件会批量改动继承链上多个蓝图。改动保守，但提交版本控制前请确认被自动签出的文件都是预期内的。
-
----
-
-## 📝 使用步骤
-
-1. 安装插件，编译通过
-2. Content Browser 里 **右键任意受影响的 Actor 蓝图**（选祖先 / 自身 / 后代都可以，效果一样）
-3. 选择 **Component Repair → Fix Inheritance Pollution**
-4. 打开 Output Log，过滤 `LogSBIF`，查看执行情况
-5. 编辑器会弹出保存对话框，**保存被标脏的蓝图** 即完成
+> ⚠️ This plugin modifies multiple blueprints along the inheritance chain. Changes are conservative, but before committing to source control, please verify that the auto-checked-out files are the expected ones.
 
 ---
 
-## ❓ 常见问题
+## 📝 How to Use
 
-**扫描结果 0 条但确有污染？**  
-你遇到的大概率不是本插件覆盖的问题（罕见）。贴完整 `LogSBIF` 日志协助排查。
-
-**CheckOut 失败怎么办？**  
-插件会继续完成内存修复，但你在保存前需要自己手动处理签出（`p4 edit` / `git lfs lock` / `svn lock`）。常见原因：文件被他人锁定、服务器不通、mapping 不包含该文件。
-
-**锚点选哪个蓝图？**  
-随便选——祖先、自身、后代都会被扫描到，效果完全一样。
-
-**非 Perforce 能用吗？**  
-- Git：签出基本是空操作，文件本就可写
-- Git LFS：会请求 LFS lock
-- SVN：执行 `svn lock`
-- 无源码控制：签出阶段整个跳过
+1. Install the plugin and compile successfully
+2. In the Content Browser, **right-click any affected Actor Blueprint** (ancestor / self / descendant — all work equally)
+3. Select **Component Repair → Fix Inheritance Pollution**
+4. Open Output Log and filter by `LogSBIF` to monitor execution
+5. The editor will show a save dialog — **save the dirtied blueprints** to finish
 
 ---
 
-## ⚠️ 限制
+## ❓ FAQ
 
-- 只处理本插件覆盖的那种组件异常，其他类型的蓝图问题不在范围内
-- Construction Script 里动态生成的组件不在扫描范围
+**Scan returns 0 findings but corruption clearly exists?**  
+What you're hitting is probably not the issue this plugin covers (rare case). Paste the full `LogSBIF` log for diagnosis.
+
+**What if CheckOut fails?**  
+The plugin will continue with in-memory repair, but you'll need to handle checkout manually before saving (`p4 edit` / `git lfs lock` / `svn lock`). Common causes: files locked by others, server unreachable, or mapping doesn't include the file.
+
+**Which blueprint should I pick as the anchor?**  
+Pick any — ancestors, self, and descendants will all be scanned. The result is identical.
+
+**Does it work without Perforce?**  
+- Git: CheckOut is essentially a no-op, files are writable by default
+- Git LFS: Issues an LFS lock request
+- SVN: Runs `svn lock`
+- No source control: The CheckOut stage is skipped entirely
 
 ---
 
-## 联系方式
+## ⚠️ Limitations
 
-如有问题或反馈，请在 Fab 产品页面留言。
+- Only handles the specific component corruption this plugin covers; other blueprint issues are out of scope
+- Components dynamically created in Construction Script are not scanned
+
+---
+
+## Contact
+
+For questions or feedback, please leave a comment on the Fab product page.
