@@ -1,4 +1,6 @@
-# 📘 SimpleUDP Plugin Tutorial (Blueprint Edition, English)
+[English](./README.md) | [中文](./README_CN.md)
+
+# 📘 SimpleUDP Plugin Tutorial (Blueprint Edition)
 
 **SimpleUDP** is a lightweight UDP communication plugin for Unreal Engine.  
 It supports **runtime dynamic configuration of send/receive channels**, and all functionality is exposed to Blueprint for easy integration.
