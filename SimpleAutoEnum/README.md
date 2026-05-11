@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # 📘 SimpleAutoEnum Plugin Tutorial
 
 **SimpleAutoEnum** is a lightweight plugin that automatically binds Unreal Engine enums to configurable string arrays.
