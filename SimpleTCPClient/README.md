@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # 📘 SimpleTCPClient Plugin Tutorial (Blueprint Edition)
 
 **SimpleTCPClient** is a lightweight TCP client plugin designed for Unreal Engine.  
