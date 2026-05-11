@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # 📘 SimpleAssetCleaner Plugin Tutorial
 
 **SimpleAssetCleaner** automatically identifies and removes unreferenced assets from your Unreal Engine project, keeping your repository clean.
