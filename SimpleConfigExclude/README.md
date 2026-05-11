@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # SimpleConfigExclude Tutorial
 
 Visually manage which config files (.ini) are included or excluded when packaging your Unreal Engine project.
