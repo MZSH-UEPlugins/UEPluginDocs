@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # 📘 SimpleTCPServer Plugin Tutorial (Blueprint Edition)
 
 **SimpleTCPServer** is a lightweight TCP server plugin designed for Unreal Engine.  
