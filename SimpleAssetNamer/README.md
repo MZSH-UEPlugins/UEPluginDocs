@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # Simple Asset Namer User Guide
 
 ## 1. Settings
