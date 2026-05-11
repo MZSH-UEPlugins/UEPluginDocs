@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # SimpleLauncher User Guide
 
 ## Quick Start
