@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # SimpleSSHTunnel User Guide
 
 ## 1. Configure SSH Connection
