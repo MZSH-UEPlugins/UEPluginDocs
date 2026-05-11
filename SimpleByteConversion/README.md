@@ -1,3 +1,4 @@
+[English](./README.md) | [中文](./README_CN.md)
 
 # 📘 SimpleByteConversion Plugin Tutorial (Blueprint Edition)
 
