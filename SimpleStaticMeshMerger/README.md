@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # 📘 SimpleStaticMeshMerger User Guide
 
 This guide provides detailed instructions on how to use the SimpleStaticMeshMerger plugin to merge static mesh instances in Unreal Engine and optimize scene performance.
