@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # 📘 Simple Input Simulator Plugin Tutorial (Blueprint Edition)
 
 **Simple Input Simulator** is a lightweight input simulation plugin for Unreal Engine.
