@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # 📘 SimpleBPInheritFix Tutorial
 
 One-click fix for the Actor Blueprint inheritance component corruption bug.
