@@ -2,21 +2,16 @@
 
 # Simple Level Sequence Smooth
 
-Level sequence data filtering plugin supporting multiple smoothing algorithms for animation data processing.
+Level sequence data filtering plugin with 12 smoothing algorithms for animation data processing.
 
 ## Features
 
-- **5 Smoothing Algorithms**:
-  - **Moving Average**: Arithmetic mean over a window, quick noise preview
-  - **Gaussian**: Weighted average with Gaussian distribution, smooth velocity and acceleration curves
-  - **Exponential**: Exponentially weighted recursive filter, recent data weighted more
-  - **Butterworth Low-pass**: Frequency-domain filter with zero-phase bidirectional processing, recommended for joint data
-  - **Savitzky-Golay**: Local polynomial fitting, preserves peaks and inflection points
+- **12 Smoothing Algorithms** covering time-domain, frequency-domain, state estimation, adaptive, and AI-specific approaches
 - **Content Browser Integration**: Right-click on LevelSequence assets to access smoothing
 - **ControlRig Support**: Directly processes ControlRig parameter sections (Transform and Scalar)
 - **Flexible Output**: Choose to overwrite the original sequence or create a new one
 - **Batch Processing**: Process multiple sequences at once with consistent suffix naming
-- **Auto Frame Rate Detection**: Automatically reads the sequence frame rate for Butterworth sampling rate
+- **Auto Frame Rate Detection**: Automatically reads the sequence frame rate
 
 ## Installation
 
@@ -34,13 +29,42 @@ Level sequence data filtering plugin supporting multiple smoothing algorithms fo
 
 ## Algorithm Guide
 
+### Time-Domain Filters
+
 | Algorithm | Best For | Key Parameter |
 |-----------|----------|---------------|
 | Moving Average | Quick preview | Window Size |
 | Gaussian | Large joints (arms, legs) | Window Size, Sigma |
 | Exponential | Real-time preprocessing | Alpha (decay factor) |
-| Butterworth | Joint data (recommended) | Cutoff Frequency |
+| Median | Impulse noise / frame jumps | Window Size |
+| Bilateral | Edge-preserving smoothing | Spatial Sigma, Range Sigma |
+
+### Frequency-Domain Filters
+
+| Algorithm | Best For | Key Parameter |
+|-----------|----------|---------------|
+| Butterworth Low-pass | Joint data (recommended) | Cutoff Frequency |
+| Wavelet Denoising | Multi-scale noise separation | Decomposition Level, Threshold |
+
+### State Estimation
+
+| Algorithm | Best For | Key Parameter |
+|-----------|----------|---------------|
+| Kalman | Trending motion data | Process Noise (Q), Measurement Noise (R) |
+
+### Adaptive Filters
+
+| Algorithm | Best For | Key Parameter |
+|-----------|----------|---------------|
+| One Euro | Real-time / VR / AR / mocap | Min Cutoff, Beta (speed coefficient) |
+| Complementary | IMU mocap data | Complementary Alpha |
+
+### AI-Specific
+
+| Algorithm | Best For | Key Parameter |
+|-----------|----------|---------------|
 | Savitzky-Golay | Fine joints (fingers) | Window Size, Poly Order |
+| Confidence-Weighted | AI pose estimation | Window Size, Sensitivity |
 
 ## Dependencies
 
