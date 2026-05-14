@@ -34,22 +34,6 @@ Go to **Project Settings > Plugins > SimpleAIDataAsset**:
 2. When a JSON file is modified externally (e.g., by an AI tool), the plugin imports changes back to the DataAsset
 3. On startup, the plugin performs an initial sync based on file timestamps
 
-## Troubleshooting
-
-### DataAsset Not Auto-Exported After Module Migration
-
-**Symptom**: After moving a UDataAsset subclass from module A to module B (via CoreRedirects), the DA is not auto-exported to JSON after restarting the editor.
-
-**Cause**: The Asset Registry uses cache files (`Intermediate/CachedAssetRegistry*.bin`) to speed up startup. After module migration, the .uasset file itself hasn't changed on disk, so the cache retains the old class path. During initial sync, the plugin cannot identify the asset as a DataAsset subclass.
-
-**Solution**: Delete the Asset Registry cache files under the project's `Intermediate/` directory, then restart the editor:
-
-```
-del Intermediate\CachedAssetRegistry*.bin
-```
-
-After restart, the Asset Registry performs a full rescan, CoreRedirects take effect, and the plugin can discover and export the asset normally.
-
 ## Supported Engine Versions
 
 - Unreal Engine 5.2+
