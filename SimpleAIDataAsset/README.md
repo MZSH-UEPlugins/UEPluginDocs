@@ -1,6 +1,6 @@
 [English](./README.md) | [中文](./README_CN.md)
 
-# Simple AI DataAsset
+# AI DataAsset
 
 Automatic bidirectional binding between DataAssets and JSON files, enabling AI to directly modify DataAssets.
 
@@ -17,17 +17,17 @@ Automatic bidirectional binding between DataAssets and JSON files, enabling AI t
 
 ## Installation
 
-1. Copy the `SimpleAIDataAsset` folder to your project's `Plugins/` directory
+1. Copy the `AIDataAsset` folder to your project's `Plugins/` directory
 2. Restart the Unreal Editor
 3. Enable the plugin in Edit > Plugins if not already enabled
 
 ## Configuration
 
-Go to **Project Settings > Plugins > SimpleAIDataAsset**:
+Go to **Project Settings > Plugins > AIDataAsset**:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| JSON Output Directory | `Saved/SimpleAIDataAsset` | Directory where JSON files are stored (relative to project root) |
+| JSON Output Directory | `Saved/AIDataAsset` | Directory where JSON files are stored (relative to project root) |
 | Enable Auto Sync | `true` | Toggle automatic synchronization on/off |
 
 ## How It Works
@@ -42,12 +42,12 @@ This plugin is designed for AI workflows. Here's how to connect AI tools to your
 
 ### JSON File Location
 
-JSON files are stored in your project's `Saved/SimpleAIDataAsset/` directory (configurable). The path mirrors your Content Browser structure:
+JSON files are stored in your project's `Saved/AIDataAsset/` directory (configurable). The path mirrors your Content Browser structure:
 
 | Asset Path (in UE) | JSON File Path |
 |---------------------|----------------|
-| `/Game/DA_Demo` | `Saved/SimpleAIDataAsset/Content/DA_Demo.json` |
-| `/Game/Data/Characters/DA_Warrior` | `Saved/SimpleAIDataAsset/Content/Data/Characters/DA_Warrior.json` |
+| `/Game/DA_Demo` | `Saved/AIDataAsset/Content/DA_Demo.json` |
+| `/Game/Data/Characters/DA_Warrior` | `Saved/AIDataAsset/Content/Data/Characters/DA_Warrior.json` |
 
 ### JSON Format
 
@@ -78,7 +78,7 @@ The plugin automatically exports the following JSON:
 
    ```
    The game character data is at:
-   D:/MyProject/Saved/SimpleAIDataAsset/Content/
+   D:/MyProject/Saved/AIDataAsset/Content/
 
    Read DA_Demo.json, increase MaxHealth by 20% and reduce CritRate to 0.1,
    then save the file.
