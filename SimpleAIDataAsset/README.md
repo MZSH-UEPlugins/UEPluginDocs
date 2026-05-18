@@ -12,6 +12,9 @@ Automatic bidirectional binding between DataAssets and JSON files, enabling AI t
 - **Source Control Integration**: Automatically checks out files via Perforce/Git/SVN before saving
 - **Circular Prevention**: Built-in mechanism to prevent infinite sync loops
 - **High Precision**: JSON export uses full precision for float/double values
+- **Property Name Restoration**: JSON field names match editor display names instead of UE's internal camelCase
+- **Smart Write**: Only writes files when content actually changes, avoiding unnecessary version control noise
+- **Editor Undo**: JSON imports create editor transactions, fully supporting Ctrl+Z undo
 
 ## Installation
 
