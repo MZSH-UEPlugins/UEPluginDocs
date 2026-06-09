@@ -2,7 +2,7 @@
 
 # Simple Level Sequence Smooth
 
-Level sequence data filtering plugin with 12 smoothing algorithms covering mocap, real-time, and AI scenarios.
+Level sequence data filtering plugin with 12 smoothing algorithms covering mocap, post-processing, and AI scenarios.
 
 ## Features
 
