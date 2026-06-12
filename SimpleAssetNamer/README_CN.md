@@ -2,6 +2,8 @@
 
 # Simple Asset Namer 用户指南
 
+支持 UE 5.2 ~ 5.7
+
 ## 1. 设置
 
 打开 **编辑 → 项目设置 → Simple Asset Namer**
@@ -12,6 +14,7 @@
 |------|------|
 | Auto Rename on Create | 创建或导入资产时自动重命名 |
 | Auto Rename on Rename | 手动重命名后自动修正资产名称 |
+| Language | UI 语言：中文 / 英文（默认英文），实时切换所有界面文本、提示信息和日志输出 |
 
 ### 1.2 过滤器
 
@@ -133,13 +136,15 @@
 
 ### 2.2 通过右键菜单批量重命名
 
+右键菜单项统一收纳在 **Simple Asset Namer** 二级子菜单下。
+
 **资产右键菜单**
 1. 选择一个或多个资产
-2. 右键 → **Auto Rename**
+2. 右键 → **Simple Asset Namer** → **Auto Rename**
 
 **文件夹右键菜单**
 1. 右键点击文件夹
-2. 选择 **Auto Rename All Assets**
+2. **Simple Asset Namer** → **Auto Rename All Assets**
 
 ### 2.3 智能处理策略
 

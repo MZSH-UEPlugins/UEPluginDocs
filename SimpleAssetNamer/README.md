@@ -2,6 +2,8 @@
 
 # Simple Asset Namer User Guide
 
+Supports UE 5.2 ~ 5.7
+
 ## 1. Settings
 
 Open **Edit → Project Settings → Simple Asset Namer**
@@ -12,6 +14,7 @@ Open **Edit → Project Settings → Simple Asset Namer**
 |--------|-------------|
 | Auto Rename on Create | Automatically rename assets when created or imported |
 | Auto Rename on Rename | Automatically correct asset names after manual renaming |
+| Language | UI language: Chinese / English (default: English). Switches all UI text, tooltips, and log output in real-time |
 
 ### 1.2 Filter
 
@@ -133,13 +136,15 @@ Open **Edit → Project Settings → Simple Asset Namer**
 
 ### 2.2 Batch Rename via Context Menu
 
+Right-click context menu items are grouped under the **Simple Asset Namer** submenu.
+
 **Asset Context Menu**
 1. Select one or more assets
-2. Right-click → **Auto Rename**
+2. Right-click → **Simple Asset Namer** → **Auto Rename**
 
 **Folder Context Menu**
 1. Right-click on a folder
-2. Select **Auto Rename All Assets**
+2. **Simple Asset Namer** → **Auto Rename All Assets**
 
 ### 2.3 Smart Processing Strategy
 
