@@ -4,6 +4,12 @@
 
 This guide walks you through how to configure and use the SimpleWebSocket plugin to communicate via WebSocket in your Unreal Engine project.
 
+## Compatibility
+
+- Unreal Engine 5.2–5.8
+- Version 1.1.0 (Version 2)
+- [Changelog](../CHANGELOG.md)
+
 ---
 
 ## 🛠️ Plugin Settings

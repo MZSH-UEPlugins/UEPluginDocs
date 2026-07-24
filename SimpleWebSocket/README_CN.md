@@ -4,6 +4,12 @@
 
 本指南介绍如何配置和使用 SimpleWebSocket 插件在 Unreal Engine 项目中进行 WebSocket 通信。
 
+## 兼容性
+
+- Unreal Engine 5.2–5.8
+- 版本 1.1.0（Version 2）
+- [更新日志](../CHANGELOG.md)
+
 ---
 
 ## 🛠️ 插件设置
