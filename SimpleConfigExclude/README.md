@@ -2,6 +2,8 @@
 
 # SimpleConfigExclude Tutorial
 
+**Supported Unreal Engine Versions**: 5.2–5.8
+
 Visually manage which config files (.ini) are included or excluded when packaging your Unreal Engine project.
 
 ---
@@ -148,7 +150,10 @@ A: Depends on config type. Runtime configs (like Input) work, compile-time baked
 
 ---
 
+## Version History
+
+See [CHANGELOG.md](../CHANGELOG.md).
+
 ## Support
 
 For questions or feedback, please leave a comment on the Fab product page.
-
