@@ -2,7 +2,7 @@
 
 # Simple Asset Namer User Guide
 
-Supports UE 5.2 ~ 5.7
+Supports Unreal Engine 5.2–5.8
 
 ## 1. Settings
 
@@ -202,6 +202,10 @@ Settings → Asset Type Naming Rules → Click + to add new rule.
 Try fixing redirectors first: Content Browser → Right-click folder → Fix Up Redirectors in Folder, then run rename again.
 
 ---
+
+## Version History
+
+See [CHANGELOG.md](../CHANGELOG.md).
 
 ## Support
 

@@ -2,7 +2,7 @@
 
 # Simple Asset Namer 用户指南
 
-支持 UE 5.2 ~ 5.7
+支持 Unreal Engine 5.2–5.8
 
 ## 1. 设置
 
@@ -202,6 +202,10 @@
 先修复重定向器：内容浏览器 → 右键文件夹 → Fix Up Redirectors in Folder，然后重新运行重命名。
 
 ---
+
+## 版本历史
+
+参见 [CHANGELOG.md](../CHANGELOG.md)。
 
 ## 支持
 
