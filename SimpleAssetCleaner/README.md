@@ -6,7 +6,7 @@
 
 > **Important**: This plugin can delete assets from source control. Read carefully before use.
 
-**Compatibility**: UE 5.2 ~ 5.7
+**Compatibility**: Unreal Engine 5.2–5.8
 
 ---
 
@@ -155,6 +155,10 @@ The plugin automatically wraps your source control provider as a proxy to monito
 | Not under version control | Listed in confirmation dialog, user selects which to add |
 
 ---
+
+## Version History
+
+See [CHANGELOG.md](../CHANGELOG.md).
 
 ## Support
 
