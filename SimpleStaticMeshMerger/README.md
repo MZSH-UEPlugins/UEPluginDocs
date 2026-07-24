@@ -4,6 +4,12 @@
 
 This guide provides detailed instructions on how to use the SimpleStaticMeshMerger plugin to merge static mesh instances in Unreal Engine and optimize scene performance.
 
+## Compatibility
+
+- Unreal Engine 5.2–5.8
+- Version 1.1.0 (Version 2)
+- [Changelog](../CHANGELOG.md)
+
 ---
 
 ## 🛠️ Opening the Tool Window

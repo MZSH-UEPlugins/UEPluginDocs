@@ -4,6 +4,12 @@
 
 本指南详细介绍如何使用 SimpleStaticMeshMerger 插件合并静态网格体实例，优化场景性能。
 
+## 兼容性
+
+- Unreal Engine 5.2–5.8
+- 版本 1.1.0（Version 2）
+- [更新日志](../CHANGELOG.md)
+
 ---
 
 ## 🛠️ 打开工具窗口
