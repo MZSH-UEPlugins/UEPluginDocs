@@ -2,6 +2,8 @@
 
 # 📘 SimpleAutoEnum 插件教程
 
+**支持的虚幻引擎版本**：5.2–5.8
+
 **SimpleAutoEnum** 是一个轻量级插件，可将 Unreal Engine 枚举自动绑定到可配置的字符串数组。
 在项目设置中定义枚举值，插件会在运行时动态填充枚举条目。
 
@@ -73,7 +75,7 @@ enum class EDemo_StandardWeapons : uint8
     None UMETA(DisplayName = "None"),
     Max  UMETA(DisplayName = "Max")
 };
-SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_StandardWeapons, None, Max, UTestSettings, Demo_PrimaryWeaponsArray);
+SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_StandardWeapons, None, Max, USimpleAutoEnumTestSettings, Demo_PrimaryWeaponsArray);
 ```
 
 ### 示例 2：范围绑定
@@ -90,9 +92,9 @@ enum class EDemo_CombinedWeapons : uint8
     AllWeaponsEnd   UMETA(DisplayName = "--- All End ---")
 };
 // 绑定主武器（None -> PrimaryEnd）
-SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_CombinedWeapons, None, PrimaryEnd, UTestSettings, Demo_PrimaryWeaponsArray);
+SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_CombinedWeapons, None, PrimaryEnd, USimpleAutoEnumTestSettings, Demo_PrimaryWeaponsArray);
 // 绑定副武器（PrimaryEnd -> AllWeaponsEnd）
-SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_CombinedWeapons, PrimaryEnd, AllWeaponsEnd, UTestSettings, Demo_SecondaryWeaponsArray);
+SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_CombinedWeapons, PrimaryEnd, AllWeaponsEnd, USimpleAutoEnumTestSettings, Demo_SecondaryWeaponsArray);
 ```
 
 ### 示例 3：共享数组
@@ -107,7 +109,7 @@ enum class EDemo_UIColors : uint8
     None UMETA(DisplayName = "None"),
     Max  UMETA(DisplayName = "Max")
 };
-SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_UIColors, None, Max, UTestSettings, Demo_SharedColorsArray);
+SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_UIColors, None, Max, USimpleAutoEnumTestSettings, Demo_SharedColorsArray);
 
 UENUM(BlueprintType)
 enum class EDemo_ItemColors : uint8
@@ -116,7 +118,7 @@ enum class EDemo_ItemColors : uint8
     Max  UMETA(DisplayName = "Max")
 };
 // 两个枚举使用相同的配置数组
-SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_ItemColors, None, Max, UTestSettings, Demo_SharedColorsArray);
+SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_ItemColors, None, Max, USimpleAutoEnumTestSettings, Demo_SharedColorsArray);
 ```
 
 ---
@@ -148,6 +150,10 @@ SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_ItemColors, None, Max, UTestSettings, Demo_Shar
 - **建议**：在生产环境中避免重新排序现有枚举条目；仅追加新值
 
 ---
+
+## 版本历史
+
+参见 [CHANGELOG.md](../CHANGELOG.md)。
 
 ## 支持
 

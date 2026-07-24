@@ -2,6 +2,8 @@
 
 # 📘 SimpleAutoEnum Plugin Tutorial
 
+**Supported Unreal Engine Versions**: 5.2–5.8
+
 **SimpleAutoEnum** is a lightweight plugin that automatically binds Unreal Engine enums to configurable string arrays.
 Define your enum values in project settings and let the plugin dynamically populate enum entries at runtime.
 
@@ -73,7 +75,7 @@ enum class EDemo_StandardWeapons : uint8
     None UMETA(DisplayName = "None"),
     Max  UMETA(DisplayName = "Max")
 };
-SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_StandardWeapons, None, Max, UTestSettings, Demo_PrimaryWeaponsArray);
+SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_StandardWeapons, None, Max, USimpleAutoEnumTestSettings, Demo_PrimaryWeaponsArray);
 ```
 
 ### Example 2: Range Binding
@@ -90,9 +92,9 @@ enum class EDemo_CombinedWeapons : uint8
     AllWeaponsEnd   UMETA(DisplayName = "--- All End ---")
 };
 // Bind primary weapons (None -> PrimaryEnd)
-SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_CombinedWeapons, None, PrimaryEnd, UTestSettings, Demo_PrimaryWeaponsArray);
+SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_CombinedWeapons, None, PrimaryEnd, USimpleAutoEnumTestSettings, Demo_PrimaryWeaponsArray);
 // Bind secondary weapons (PrimaryEnd -> AllWeaponsEnd)
-SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_CombinedWeapons, PrimaryEnd, AllWeaponsEnd, UTestSettings, Demo_SecondaryWeaponsArray);
+SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_CombinedWeapons, PrimaryEnd, AllWeaponsEnd, USimpleAutoEnumTestSettings, Demo_SecondaryWeaponsArray);
 ```
 
 ### Example 3: Shared Array
@@ -107,7 +109,7 @@ enum class EDemo_UIColors : uint8
     None UMETA(DisplayName = "None"),
     Max  UMETA(DisplayName = "Max")
 };
-SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_UIColors, None, Max, UTestSettings, Demo_SharedColorsArray);
+SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_UIColors, None, Max, USimpleAutoEnumTestSettings, Demo_SharedColorsArray);
 
 UENUM(BlueprintType)
 enum class EDemo_ItemColors : uint8
@@ -116,7 +118,7 @@ enum class EDemo_ItemColors : uint8
     Max  UMETA(DisplayName = "Max")
 };
 // Both enums use the same configuration array
-SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_ItemColors, None, Max, UTestSettings, Demo_SharedColorsArray);
+SIMPLE_BIND_ENUM_TO_CONFIG(EDemo_ItemColors, None, Max, USimpleAutoEnumTestSettings, Demo_SharedColorsArray);
 ```
 
 ---
@@ -148,6 +150,10 @@ The plugin dynamically generates enum values based on your configuration, making
 - **Recommendation**: Avoid reordering existing enum entries in production; only append new values
 
 ---
+
+## Version History
+
+See [CHANGELOG.md](../CHANGELOG.md).
 
 ## Support
 
