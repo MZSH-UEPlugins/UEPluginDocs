@@ -5,6 +5,12 @@
 **SimpleTCPServer** 是一个为 Unreal Engine 设计的轻量级 TCP 服务器插件。  
 支持**多通道监听**、**动态配置更新**，提供完整蓝图 API 用于在运行时管理客户端连接。
 
+## 兼容性
+
+- Unreal Engine 5.2–5.8
+- 版本 1.1.0（Version 2）
+- [更新日志](../CHANGELOG.md)
+
 ---
 
 ## 🔧 插件初始化

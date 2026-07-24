@@ -5,6 +5,12 @@
 **SimpleTCPServer** is a lightweight TCP server plugin designed for Unreal Engine.  
 It supports **multi-channel listening**, **dynamic configuration updates**, and offers a fully Blueprint-exposed API for managing client connections at runtime.
 
+## Compatibility
+
+- Unreal Engine 5.2–5.8
+- Version 1.1.0 (Version 2)
+- [Changelog](../CHANGELOG.md)
+
 ---
 
 ## 🔧 Plugin Initialization
