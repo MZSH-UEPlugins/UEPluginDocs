@@ -2,6 +2,8 @@
 
 # 📘 SimpleBPInheritFix Tutorial
 
+**Supported Unreal Engine Versions**: 5.2–5.8
+
 One-click fix for the Actor Blueprint inheritance component corruption bug.
 
 > ⚠️ This plugin modifies multiple blueprints along the inheritance chain. Changes are conservative, but before committing to source control, please verify that the auto-checked-out files are the expected ones.
@@ -43,6 +45,10 @@ Pick any — ancestors, self, and descendants will all be scanned. The result is
 - Components dynamically created in Construction Script are not scanned
 
 ---
+
+## Version History
+
+See [CHANGELOG.md](../CHANGELOG.md).
 
 ## Contact
 
