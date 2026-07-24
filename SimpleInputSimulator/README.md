@@ -2,6 +2,8 @@
 
 # 📘 Simple Input Simulator Plugin Tutorial (Blueprint Edition)
 
+**Supported Unreal Engine Versions**: 5.2–5.8
+
 **Simple Input Simulator** is a lightweight input simulation plugin for Unreal Engine.
 It provides **three Blueprint functions** to simulate keyboard, mouse, and gamepad inputs programmatically.
 
@@ -89,6 +91,10 @@ Simulate mouse movement or gamepad stick input.
 - Check Output Log for detailed simulation messages (LogSimpleInputSimulator)
 
 ---
+
+## Version History
+
+See [CHANGELOG.md](../CHANGELOG.md).
 
 ## Support
 
