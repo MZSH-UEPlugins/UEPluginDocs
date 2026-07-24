@@ -2,6 +2,12 @@
 
 # SimpleSSHTunnel 用户指南
 
+## 兼容性
+
+- Unreal Engine 5.2–5.8
+- 版本 1.1.0（Version 2）
+- [更新日志](../CHANGELOG.md)
+
 ## 1. 配置 SSH 连接
 
 使用 SimpleSSHTunnel 插件前，在 **项目设置 → Engine → Simple SSH Tunnel** 中配置 SSH 连接。

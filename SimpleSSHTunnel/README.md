@@ -2,6 +2,12 @@
 
 # SimpleSSHTunnel User Guide
 
+## Compatibility
+
+- Unreal Engine 5.2–5.8
+- Version 1.1.0 (Version 2)
+- [Changelog](../CHANGELOG.md)
+
 ## 1. Configure SSH Connection
 
 To use the SimpleSSHTunnel plugin, configure the SSH connection in **Project Settings → Engine → Simple SSH Tunnel**.
