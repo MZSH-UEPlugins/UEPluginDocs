@@ -5,6 +5,12 @@
 **SimpleTCPClient** is a lightweight TCP client plugin designed for Unreal Engine.  
 It supports **runtime dynamic configuration of client channels**, and all functionality is exposed to Blueprint for easy integration.
 
+## Compatibility
+
+- Unreal Engine 5.2–5.8
+- Version 1.1.0 (Version 2)
+- [Changelog](../CHANGELOG.md)
+
 ---
 
 ## 🔧 Plugin Initialization
