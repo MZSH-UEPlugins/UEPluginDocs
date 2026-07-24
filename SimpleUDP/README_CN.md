@@ -5,6 +5,12 @@
 **SimpleUDP** 是 Unreal Engine 的轻量级 UDP 通信插件。  
 支持**运行时动态配置收发通道**，所有功能均暴露给蓝图，方便集成。
 
+## 兼容性
+
+- Unreal Engine 5.2–5.8
+- 版本 1.1.0（Version 2）
+- [更新日志](../CHANGELOG.md)
+
 ---
 
 ## 🔧 插件初始化

@@ -5,6 +5,12 @@
 **SimpleUDP** is a lightweight UDP communication plugin for Unreal Engine.  
 It supports **runtime dynamic configuration of send/receive channels**, and all functionality is exposed to Blueprint for easy integration.
 
+## Compatibility
+
+- Unreal Engine 5.2–5.8
+- Version 1.1.0 (Version 2)
+- [Changelog](../CHANGELOG.md)
+
 ---
 
 ## 🔧 Plugin Initialization
