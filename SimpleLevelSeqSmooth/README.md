@@ -4,6 +4,12 @@
 
 Level sequence data filtering plugin with 12 smoothing algorithms covering mocap, post-processing, and AI scenarios.
 
+## Compatibility
+
+- Unreal Engine 5.2–5.8
+- Version 1.1.0 (Version 2)
+- [Changelog](../CHANGELOG.md)
+
 ## Features
 
 - **12 Smoothing Algorithms** covering time-domain, frequency-domain, state estimation, adaptive, and AI-specific approaches
@@ -159,7 +165,7 @@ Auto-detects outlier frames using MAD robust statistics and reduces their weight
 
 ## Supported Engine Versions
 
-- Unreal Engine 5.2+
+- Unreal Engine 5.2–5.8
 
 ## Contact
 
