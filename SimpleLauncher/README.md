@@ -2,6 +2,12 @@
 
 # SimpleLauncher User Guide
 
+## Compatibility
+
+- Unreal Engine 5.2–5.8
+- Version 1.1.0 (Version 2)
+- [Changelog](../CHANGELOG.md)
+
 ## Quick Start
 
 Launch an external program from your game in just two steps:

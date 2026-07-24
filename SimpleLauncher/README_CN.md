@@ -2,6 +2,12 @@
 
 # SimpleLauncher 用户指南
 
+## 兼容性
+
+- Unreal Engine 5.2–5.8
+- 版本 1.1.0（Version 2）
+- [更新日志](../CHANGELOG.md)
+
 ## 快速开始
 
 只需两步从游戏中启动外部程序：
