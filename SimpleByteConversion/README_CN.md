@@ -2,6 +2,8 @@
 
 # 📘 SimpleByteConversion 插件教程（蓝图版）
 
+**支持的虚幻引擎版本**：5.2–5.8
+
 **SimpleByteConversion** 是一个为 Unreal Engine 蓝图系统设计的轻量级字节数据转换插件。  
 支持**原生类型和结构体与字节/Json 之间的双向转换**，所有功能均以蓝图节点暴露。
 
@@ -88,6 +90,10 @@
 一起使用可通过 TCP/UDP 发送结构化消息并轻松解码。
 
 ---
+
+## 版本历史
+
+参见 [CHANGELOG.md](../CHANGELOG.md)。
 
 ## 支持
 

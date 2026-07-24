@@ -2,6 +2,8 @@
 
 # 📘 SimpleByteConversion Plugin Tutorial (Blueprint Edition)
 
+**Supported Unreal Engine Versions**: 5.2–5.8
+
 **SimpleByteConversion** is a lightweight plugin designed for byte-level data conversion within Unreal Engine's Blueprint system.  
 It supports **bidirectional conversion between native types and structs (Bytes / Json)**, with all features exposed as Blueprint nodes.
 
@@ -89,7 +91,10 @@ Use them together to send structured messages via TCP/UDP and decode them easily
 
 ---
 
+## Version History
+
+See [CHANGELOG.md](../CHANGELOG.md).
+
 ## Support
 
 For questions or feedback, please leave a comment on the Fab product page.
-
