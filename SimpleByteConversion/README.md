@@ -27,7 +27,7 @@ All functionality is accessible through Blueprint nodes, with no need to manage 
 | `float`      | To / From Bytes    |
 | `double`     | To / From Bytes    |
 | `bool`       | To / From Bytes    |
-| `FString`    | To / From Bytes (UTF-8 encoded)
+| `FString`    | To / From Bytes (UTF-8 encoded) |
 
 These functions are ideal for custom protocols, lightweight storage, or binary communication.
 
@@ -95,6 +95,10 @@ Use them together to send structured messages via TCP/UDP and decode them easily
 
 See [CHANGELOG.md](../CHANGELOG.md).
 
+## Language
+
+Open **Edit → Project Settings**, select the SimpleByteConversion settings page, and set **Language** to **English** or **Chinese**. English is the default. Available user-facing UI, tooltips, notifications, and functional logs update immediately without restarting the editor. Public API names and module startup/shutdown logs remain in English.
+
 ## Support
 
-For questions or feedback, please leave a comment on the Fab product page.
+For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.

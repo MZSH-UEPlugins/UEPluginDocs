@@ -27,7 +27,7 @@
 | `float`     | 转为/转自字节 |
 | `double`    | 转为/转自字节 |
 | `bool`      | 转为/转自字节 |
-| `FString`   | 转为/转自字节（UTF-8 编码）|
+| `FString`   | 转为/转自字节（UTF-8 编码） |
 
 这些函数适用于自定义协议、轻量存储或二进制通信。
 
@@ -95,6 +95,10 @@
 
 参见 [CHANGELOG.md](../CHANGELOG.md)。
 
+## 语言
+
+打开 **编辑 → 项目设置**，进入 SimpleByteConversion 设置页，将 **Language** 设置为 **English** 或 **中文**。默认语言为英文。面向用户的界面、提示、通知和功能日志会立即更新，无需重启编辑器；公开 API 名称以及模块启动/关闭日志始终保持英文。
+
 ## 支持
 
-如有问题或反馈，请在 Fab 产品页面留言。
+如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。
