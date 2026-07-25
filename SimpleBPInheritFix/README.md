@@ -50,6 +50,10 @@ Pick any — ancestors, self, and descendants will all be scanned. The result is
 
 See [CHANGELOG.md](../CHANGELOG.md).
 
+## Language
+
+Open **Edit → Project Settings**, select the SimpleBPInheritFix settings page, and set **Language** to **English** or **Chinese**. English is the default. Available user-facing UI, tooltips, notifications, and functional logs update immediately without restarting the editor. Public API names and module startup/shutdown logs remain in English.
+
 ## Contact
 
-For questions or feedback, please leave a comment on the Fab product page.
+For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
