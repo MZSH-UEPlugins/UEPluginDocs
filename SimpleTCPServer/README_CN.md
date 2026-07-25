@@ -105,11 +105,19 @@
 - 🔌 **SimpleTCPClient 插件**  
   为客户端设计的轻量级插件，适合连接到 SimpleTCPServer 实例。
 
-- 🧩 **SimpleByteConverter 插件**  
+- 🧩 **SimpleByteConversion 插件**
   支持原生 Unreal 类型（如 FString、float、int）与 `TArray<uint8>` 之间的转换，适合构建结构化协议。
 
 ---
 
+## 版本历史
+
+参见 [CHANGELOG.md](../CHANGELOG.md)。
+
+## 语言
+
+打开 **编辑 → 项目设置**，进入 SimpleTCPServer 设置页，将 **Language** 设置为 **English** 或 **中文**。默认语言为英文。面向用户的界面、提示、通知和功能日志会立即更新，无需重启编辑器；公开 API 名称以及模块启动/关闭日志始终保持英文。
+
 ## 支持
 
-如有问题或反馈，请在 Fab 产品页面留言。
+如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。

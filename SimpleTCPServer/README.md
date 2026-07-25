@@ -105,12 +105,20 @@ Using this method is recommended for centralized management and ease of debuggin
 - 🔌 **SimpleTCPClient Plugin**  
   Lightweight plugin designed for client-side usage, ideal for connecting to a SimpleTCPServer instance.
 
-- 🧩 **SimpleByteConverter Plugin**  
+- 🧩 **SimpleByteConversion Plugin**
   Enables conversion between native Unreal types (e.g., FString, float, int) and `TArray<uint8>`, ideal for building structured protocols.
 
 ---
 
+## Version History
+
+See [CHANGELOG.md](../CHANGELOG.md).
+
+## Language
+
+Open **Edit → Project Settings**, select the SimpleTCPServer settings page, and set **Language** to **English** or **Chinese**. English is the default. Available user-facing UI, tooltips, notifications, and functional logs update immediately without restarting the editor. Public API names and module startup/shutdown logs remain in English.
+
 ## Support
 
-For questions or feedback, please leave a comment on the Fab product page.
+For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
 
