@@ -209,4 +209,4 @@
 
 ## 支持
 
-如有问题或反馈，请在 Fab 产品页面留言。
+如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。

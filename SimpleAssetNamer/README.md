@@ -209,5 +209,5 @@ See [CHANGELOG.md](../CHANGELOG.md).
 
 ## Support
 
-For questions or feedback, please leave a comment on the Fab product page.
+For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
 
