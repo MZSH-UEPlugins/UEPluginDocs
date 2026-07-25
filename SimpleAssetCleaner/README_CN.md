@@ -165,8 +165,6 @@
 
 ## 支持
 
-如有问题或反馈，请在 Fab 产品页面留言。
-
 **报告问题时请提供**：
 - Unreal Engine 版本
 - 版本控制系统（Perforce/Git/SVN）
@@ -178,3 +176,7 @@
 **兼容性**：Unreal Engine 5.2–5.8 | 已在 Windows 上测试，理论上支持所有平台
 
 **记住**：从保守开始。你可以随时删除资产，但恢复需要版本控制历史！
+
+## 联系方式
+
+如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。

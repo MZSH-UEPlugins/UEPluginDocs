@@ -162,8 +162,6 @@ See [CHANGELOG.md](../CHANGELOG.md).
 
 ## Support
 
-For questions or feedback, please leave a comment on the Fab product page.
-
 **When reporting issues include**:
 - Unreal Engine version
 - Source control system (Perforce/Git/SVN)
@@ -175,3 +173,7 @@ For questions or feedback, please leave a comment on the Fab product page.
 **Platform Support**: Tested on Windows, theoretically supports all platforms
 
 **Remember**: Start conservative. You can always delete assets later, but recovery requires source control history!
+
+## Contact
+
+For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
