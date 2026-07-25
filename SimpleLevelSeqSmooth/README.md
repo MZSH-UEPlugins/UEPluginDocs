@@ -167,6 +167,14 @@ Auto-detects outlier frames using MAD robust statistics and reduces their weight
 
 - Unreal Engine 5.2–5.8
 
+## Version History
+
+See [CHANGELOG.md](../CHANGELOG.md).
+
+## Language
+
+Open **Edit → Project Settings**, select the Simple Level Sequence Smooth settings page, and set **Language** to **English** or **Chinese**. English is the default. Available user-facing UI, tooltips, notifications, and functional logs update immediately without restarting the editor. Public API names and module startup/shutdown logs remain in English.
+
 ## Contact
 
-For questions or feedback, please leave a comment on the Fab product page.
+For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
