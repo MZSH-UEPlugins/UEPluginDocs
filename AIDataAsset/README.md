@@ -119,4 +119,8 @@ Open **Edit → Project Settings**, select the AI DataAsset settings page, and s
 
 ## Contact
 
-For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
+For questions or feedback, contact me through any of the channels below. I will take care of it when I see your message.
+
+- **Email:** [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)
+- **WeChat:** `mengzhishanghun`
+- **X:** [@mengzhishanghun](https://x.com/mengzhishanghun)

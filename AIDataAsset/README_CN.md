@@ -119,4 +119,8 @@ JSON 文件存储在项目的 `Saved/AIDataAsset/` 目录下（可配置）。�
 
 ## 联系方式
 
-如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。
+如有问题或反馈，可通过以下方式联系我。我看到后会处理。
+
+- **邮箱：** [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)
+- **微信：** `mengzhishanghun`
+- **X：** [@mengzhishanghun](https://x.com/mengzhishanghun)
