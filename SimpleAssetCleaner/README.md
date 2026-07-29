@@ -176,8 +176,6 @@ See [CHANGELOG.md](../CHANGELOG.md).
 
 ## Contact
 
-For questions or feedback, contact me through any of the channels below. I will take care of it when I see your message.
+For questions, feedback, or the UE technical discussion group, use the unified contact page below.
 
-- **Email:** [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)
-- **WeChat:** `mengzhishanghun`
-- **X:** [@mengzhishanghun](https://x.com/mengzhishanghun)
+- **Contact:** [Email, WeChat group, and X](https://mengzhishanghun.github.io/mengzhishanghun/contact/)
