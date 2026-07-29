@@ -56,8 +56,6 @@
 
 ## 联系
 
-如有问题或反馈，可通过以下方式联系我。我看到后会处理。
+如有问题、反馈或希望加入 UE 技术交流群，请访问以下统一联系方式页面。
 
-- **邮箱：** [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)
-- **微信：** `mengzhishanghun`
-- **X：** [@mengzhishanghun](https://x.com/mengzhishanghun)
+- **联系入口：** [邮箱、微信群和 X](https://mengzhishanghun.github.io/mengzhishanghun/contact/)
