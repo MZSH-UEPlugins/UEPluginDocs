@@ -25,7 +25,7 @@ The service supports `initialize`, `ping`, `tools/list`, and `tools/call`. HTTP 
 | Key | `GetKeyframes`, `SetKeyframes`, `RemoveKeyframes` | Page, write, and remove keys |
 | Camera | `AddCameraCut`, `SetCameraCut` | Create and modify camera cuts |
 | Lifecycle | `OpenAsset`, `SaveAsset`, `CloseAsset` | Open, save one asset, and verify close results |
-| Preview | `CaptureSequencerView` | Capture the current Sequencer view as PNG |
+| Preview | `CaptureSequencerView` | Capture the active level editor viewport as PNG |
 
 ## Tracks, sections, and channels
 
@@ -37,7 +37,7 @@ The service supports `initialize`, `ping`, `tools/list`, and `tools/call`. HTTP 
 
 Float and Bool property tracks require `PropertyName` and accept `PropertyPath` for nested properties. Skeletal Animation sections require `AnimationAssetPath`, validated as `AnimSequenceBase`; Audio sections require `SoundAssetPath`, validated as `SoundBase`. Event tracks currently create section containers only; they do not create Director Blueprint endpoints or event payloads.
 
-Keyframe tools support Float, Double, Bool, and Byte channel families. Use the channels returned by `GetSequenceDetail` as the authoritative editable surface for Transform, Fade, property, and other tracks.
+Keyframe tools support three channel families: Double for Transform, Float for Float/Fade, and Bool for Bool property tracks. `GetSequenceDetail` returns track and section structure but does not enumerate channels; use the `ChannelName` contract for the selected track type when calling keyframe tools.
 
 ## Time units and frame rates
 

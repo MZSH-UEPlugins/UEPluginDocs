@@ -25,7 +25,7 @@ MCP Level Sequence 是一个自包含的 Unreal Editor 插件，通过 MCP 兼�
 | Key | `GetKeyframes`、`SetKeyframes`、`RemoveKeyframes` | 分页读取、写入和删除关键帧 |
 | Camera | `AddCameraCut`、`SetCameraCut` | 创建和修改 Camera Cut |
 | 生命周期 | `OpenAsset`、`SaveAsset`、`CloseAsset` | 打开、保存指定资产并核验关闭结果 |
-| 预览 | `CaptureSequencerView` | 截取当前 Sequencer 视图并返回 PNG |
+| 预览 | `CaptureSequencerView` | 截取活动关卡编辑器视口并返回 PNG |
 
 ## Track、Section 与 Channel
 
@@ -37,7 +37,7 @@ MCP Level Sequence 是一个自包含的 Unreal Editor 插件，通过 MCP 兼�
 
 Float 与 Bool 属性轨要求 `PropertyName`，可用 `PropertyPath` 指定嵌套属性。Skeletal Animation Section 要求 `AnimationAssetPath`，并验证为 `AnimSequenceBase`；Audio Section 要求 `SoundAssetPath`，并验证为 `SoundBase`。Event Track 目前只创建 Section 容器，不创建 Director Blueprint endpoint 或事件 payload。
 
-关键帧工具支持 Float、Double、Bool 和 Byte 四类 Channel。Transform/Fade/属性轨等实际可编辑通道以 `GetSequenceDetail` 返回结果为准。
+关键帧工具支持三类 Channel：Transform 使用 Double，Float/Fade 使用 Float，Bool 属性轨使用 Bool。`GetSequenceDetail` 返回 Track 与 Section 结构，但不枚举 Channel；调用关键帧工具时应使用对应 Track 类型约定的 `ChannelName`。
 
 ## 时间单位与帧率
 
