@@ -53,6 +53,8 @@ Cursor、Windsurf、VS Code Copilot 等客户端的配置位置不同，请按�
 
 PIE 启动请求排队后即视为编辑器忙碌；`PIEControl/GetState` 与 `GetEditorState` 会区分 `Idle`、`StartQueued` 和 `Playing`，`Stop` 可取消尚未开始的排队请求。视口类型与渲染模式工具只使用已知的关卡编辑器视口，不会把资产编辑器预览视口强制下转；同时提供 ViewMode 与 ShowFlag 时会先完成两者校验再应用，错误不会留下部分渲染模式变更。
 
+`ListActors` 与 `GetSelectedActors` 返回 `ActorPath`、`FName`、`Label` 和 `LevelPath`。所有通过 `ActorName/ActorNames` 寻址现有 Actor 的工具都优先接受完整 `ActorPath`；旧的 Label/FName 只有在当前 World 中唯一命中时才会执行，多命中会拒绝操作并返回排序后的候选路径，避免对错误 Actor 进行选择、移动、属性修改或删除。Actor 被重命名或移入其他关卡后路径会变化，调用方应重新查询。
+
 ## 要求
 
 - Unreal Engine 5.2+
