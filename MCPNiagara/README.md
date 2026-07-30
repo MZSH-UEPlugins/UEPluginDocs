@@ -35,6 +35,12 @@ Limitation: UE 5.2 does not export NiagaraEditor's private merge-adapter cache i
 
 `SetRendererProperties` atomically writes 1–64 properties per call. Every name and value is first validated on a temporary renderer, then committed together with per-property PostEditChange notifications so binding rebuilds and required compile invalidation occur. Editable scalar, enum, string, name, struct, and type-compatible material-reference properties are supported. Containers, delegates, non-material object references, transient, deprecated, and non-editable properties are rejected. `RendererIndex` must be non-negative, and the tool schemas declare the same enum, count, and value-type bounds.
 
+## User parameter editing
+
+`AddUserParameter` adds a float, int, bool, Vector, Vector2, Vector4, or Color value parameter in an undo transaction and sends a system PostEditChange. `SetSystemParameters` atomically writes 1–64 existing value parameters per call: all names and values are validated and old values are snapshotted before commit. JSON booleans are stored using Niagara's `FNiagaraBool` representation. `RemoveUserParameter` uses the same public exposed-parameter removal semantics as UE 5.8 External and requires an unambiguous name.
+
+Object and data-interface parameters require typed asset or instance handling and cannot safely use text-value import, so `AddUserParameter` and `SetSystemParameters` do not claim support for them. Removal does not guess how graph references should be rewritten; callers must update references separately. UE 5.2–5.8 do not share an exported user-parameter rename and reference-propagation API, so the plugin does not depend on Private headers to offer `RenameUserParameter`.
+
 ## Validation boundary
 
 The source targets Unreal Engine 5.2 and newer. This pass performs static source verification only; real editor writes, save/reopen behavior, and multi-version packaging still require later validation.

@@ -35,6 +35,12 @@ MCP Niagara 在 Unreal Editor 中提供面向 Niagara System、Emitter、模块�
 
 `SetRendererProperties` 每次原子写入 1–64 个属性：所有名称和值先在临时 Renderer 上完成预校验，再一次性提交并逐项发送 PostEditChange，以触发绑定重建和必要的编译失效。仅允许可编辑的标量、枚举、字符串、名称、结构体及类型兼容的材质引用；容器、委托、非材质对象引用、临时、弃用和非编辑属性会被拒绝。`RendererIndex` 必须非负，工具输入 Schema 也声明相同的枚举、数量和类型边界。
 
+## User Parameter 编辑
+
+`AddUserParameter` 以撤销事务添加 float、int、bool、Vector、Vector2、Vector4 或 Color 值参数，并发送 System PostEditChange。`SetSystemParameters` 每次原子写入 1–64 个现有值参数：所有名称和值预校验并保存旧值后才提交；JSON 布尔值会按 Niagara 的 `FNiagaraBool` 表示写入。`RemoveUserParameter` 按唯一名称执行与 UE 5.8 External 相同的公开 exposed-parameter 删除语义。
+
+对象与 Data Interface 参数需要类型化资产或实例处理，不能安全地走文本值导入，因此 `AddUserParameter`/`SetSystemParameters` 不声称支持它们。删除参数不会猜测如何重写图引用，调用者应另行更新引用。UE 5.2–5.8 没有共同导出的 User Parameter 重命名及引用传播 API，本插件不依赖 Private 头绕过该边界，因而不提供 RenameUserParameter。
+
 ## 验证边界
 
 源码支持 UE 5.2 及以上版本。本轮仅完成静态源码核对；实际编辑器写入、保存、重开和跨版本打包仍需后续验证。
