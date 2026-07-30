@@ -19,7 +19,7 @@ MCP Niagara provides MCP tools in Unreal Editor for Niagara systems, emitters, m
 
 ## Module details
 
-`GetModuleDetail` inspects only modules on the selected Spawn, Update, or Event parameter-map chain, so `ModuleIndex` follows actual execution order. Duplicate names require an index; when both a name and index are supplied, they must identify the same module. `UsageId` is required when an emitter has multiple Event stages.
+`GetModuleDetail` inspects only modules on the selected Spawn, Update, or Event parameter-map chain, so `ModuleIndex` follows actual execution order. Duplicate names require an index; when both a name and index are supplied, they must identify the same module. `GetModuleDetail`, `AddModule`, `RemoveModule`, and `ReorderModule` all require `UsageId` when an emitter has multiple Event stages; successful responses return the selected output GUID.
 
 Module inputs are paged with `MaxResults` (1–256, default 100) and `Offset`. Each input reports its Niagara type and `ValueSource`; graph overrides, linked or dynamic overrides, and rapid-iteration values are distinguished explicitly. `Value` is limited to 4096 characters, and `bValueTruncated` explicitly reports truncation. Inputs without an override are reported as `ModuleDefaultOrBinding`. To remain self-contained on UE 5.2+, the tool does not depend on NiagaraEditor-internal default-topology APIs and does not guess whether that source is a module default or an internal binding.
 
