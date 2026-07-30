@@ -70,6 +70,10 @@ The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Writ
 - Member and local variable defaults are validated with Unreal's K2 pin rules before mutation; malformed UE text values are rejected.
 - Variable type changes, renames, and removals reject unsafe operations while derived Blueprint classes are unloaded. Load descendants first so inherited references can be checked; child references must be removed before deleting a declaration.
 - With automatic compilation enabled, `ModifyVariable` and `RemoveVariable` return compiler diagnostics and roll back when compilation does not reach `UpToDate` or `Warning`; when disabled, mutation results report `CompileStatus: Skipped`.
+- Component names are validated against the complete Blueprint member namespace. Ambiguous short component class names are rejected; use a full class path to disambiguate.
+- Component classes must be Blueprint-spawnable. A new SceneComponent without an explicit parent attaches to the unique local, inherited, or native scene root; ambiguous multi-root hierarchies are rejected instead of creating a second root.
+- SCS hierarchy edits snapshot the local hierarchy for Undo and roll back on compile failure. `SetRootComponent` only replaces one unambiguous local scene root, never an inherited/native root.
+- `GetComponentProperties` uses `Offset`/`MaxResults` pagination (maximum 100 properties) and truncates individual exported values at 8,192 characters while reporting affected property names.
 - Destructive asset deletion is not undoable. Without `bForce`, referenced assets are refused; forced deletion may clear references and break dependents.
 - Screenshot file output is restricted to `Saved/MCPBlueprint/Screenshots`; absolute paths and traversal are rejected.
 - Source-only compatibility review is not a substitute for compiling and testing inside each target engine version.
