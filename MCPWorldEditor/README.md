@@ -88,4 +88,12 @@ The editor becomes busy as soon as a PIE start request is queued. `PIEControl/Ge
 
 `GetWorldSettings` returns exact names and UE text values for every property currently editable on the instance. It no longer hides default-valued properties or presents read-only BlueprintVisible fields as writable discovery results. `SetWorldSettings` requires exact case, rejects property flags or `CanEditChange` conditions that disable editing, and pairs `PreEditChange` with `PostEditChangeProperty` inside the transaction. An import failure first restores the old value; if restoration also fails, the error reports the transaction rollback result, and a failed rollback means editor state may have changed.
 
+## World Partition Region Lifetime
+
+`LoadRegion` accepts only finite, strictly increasing bounds. Each axis is limited to 1,000,000 Unreal units, total volume to 1e17 cubic units, and no more than 16 MCP-created regions may remain active. A successful call returns an opaque `RegionHandle`; pass it to `UnloadRegion` to unload and release the corresponding official Editor Loader Adapter. Handles are never guessed or reused from bounds. World cleanup/map replacement and plugin module shutdown automatically release regions still owned by the plugin, after which their old handles expire.
+
+## Restricted Console Commands
+
+`ExecuteConsoleCommand` accepts only the seven documented `stat` commands, routes them through `GEngine->Exec`, and checks whether the engine actually handled the request; an unhandled command returns an error. Unreal `stat` commands toggle their viewport statistic display, so repeating one may turn the display off; they are not side-effect-free measurements. `Handled=true` in a successful result only means that the current engine instance accepted the command, not that the display is necessarily enabled. Some commands produce no text output.
+
 For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.

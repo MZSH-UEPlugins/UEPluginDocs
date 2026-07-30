@@ -84,4 +84,12 @@ PIE 启动请求排队后即视为编辑器忙碌；`PIEControl/GetState` 与 `G
 
 `GetWorldSettings` 返回当前实例上所有此刻可编辑属性的精确名称与 UE 文本值，不再只显示偏离默认值的属性，也不会把只读的 BlueprintVisible 字段当作可写入口。`SetWorldSettings` 要求大小写完全匹配，拒绝编辑标志或 `CanEditChange` 禁止的属性，并以成对的 `PreEditChange`/`PostEditChangeProperty` 通知完成事务。导入失败时会先恢复旧值；若恢复也失败，错误会报告事务回滚结果，回滚失败表示编辑器状态可能已变化。
 
+## World Partition 区域生命周期
+
+`LoadRegion` 只接受有限且逐轴递增的边界；单轴最长 1,000,000 Unreal 单位、总体积最多 1e17 立方单位，同时最多保留 16 个由 MCP 创建的活动区域。成功结果返回不可推测的 `RegionHandle`，调用 `UnloadRegion` 可卸载并释放对应的官方 Editor Loader Adapter。句柄不会按 bounds 猜测或复用；切换/清理 World 以及卸载插件模块时，插件会自动释放仍由它管理的区域，此后旧句柄会失效。
+
+## 受限控制台命令
+
+`ExecuteConsoleCommand` 只允许文档列出的七条 `stat` 命令，通过 `GEngine->Exec` 进入引擎命令链，并检查命令是否真正被处理；未处理时返回错误。UE 的 `stat` 命令切换对应的视口统计显示，重复调用可能将显示关闭；它们不是无副作用的只读测量。成功结果中的 `Handled=true` 只表示命令已由当前引擎实例处理，不表示统计显示一定处于开启状态；部分命令不会产生文本输出。
+
 如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。
