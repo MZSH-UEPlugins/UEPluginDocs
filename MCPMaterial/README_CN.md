@@ -7,7 +7,7 @@ MCPMaterial 为 Unreal Editor 提供面向 AI 客户端的材质与材质实例 
 ## 能力
 
 - 发现材质、材质实例与可用表达式类。
-- 读取材质图、连接、属性和 Scalar、Vector、Texture、Static Switch 参数。
+- 读取材质图、连接、属性和 Scalar、Vector、Texture、Sparse Volume Texture、Static Switch 参数。
 - 创建材质与材质实例，批量编辑属性、参数、表达式节点和连线。
 - 编译材质、保存资产、打开或关闭资产编辑器，以及捕获材质预览。
 - 写入工具使用事务并标记包 Dirty；调用 `SaveAsset` 前可先调用 `CompileMaterial` 验证材质。
@@ -25,12 +25,13 @@ MCPMaterial 为 Unreal Editor 提供面向 AI 客户端的材质与材质实例 
 ## 重要边界
 
 - `SetInstanceParameters` 和 `ResetInstanceParameter` 只接受可唯一定位的 Global 参数；Material Layer 与 Blend 参数需要 Association/Index 结构化寻址，当前不支持按名称写入。
-- `SetInstanceParameters` 会根据父材质当前编译资源校验纹理参数类型；2D、Cube、2D/Cube Array、Volume 与 Virtual Texture 不能互相代填。父材质没有可用资源或参数不在当前静态开关排列中时会拒绝写入。
+- `SetInstanceParameters` 会根据父材质当前编译资源校验普通纹理参数类型；2D、Cube、2D/Cube Array、Volume 与 Virtual Texture 不能互相代填。独立的 `SparseVolumeTextureParameters` 映射读取和写入 `USparseVolumeTexture`，`ResetInstanceParameter` 使用 `ParameterType: "SparseVolumeTexture"` 重置。父材质没有可用资源或参数不在当前静态开关排列中时会拒绝写入。
 - `SearchMaterialExpressions` 返回稳定的 `ClassPath`、`Creatable`、不可创建原因以及输入/输出索引。短类名发生碰撞时，`ApplyMaterialPatch` 会拒绝猜测并要求精确 `ClassPath`；同名 Pin 必须使用 `[index]` 寻址。
 - `ApplyMaterialPatch` 不创建或删除需要专用编辑器结构管理的 Composite、PinBase、Function Input/Output、Named Reroute 等节点。
 - 服务端会按工具输入 Schema 递归拒绝未知字段、缺失必填字段、错误类型和值域；原始 `tools/call` 也不能绕过该校验。`ApplyMaterialPatch` 的 Nodes、Connections、RemoveNodes 各最多 1000 项，三者合计最多 2000 次操作。分页、预览尺寸、图布局间距、连接索引和参数类型等已知边界会在执行前校验。
 - 默认 HTTP 请求体上限为 1 MiB，JSON-RPC 响应体上限为 8 MiB，可在 Project Settings 的 MCP Material 设置中调整。`CapturePreview` 最大为 1024×1024，且压缩 PNG 不得超过 4 MiB。工具结果超限时会保留真实成功/失败终态并省略过大的内容；成功写工具不得仅因结果被省略而盲目重试。
-- `GetMaterialDetail` 对节点使用 `NodeOffset`/`MaxNodes`、对连接使用 `ConnectionOffset`/`MaxConnections`；`GetMaterialParameters` 按 Scalar、Vector、Texture、StaticSwitch 顺序使用统一 `Offset`/`MaxResults` 游标。响应会返回总数、当前返回数和下一游标，单页上限均为 1000。
+- `GetMaterialDetail` 对节点使用 `NodeOffset`/`MaxNodes`、对连接使用 `ConnectionOffset`/`MaxConnections`；`GetMaterialParameters` 按 Scalar、Vector、Texture、SparseVolumeTexture、StaticSwitch 顺序使用统一 `Offset`/`MaxResults` 游标。响应会返回总数、当前返回数和下一游标，单页上限均为 1000。
+- DoubleVector、Font、Runtime Virtual Texture、Texture/Parameter Collection 等高级实例参数尚未纳入名称映射写入，因为其值类型和编辑器 API 在 UE 5.2+ 间并非同一稳定契约；请使用 Material Editor 处理这些类型。
 - `SetMaterialProperties` 与 `ApplyMaterialPatch.Defaults` 会按最终属性组合拒绝当前被条件禁用的属性。创建的资产先处于内存 Dirty 状态，必须显式调用 `SaveAsset` 才会写入磁盘；底层保存失败会返回 MCP 错误终态，而不是成功响应中的警告。
 - JSON-RPC 仅把缺少 `id` 字段的消息视为通知；显式 `id:null` 仍会收到带空 id 的响应。
 - 超时不能强制终止已被 GameThread 认领的编辑器操作；收到超时错误后应先核对编辑器状态，再决定是否重试。

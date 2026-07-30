@@ -7,7 +7,7 @@ MCPMaterial exposes Unreal Editor material and material-instance workflows to AI
 ## Capabilities
 
 - Discover materials, material instances, and available expression classes.
-- Read material graphs, connections, properties, and Scalar, Vector, Texture, and Static Switch parameters.
+- Read material graphs, connections, properties, and Scalar, Vector, Texture, Sparse Volume Texture, and Static Switch parameters.
 - Create materials and material instances, then batch-edit properties, parameters, expression nodes, and connections.
 - Compile materials, save assets, open or close asset editors, and capture material previews.
 - Write tools use transactions and mark packages dirty. Call `CompileMaterial` before `SaveAsset` when the material must be validated first.
@@ -25,12 +25,13 @@ Write, compile, and save tools reject targets that are still open in an asset ed
 ## Important boundaries
 
 - `SetInstanceParameters` and `ResetInstanceParameter` accept only uniquely identified Global parameters. Material Layer and Blend parameters require structured Association/Index addressing and cannot currently be written by name.
-- `SetInstanceParameters` validates texture parameters against the parent material's current compiled resource. 2D, Cube, 2D/Cube Array, Volume, and Virtual textures are not interchangeable. The write is rejected when the parent has no usable resource or the parameter is absent from the active static-switch permutation.
+- `SetInstanceParameters` validates ordinary texture parameters against the parent material's current compiled resource. 2D, Cube, 2D/Cube Array, Volume, and Virtual textures are not interchangeable. The dedicated `SparseVolumeTextureParameters` map reads and writes `USparseVolumeTexture` assets, and `ResetInstanceParameter` uses `ParameterType: "SparseVolumeTexture"`. The write is rejected when the parent has no usable resource or the parameter is absent from the active static-switch permutation.
 - `SearchMaterialExpressions` returns a stable `ClassPath`, `Creatable`, an uncreatable reason, and input/output indices. When short class names collide, `ApplyMaterialPatch` rejects guessing and requires an exact `ClassPath`; duplicate pin names must be addressed as `[index]`.
 - `ApplyMaterialPatch` does not create or remove Composite, PinBase, Function Input/Output, Named Reroute, or other nodes that require specialized editor-managed structure.
 - The server recursively enforces every tool input schema, rejecting unknown fields, missing required fields, invalid types, and out-of-range values even for raw `tools/call` requests. `ApplyMaterialPatch` allows at most 1,000 items in each of Nodes, Connections, and RemoveNodes, with a combined limit of 2,000 operations. Known pagination, preview-size, graph-spacing, connection-index, and parameter-type bounds are validated before execution.
 - HTTP request bodies default to a 1 MiB limit and JSON-RPC response bodies to 8 MiB; both are configurable in the MCP Material project settings. `CapturePreview` is capped at 1024×1024 and rejects compressed PNG data larger than 4 MiB. Oversized tool results preserve the real success/error terminal state while omitting excessive content; do not blindly retry a successful write tool solely because its result was omitted.
-- `GetMaterialDetail` uses `NodeOffset`/`MaxNodes` for nodes and `ConnectionOffset`/`MaxConnections` for connections. `GetMaterialParameters` uses one `Offset`/`MaxResults` cursor across Scalar, Vector, Texture, and StaticSwitch in that order. Responses include totals, returned counts, and next cursors; every page is capped at 1000 entries.
+- `GetMaterialDetail` uses `NodeOffset`/`MaxNodes` for nodes and `ConnectionOffset`/`MaxConnections` for connections. `GetMaterialParameters` uses one `Offset`/`MaxResults` cursor across Scalar, Vector, Texture, SparseVolumeTexture, and StaticSwitch in that order. Responses include totals, returned counts, and next cursors; every page is capped at 1000 entries.
+- Advanced instance parameters such as DoubleVector, Font, Runtime Virtual Texture, and Texture/Parameter Collection are not exposed through the name-map write contract because their value types and editor APIs do not form one stable UE 5.2+ contract. Use the Material Editor for those types.
 - `SetMaterialProperties` and `ApplyMaterialPatch.Defaults` reject properties disabled by the final property combination. Newly created assets remain dirty in memory until `SaveAsset` is called explicitly; an underlying save failure returns an MCP error terminal state instead of a warning inside a successful result.
 - JSON-RPC treats only messages without an `id` member as notifications; an explicit `id:null` still receives a response with a null id.
 - A timeout cannot forcibly stop an editor operation after the GameThread has claimed it. After a timeout error, inspect editor state before retrying.
