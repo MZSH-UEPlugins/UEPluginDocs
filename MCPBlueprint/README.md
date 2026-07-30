@@ -1,0 +1,86 @@
+[English](./README.md) | [中文](./README_CN.md)
+
+# MCPBlueprint
+
+MCPBlueprint is a self-contained Unreal Editor plugin that exposes Blueprint discovery, graph editing, members, components, asset lifecycle operations, and compile feedback through MCP over HTTP. It supports Unreal Engine 5.2 and later and does not depend on another user plugin.
+
+## Connection
+
+The default endpoint is `http://127.0.0.1:8766/mcp`. If that port is occupied, the server tries the next ports and the toolbar displays the actual endpoint. Add that URL as an HTTP MCP server in your AI client.
+
+The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Write operations run on the game thread, participate in editor transactions where Unreal supports Undo, mark assets dirty, and do not save automatically.
+
+## Tools (38)
+
+### Discovery and reading
+
+| Tool | Purpose |
+|---|---|
+| `ListBlueprints` | List Blueprint assets with stable bounded pagination. |
+| `GetBlueprintOverview` | Read graphs, variables, functions, components, interfaces, and parent class. |
+| `GetGraphDetail` | Read graph nodes, pins, defaults, and links. |
+| `SearchGraphNodes` | Search Blueprint action spawners and return stable `SpawnerId` values. |
+| `GetCompileErrors` | Compile and return the authoritative Blueprint status and diagnostics. |
+
+### Variables, functions, and events
+
+| Tool | Purpose |
+|---|---|
+| `AddVariable` / `ModifyVariable` / `RemoveVariable` | Manage Blueprint member variables. |
+| `CreateFunction` | Create a function or override with validated input/output signatures. |
+| `CreateCustomEvent` / `AddEventNode` / `AddBoundEvent` | Add custom, engine, component, or level-actor events. |
+| `AddLocalVariable` | Add a function-local variable. |
+| `AddNodePin` | Add supported dynamic pins to Sequence, container, and Switch nodes. |
+| `AddInterface` | Implement a Blueprint interface. |
+| `AddEventDispatcher` | Create a multicast event dispatcher with an optional signature. |
+
+### Graph editing
+
+| Tool | Purpose |
+|---|---|
+| `ApplyGraphPatch` | Apply bounded node create/remove, connect/disconnect, defaults, and layout changes as one declarative transaction. |
+| `SetPinDefaults` | Set validated literal defaults on existing input pins. |
+| `FormatGraph` | Lay out a whole graph or a selected node set. |
+
+### Actor Blueprint components and defaults
+
+| Tool | Purpose |
+|---|---|
+| `GetComponents` / `GetComponentProperties` | Read the local SCS hierarchy and editable component-template properties. |
+| `AddComponent` / `DuplicateComponent` / `RenameComponent` / `RemoveComponent` | Manage local SCS components. |
+| `ReparentComponent` / `SetRootComponent` | Edit the local SceneComponent hierarchy. |
+| `SetComponentProperties` | Atomically import editable component-template values in Unreal text format. |
+| `SetClassDefaults` | Atomically set editable Class Default Object values. |
+
+### Asset lifecycle and capture
+
+| Tool | Purpose |
+|---|---|
+| `CreateBlueprint` | Create an in-memory Blueprint asset under `/Game`. |
+| `CompileBlueprint` | Compile and return authoritative status and diagnostics. |
+| `SaveAsset` / `OpenAsset` / `CloseAsset` | Save or control the editor for a standalone Blueprint asset. |
+| `DeleteAsset` / `RenameAsset` / `DuplicateAsset` | Manage standalone Blueprint assets. |
+| `CaptureGraphScreenshot` | Return a PNG and optionally save it below `Saved/MCPBlueprint/Screenshots`. |
+
+## Safety and behavior boundaries
+
+- New or moved Blueprint asset paths must be valid standalone package paths under `/Game`; existing in-memory and on-disk package collisions are rejected.
+- Level Blueprints can be read and graph-edited by object path, but `SaveAsset`, `DeleteAsset`, `RenameAsset`, and `DuplicateAsset` do not operate on them because those actions affect the owning level package. Use a World Editor workflow for the level itself.
+- `CloseAsset` reports whether an editor was open and verifies that all editors for the Blueprint and its subobjects actually closed; cancellation is returned as an error.
+- Destructive asset deletion is not undoable. Without `bForce`, referenced assets are refused; forced deletion may clear references and break dependents.
+- Screenshot file output is restricted to `Saved/MCPBlueprint/Screenshots`; absolute paths and traversal are rejected.
+- Source-only compatibility review is not a substitute for compiling and testing inside each target engine version.
+
+## Configuration
+
+Open **Project Settings > Plugins > MCP Blueprint**.
+
+| Setting | Default | Description |
+|---|---:|---|
+| Port | 8766 | First HTTP port to try. |
+| Auto Start | true | Start the server when the editor module loads. |
+| Request Timeout | 30 seconds | Normal tool timeout. |
+| Compile Timeout | 120 seconds | Compile/patch timeout. |
+| Auto Compile After Modify | true | Compile after supported write operations. |
+
+For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
