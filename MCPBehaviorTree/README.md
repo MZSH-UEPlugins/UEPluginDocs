@@ -46,7 +46,7 @@ Supported key types are `Bool`, `Int`, `Float`, `Vector`, `Rotator`, `Name`, `St
 
 ## Editing behavior
 
-Editing tools use Unreal transactions and mark affected packages dirty. Node properties use Unreal import-text strings; for example, booleans use `true`/`false`, enums use their names, and vectors use `(X=0.0,Y=0.0,Z=0.0)`. Blackboard selector properties take a Blackboard key name and are validated against the selector's native type filters.
+Editing tools use Unreal transactions and mark affected packages dirty. Node properties use Unreal import-text strings; for example, booleans use `true`/`false`, enums use their names, and vectors use `(X=0.0,Y=0.0,Z=0.0)`. Property maps accept string values only, and a failed import leaves the property's previous value unchanged. Blackboard selector properties take a Blackboard key name and are validated against the selector's native type filters.
 
 `SimpleParallel` has `Default` and `Background` output pins. Use `ParentOutputPin="Background"` when adding or moving the background subtree. Run validation before saving; validation reports structural errors, missing classes, invalid key bindings, invalid decorator abort modes, and unconnected nodes.
 

@@ -46,7 +46,7 @@ MCP Behavior Tree 是一个自包含的 Unreal Editor 插件，可通过 Model C
 
 ## 编辑行为
 
-编辑工具使用 Unreal 事务，并将受影响的包标记为脏。节点属性采用 Unreal import-text 字符串：布尔值使用 `true`/`false`，枚举使用名称，向量使用 `(X=0.0,Y=0.0,Z=0.0)`。黑板选择器属性接收黑板键名，并按选择器的原生类型过滤器验证。
+编辑工具使用 Unreal 事务，并将受影响的包标记为脏。节点属性采用 Unreal import-text 字符串：布尔值使用 `true`/`false`，枚举使用名称，向量使用 `(X=0.0,Y=0.0,Z=0.0)`。属性映射只接受字符串值；导入失败时会保留该属性原值。黑板选择器属性接收黑板键名，并按选择器的原生类型过滤器验证。
 
 `SimpleParallel` 具有 `Default` 与 `Background` 输出引脚。添加或移动后台子树时使用 `ParentOutputPin="Background"`。保存前应运行验证；验证会报告结构错误、缺失类、无效键绑定、无效装饰器中止模式和未连接节点。
 
