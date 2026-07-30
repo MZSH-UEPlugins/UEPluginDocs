@@ -92,4 +92,8 @@ PIE 启动请求排队后即视为编辑器忙碌；`PIEControl/GetState` 与 `G
 
 `ExecuteConsoleCommand` 只允许文档列出的七条 `stat` 命令，通过 `GEngine->Exec` 进入引擎命令链，并检查命令是否真正被处理；未处理时返回错误。UE 的 `stat` 命令切换对应的视口统计显示，重复调用可能将显示关闭；它们不是无副作用的只读测量。成功结果中的 `Handled=true` 只表示命令已由当前引擎实例处理，不表示统计显示一定处于开启状态；部分命令不会产生文本输出。
 
+## Material Instance 资产持久化
+
+`CreateMaterialInstance` 只允许在项目 `/Game/...` 根下、且不属于 Developers 或生成的 ExternalActors/ExternalObjects 目录的合法新包路径。工具会同时拒绝内存或磁盘上已存在的包，创建后通过官方 `EditorAssetSubsystem` 保存，并核验实际对象路径、磁盘包可发现且 package 不再为 dirty；只有全部成立才返回 `Saved=true`。保存或类型/路径校验失败时，只会在返回对象精确匹配本次目标时强制清理；只有目标对象、内存包和磁盘包均不再存在才报告清理成功。异常对象不匹配目标时拒绝盲删，并明确提示可能残留部分状态。资产创建本身不属于普通 Undo 事务；但失败清理使用 UE Force Delete，可能清空编辑器已有的 Undo 历史。
+
 如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。

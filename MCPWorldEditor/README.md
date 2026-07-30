@@ -96,4 +96,8 @@ The editor becomes busy as soon as a PIE start request is queued. `PIEControl/Ge
 
 `ExecuteConsoleCommand` accepts only the seven documented `stat` commands, routes them through `GEngine->Exec`, and checks whether the engine actually handled the request; an unhandled command returns an error. Unreal `stat` commands toggle their viewport statistic display, so repeating one may turn the display off; they are not side-effect-free measurements. `Handled=true` in a successful result only means that the current engine instance accepted the command, not that the display is necessarily enabled. Some commands produce no text output.
 
+## Material Instance Asset Persistence
+
+`CreateMaterialInstance` accepts only a valid new package path under the project's `/Game/...` root and rejects Developers plus generated ExternalActors/ExternalObjects directories. It rejects packages already present in memory or on disk, then saves the created asset through the official `EditorAssetSubsystem`. Success requires the exact expected object path, a discoverable on-disk package, and a clean package, and returns `Saved=true`. On type, path, or persistence failure, cleanup is force-deleted only when the returned object exactly matches this call's target, and succeeds only when the target object, in-memory package, and on-disk package are all absent afterward. An unexpected object is never blindly deleted, and the error warns that partial state may remain. Asset creation itself is not a normal Undo transaction; however, failure cleanup uses Unreal Force Delete and may clear the editor's existing Undo history.
+
 For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
