@@ -31,7 +31,8 @@ MCPMaterial 为 Unreal Editor 提供面向 AI 客户端的材质与材质实例 
 - 服务端会按工具输入 Schema 递归拒绝未知字段、缺失必填字段、错误类型和值域；原始 `tools/call` 也不能绕过该校验。`ApplyMaterialPatch` 的 Nodes、Connections、RemoveNodes 各最多 1000 项，三者合计最多 2000 次操作。分页、预览尺寸、图布局间距、连接索引和参数类型等已知边界会在执行前校验。
 - 默认 HTTP 请求体上限为 1 MiB，JSON-RPC 响应体上限为 8 MiB，可在 Project Settings 的 MCP Material 设置中调整。`CapturePreview` 最大为 1024×1024，且压缩 PNG 不得超过 4 MiB。工具结果超限时会保留真实成功/失败终态并省略过大的内容；成功写工具不得仅因结果被省略而盲目重试。
 - `GetMaterialDetail` 对节点使用 `NodeOffset`/`MaxNodes`、对连接使用 `ConnectionOffset`/`MaxConnections`；`GetMaterialParameters` 按 Scalar、Vector、Texture、StaticSwitch 顺序使用统一 `Offset`/`MaxResults` 游标。响应会返回总数、当前返回数和下一游标，单页上限均为 1000。
-- 创建的资产先处于内存 Dirty 状态，必须显式调用 `SaveAsset` 才会写入磁盘。
+- `SetMaterialProperties` 与 `ApplyMaterialPatch.Defaults` 会按最终属性组合拒绝当前被条件禁用的属性。创建的资产先处于内存 Dirty 状态，必须显式调用 `SaveAsset` 才会写入磁盘；底层保存失败会返回 MCP 错误终态，而不是成功响应中的警告。
+- JSON-RPC 仅把缺少 `id` 字段的消息视为通知；显式 `id:null` 仍会收到带空 id 的响应。
 - 超时不能强制终止已被 GameThread 认领的编辑器操作；收到超时错误后应先核对编辑器状态，再决定是否重试。
 
 如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。
