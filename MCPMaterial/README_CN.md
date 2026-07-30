@@ -30,6 +30,7 @@ MCPMaterial 为 Unreal Editor 提供面向 AI 客户端的材质与材质实例 
 - `ApplyMaterialPatch` 不创建或删除需要专用编辑器结构管理的 Composite、PinBase、Function Input/Output、Named Reroute 等节点。
 - 工具输入 Schema 会拒绝未知的顶层字段；`ApplyMaterialPatch`、属性映射与实例参数映射也会递归校验嵌套字段和值类型。分页、预览尺寸、图布局间距、连接索引和参数类型等已知边界会在调用前校验。
 - 默认 HTTP 请求体上限为 1 MiB，JSON-RPC 响应体上限为 8 MiB，可在 Project Settings 的 MCP Material 设置中调整。`CapturePreview` 最大为 1024×1024，且压缩 PNG 不得超过 4 MiB。工具结果超限时会保留真实成功/失败终态并省略过大的内容；成功写工具不得仅因结果被省略而盲目重试。
+- `GetMaterialDetail` 对节点使用 `NodeOffset`/`MaxNodes`、对连接使用 `ConnectionOffset`/`MaxConnections`；`GetMaterialParameters` 按 Scalar、Vector、Texture、StaticSwitch 顺序使用统一 `Offset`/`MaxResults` 游标。响应会返回总数、当前返回数和下一游标，单页上限均为 1000。
 - 创建的资产先处于内存 Dirty 状态，必须显式调用 `SaveAsset` 才会写入磁盘。
 - 超时不能强制终止已被 GameThread 认领的编辑器操作；收到超时错误后应先核对编辑器状态，再决定是否重试。
 

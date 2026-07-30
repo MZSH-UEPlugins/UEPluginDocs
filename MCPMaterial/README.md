@@ -30,6 +30,7 @@ Write, compile, and save tools reject targets that are still open in an asset ed
 - `ApplyMaterialPatch` does not create or remove Composite, PinBase, Function Input/Output, Named Reroute, or other nodes that require specialized editor-managed structure.
 - Tool input schemas reject unknown top-level fields. `ApplyMaterialPatch`, property maps, and instance-parameter maps also validate nested fields and value types recursively. Known pagination, preview-size, graph-spacing, connection-index, and parameter-type bounds are validated before execution.
 - HTTP request bodies default to a 1 MiB limit and JSON-RPC response bodies to 8 MiB; both are configurable in the MCP Material project settings. `CapturePreview` is capped at 1024×1024 and rejects compressed PNG data larger than 4 MiB. Oversized tool results preserve the real success/error terminal state while omitting excessive content; do not blindly retry a successful write tool solely because its result was omitted.
+- `GetMaterialDetail` uses `NodeOffset`/`MaxNodes` for nodes and `ConnectionOffset`/`MaxConnections` for connections. `GetMaterialParameters` uses one `Offset`/`MaxResults` cursor across Scalar, Vector, Texture, and StaticSwitch in that order. Responses include totals, returned counts, and next cursors; every page is capped at 1000 entries.
 - Newly created assets remain dirty in memory until `SaveAsset` is called explicitly.
 - A timeout cannot forcibly stop an editor operation after the GameThread has claimed it. After a timeout error, inspect editor state before retrying.
 
