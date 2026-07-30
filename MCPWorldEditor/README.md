@@ -19,6 +19,9 @@ Project Settings > Plugins > MCP World Editor:
 | Port | int32 | 8764 | HTTP port (auto-increment if occupied, up to 10 retries) |
 | bAutoStart | bool | true | Auto-start server on editor launch |
 | RequestTimeoutSeconds | int32 | 30 | Tool execution timeout |
+| MaxRequestBodyBytes | int32 | 1048576 | Maximum HTTP request body accepted before UTF-8/JSON parsing |
+| MaxResponseBodyBytes | int32 | 8388608 | Maximum UTF-8 JSON response; screenshot Base64 content shares this budget |
+| MaxCapturePixels | int32 | 8294400 | Maximum pixels read by `CaptureViewport` (approximately 4K by default) |
 
 ## MCP Connection
 
@@ -45,6 +48,10 @@ Add to `~/.claude/.mcp.json` (global) or project root `.mcp.json`:
 ### Other AI Clients
 
 MCP client configuration varies by tool (Cursor, Windsurf, VS Code Copilot, etc.). The server URL is the same — consult your AI tool's documentation for how to add an MCP server.
+
+A tool request that times out before the Game Thread claims it is cancelled and may be retried after the editor becomes available. If the Game Thread already claimed it, the error content reports `code=timeout_execution_in_progress`, `retryable=false`, and `stateMayHaveChanged=true`; the operation may still finish, so clients must inspect editor state instead of retrying blindly.
+
+The response-size check runs after tool execution. If a `tools/call` result exceeds the budget, JSON-RPC error data reports `code=response_too_large`, `retryable=false`, and `stateMayHaveChanged=true`; this does not mean the tool was rolled back, so clients must inspect editor state before any retry.
 
 ## Requirements
 

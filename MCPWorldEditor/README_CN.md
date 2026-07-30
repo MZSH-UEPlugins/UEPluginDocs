@@ -19,6 +19,9 @@ MCPWorldEditor 在 Unreal Editor 内运行 HTTP 服务，将 Actor 创建、变�
 | Port | int32 | 8764 | HTTP 端口；占用时最多自动递增重试 10 次 |
 | bAutoStart | bool | true | 编辑器启动时自动启动服务 |
 | RequestTimeoutSeconds | int32 | 30 | 工具执行超时时间 |
+| MaxRequestBodyBytes | int32 | 1048576 | UTF-8/JSON 解析前允许的最大 HTTP 请求体 |
+| MaxResponseBodyBytes | int32 | 8388608 | 允许返回的最大 UTF-8 JSON 响应；截图 Base64 也受此预算约束 |
+| MaxCapturePixels | int32 | 8294400 | `CaptureViewport` 允许读取的最大像素数（默认约为 4K） |
 
 ## MCP 连接
 
@@ -41,6 +44,10 @@ MCPWorldEditor 在 Unreal Editor 内运行 HTTP 服务，将 Actor 创建、变�
 ### 其他 AI 客户端
 
 Cursor、Windsurf、VS Code Copilot 等客户端的配置位置不同，请按对应客户端文档添加同一 MCP 服务地址。
+
+工具请求在进入 Game Thread 前超时会被取消，可在安全确认后重试。若请求已被 Game Thread 领取，错误内容会返回 `code=timeout_execution_in_progress`、`retryable=false` 与 `stateMayHaveChanged=true`；此时操作仍可能完成，调用方必须先查询编辑器状态，不能盲目重试。
+
+响应大小在工具执行完成后核验。若 `tools/call` 的结果超出预算，JSON-RPC 错误数据会返回 `code=response_too_large`、`retryable=false` 与 `stateMayHaveChanged=true`；这不表示工具被回滚，调用方同样必须先核验编辑器状态。
 
 ## 要求
 
