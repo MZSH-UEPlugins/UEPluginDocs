@@ -12,7 +12,7 @@ The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Writ
 
 Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments`. Browser-style `Origin` headers are accepted only for `localhost`, `127.0.0.1`, or `[::1]`; non-browser clients may omit `Origin`.
 
-## Tools (38)
+## Tools (39)
 
 ### Discovery and reading
 
@@ -52,7 +52,7 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 | `AddComponent` / `DuplicateComponent` / `RenameComponent` / `RemoveComponent` | Manage local SCS components. |
 | `ReparentComponent` / `SetRootComponent` | Edit the local SceneComponent hierarchy. |
 | `SetComponentProperties` | Atomically import editable component-template values in Unreal text format. |
-| `SetClassDefaults` | Atomically set editable Class Default Object values. |
+| `GetClassDefaults` / `SetClassDefaults` | Read paginated editable Class Default Object values, then atomically set reviewed values. |
 
 ### Asset lifecycle and capture
 
@@ -75,7 +75,9 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 - Component names are validated against the complete Blueprint member namespace. Ambiguous short component class names are rejected; use a full class path to disambiguate.
 - Component classes must be Blueprint-spawnable. A new SceneComponent without an explicit parent attaches to the unique local, inherited, or native scene root; ambiguous multi-root hierarchies are rejected instead of creating a second root.
 - SCS hierarchy edits snapshot the local hierarchy for Undo and roll back on compile failure. `SetRootComponent` only replaces one unambiguous local scene root, never an inherited/native root.
-- `GetComponentProperties` uses `Offset`/`MaxResults` pagination (maximum 100 properties) and truncates individual exported values at 8,192 characters while reporting affected property names.
+- `GetComponentProperties` uses `Offset`/`MaxResults` pagination (maximum 100 properties), truncates individual exported values at 8,192 characters, and applies an overall serialized property budget with continuation metadata.
+- `GetClassDefaults` uses the exact editable-property filter enforced by `SetClassDefaults`, returns stable pagination with declaring-class/inheritance metadata, and bounds individual values at 8,192 characters plus an overall serialized property budget.
+- Native fixed-array reflection properties (`ArrayDim > 1`) are omitted from Class Default and component-template property maps because the map protocol cannot address individual fixed-array elements safely; ordinary `TArray` properties remain supported through UE text format.
 - `GetBlueprintOverview` applies stable `Offset`/`MaxResults` pagination to every section (maximum 50 requested entries per section), bounds each section by serialized output budget, bounds variable defaults at 8,192 characters, and returns at most 16 input and 16 output signature pins per function.
 - `GetComponents` returns a stable paginated flat local list and inherited list (maximum 100 entries each), plus a local hierarchy tree capped at 200 nodes and depth 64. Flat traversal uses an explicit stack and reports truncation above 10,000 components or depth 256.
 - `GetGraphDetail` returns at most 25 stably ordered nodes per call under a serialized page budget. Each node exposes independently paginated visible pins (maximum 64), with a per-node pin budget, at most eight bounded links per pin, and explicit truncation/continuation metadata.
