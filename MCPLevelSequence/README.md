@@ -61,7 +61,7 @@ Mutation and save tools accept only valid `/Game/...` Level Sequence paths. Read
 
 A successful edit only marks the package dirty; it never saves implicitly. `SaveAsset` saves only the specified Level Sequence package. After requesting a close, `CloseAsset` queries editors for the asset and its subobjects again; if an editor refuses to close, the tool reports failure instead of a false success.
 
-Binding and track removal cascade through owned objects and reject destructive operations when an invalid, locked, or read-only section is present. Name selectors report ambiguity instead of choosing the first match. Prefer `BindingId` from `ListBindings` and `TrackName` from `GetSequenceDetail`.
+Binding and track removal cascade through owned objects. Binding removal also removes local Camera Cut sections that reference the subtree in the same transaction. Destructive operations are rejected for invalid, locked, read-only, or unresolved non-local Camera Cut sequence references. Name selectors report ambiguity instead of choosing the first match. Prefer `BindingId` from `ListBindings` and `TrackName` from `GetSequenceDetail`.
 
 ## Call example
 

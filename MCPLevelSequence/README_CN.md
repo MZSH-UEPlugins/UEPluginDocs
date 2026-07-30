@@ -61,7 +61,7 @@ Float 与 Bool 属性轨要求 `PropertyName`，可用 `PropertyPath` 指定嵌�
 
 编辑成功只会将包标记为 dirty，不会隐式保存。调用 `SaveAsset` 只保存指定 Level Sequence 的 package。`CloseAsset` 发出关闭请求后会再次查询该资产及其子对象的编辑器实例；若编辑器拒绝关闭，工具会返回失败而不是误报成功。
 
-删除 Binding 或 Track 会级联处理其下级对象，并在遇到无效、锁定或只读 Section 时拒绝破坏性操作。名称选择器存在重名时会报歧义；优先使用 `ListBindings` 返回的 `BindingId` 和 `GetSequenceDetail` 返回的 `TrackName`。
+删除 Binding 或 Track 会级联处理其下级对象；删除 Binding 还会在同一事务中移除引用该子树的本地 Camera Cut Section。遇到无效、锁定、只读或无法安全解析的非本地 Camera Cut 序列引用时会拒绝破坏性操作。名称选择器存在重名时会报歧义；优先使用 `ListBindings` 返回的 `BindingId` 和 `GetSequenceDetail` 返回的 `TrackName`。
 
 ## 调用示例
 
