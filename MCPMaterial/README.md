@@ -25,6 +25,7 @@ Write, compile, and save tools reject targets that are still open in an asset ed
 ## Important boundaries
 
 - `SetInstanceParameters` and `ResetInstanceParameter` accept only uniquely identified Global parameters. Material Layer and Blend parameters require structured Association/Index addressing and cannot currently be written by name.
+- `SearchMaterialExpressions` returns a stable `ClassPath` and input/output indices. When short class names collide, `ApplyMaterialPatch` rejects guessing and requires an exact `ClassPath`; duplicate pin names must be addressed as `[index]`.
 - `ApplyMaterialPatch` does not create or remove Composite, PinBase, Function Input/Output, Named Reroute, or other nodes that require specialized editor-managed structure.
 - Newly created assets remain dirty in memory until `SaveAsset` is called explicitly.
 - A timeout cannot forcibly stop an editor operation after the GameThread has claimed it. After a timeout error, inspect editor state before retrying.
