@@ -12,7 +12,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 请求必须使用 JSON-RPC `2.0`，且 `params` 与工具 `arguments` 必须是对象。浏览器风格的 `Origin` 仅允许 `localhost`、`127.0.0.1` 或 `[::1]`；非浏览器客户端可以不发送 `Origin`。
 
-## 工具（39 个）
+## 工具（40 个）
 
 ### 发现与读取
 
@@ -20,6 +20,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 |---|---|
 | `ListBlueprints` | 使用稳定且有上限的分页列出蓝图资产。 |
 | `GetBlueprintOverview` | 读取图表、变量、函数、组件、接口与父类。 |
+| `ListBlueprintMembers` | 使用统一稳定分页列出函数、Custom Event、Dispatcher 与局部变量。 |
 | `GetGraphDetail` | 读取图表节点、Pin、默认值和连接。 |
 | `SearchGraphNodes` | 搜索蓝图动作并返回稳定的 `SpawnerId`。 |
 | `GetCompileErrors` | 编译并返回蓝图权威状态与诊断。 |
@@ -79,6 +80,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 - `GetClassDefaults` 使用与 `SetClassDefaults` 完全一致的可编辑属性筛选，返回稳定分页及声明类/继承元数据，并同时限制单值为 8,192 个字符和整体序列化属性预算。
 - Class Default 与组件模板属性映射会省略原生固定数组反射属性（`ArrayDim > 1`），因为当前映射协议无法安全寻址固定数组的单个元素；普通 `TArray` 属性仍可通过 UE 文本格式读写。
 - `GetBlueprintOverview` 对每个分区应用稳定的 `Offset`/`MaxResults` 分页（每个分区最多请求 50 项），同时限制各分区序列化预算；变量默认值最多返回 8,192 个字符，每个函数最多返回 16 个输入和 16 个输出签名 Pin。
+- `ListBlueprintMembers` 对函数、Custom Event、Dispatcher 与局部变量使用统一稳定分页；每个语义方向最多返回 16 个签名 Pin，并区分 `SignatureDirection` 与 Entry/Result 节点使用的反向物理 `NodeDirection`。
 - `GetComponents` 返回稳定分页的本地扁平列表和继承列表（各最多 100 项），并保留最多 200 个节点、深度最多 64 的本地层级树。扁平遍历使用显式栈，超过 10,000 个组件或深度 256 时报告截断。
 - `GetGraphDetail` 单次最多请求 25 个稳定排序的节点，并受序列化页预算限制；每个节点的可见 Pin 独立分页（最多 64 个）且受单节点 Pin 预算限制，每个 Pin 最多返回 8 个有界连接，并提供明确的截断与续页元数据。
 - Asset Registry 仍在扫描时会拒绝列举和删除蓝图，避免分页与引用检查建立在不完整数据上。

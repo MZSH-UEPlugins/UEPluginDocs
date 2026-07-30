@@ -12,7 +12,7 @@ The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Writ
 
 Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments`. Browser-style `Origin` headers are accepted only for `localhost`, `127.0.0.1`, or `[::1]`; non-browser clients may omit `Origin`.
 
-## Tools (39)
+## Tools (40)
 
 ### Discovery and reading
 
@@ -20,6 +20,7 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 |---|---|
 | `ListBlueprints` | List Blueprint assets with stable bounded pagination. |
 | `GetBlueprintOverview` | Read graphs, variables, functions, components, interfaces, and parent class. |
+| `ListBlueprintMembers` | List functions, Custom Events, dispatchers, and local variables with unified stable pagination. |
 | `GetGraphDetail` | Read graph nodes, pins, defaults, and links. |
 | `SearchGraphNodes` | Search Blueprint action spawners and return stable `SpawnerId` values. |
 | `GetCompileErrors` | Compile and return the authoritative Blueprint status and diagnostics. |
@@ -79,6 +80,7 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 - `GetClassDefaults` uses the exact editable-property filter enforced by `SetClassDefaults`, returns stable pagination with declaring-class/inheritance metadata, and bounds individual values at 8,192 characters plus an overall serialized property budget.
 - Native fixed-array reflection properties (`ArrayDim > 1`) are omitted from Class Default and component-template property maps because the map protocol cannot address individual fixed-array elements safely; ordinary `TArray` properties remain supported through UE text format.
 - `GetBlueprintOverview` applies stable `Offset`/`MaxResults` pagination to every section (maximum 50 requested entries per section), bounds each section by serialized output budget, bounds variable defaults at 8,192 characters, and returns at most 16 input and 16 output signature pins per function.
+- `ListBlueprintMembers` uses one stable page across functions, Custom Events, dispatchers, and local variables. Signatures return at most 16 pins per semantic direction and distinguish `SignatureDirection` from the inverse physical K2 `NodeDirection` used by entry/result nodes.
 - `GetComponents` returns a stable paginated flat local list and inherited list (maximum 100 entries each), plus a local hierarchy tree capped at 200 nodes and depth 64. Flat traversal uses an explicit stack and reports truncation above 10,000 components or depth 256.
 - `GetGraphDetail` returns at most 25 stably ordered nodes per call under a serialized page budget. Each node exposes independently paginated visible pins (maximum 64), with a per-node pin budget, at most eight bounded links per pin, and explicit truncation/continuation metadata.
 - Tool schemas reject unknown top-level arguments and validate the nested graph-patch, signature, pin-default, component-property, and class-default structures before execution.
