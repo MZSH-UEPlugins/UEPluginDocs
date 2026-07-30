@@ -16,7 +16,7 @@ MCPAnimation 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 |---|---|
 | `ListAnimBlueprints` | 稳定分页列出 Animation Blueprint。 |
 | `GetAnimBPOverview` | 读取 Animation Blueprint、AnimGraph 和状态机概览。 |
-| `GetStateMachineDetail` | 有界读取状态、过渡和规则图详情。 |
+| `GetStateMachineDetail` | 有界读取状态、过渡与 Conduit 摘要。 |
 | `ListSkeletons` / `GetSkeletonDetail` | 发现 Skeleton，并读取骨骼、虚拟骨骼、兼容骨骼、Blend Profile 与 Slot Group。 |
 | `ListAnimSequences` / `GetAnimSequenceDetail` | 发现 AnimSequence，并读取时长、采样率、Notify、float curve 和压缩状态。 |
 | `ListMontages` / `GetMontageDetail` | 发现 Montage，并读取 Section、Slot、片段、Notify 与混合设置。 |

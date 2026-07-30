@@ -16,7 +16,7 @@ The default endpoint is `http://127.0.0.1:8760/mcp`. If that port is occupied, t
 |---|---|
 | `ListAnimBlueprints` | List Animation Blueprints with stable pagination. |
 | `GetAnimBPOverview` | Read Animation Blueprint, AnimGraph, and state machine summaries. |
-| `GetStateMachineDetail` | Read bounded state, transition, and rule-graph details. |
+| `GetStateMachineDetail` | Read bounded state, transition, and conduit summaries. |
 | `ListSkeletons` / `GetSkeletonDetail` | Discover Skeletons and read bones, virtual bones, compatible skeletons, blend profiles, and slot groups. |
 | `ListAnimSequences` / `GetAnimSequenceDetail` | Discover AnimSequences and read duration, sampling rate, notifies, float curves, and compression status. |
 | `ListMontages` / `GetMontageDetail` | Discover Montages and read sections, slots, segments, notifies, and blend settings. |
