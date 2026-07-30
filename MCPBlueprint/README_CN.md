@@ -67,6 +67,9 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 - 新建、移动或复制蓝图时，目标必须是 `/Game` 下合法的独立包路径；若内存或磁盘已有同名包会拒绝操作。
 - 关卡蓝图可以通过对象路径读取和编辑图表，但 `SaveAsset`、`DeleteAsset`、`RenameAsset` 与 `DuplicateAsset` 不处理关卡蓝图，因为这些操作会影响所属关卡包；请通过 World Editor 工作流处理关卡本身。
 - `CloseAsset` 会返回之前是否打开，并核验蓝图及其子对象的所有编辑器是否真正关闭；用户取消关闭时返回错误。
+- 成员变量和局部变量的默认值会在修改前按 Unreal K2 Pin 规则校验；不合法的 UE 文本值会被拒绝。
+- 存在未加载派生蓝图时，变量类型变更、重命名和删除会被拒绝。请先加载派生蓝图以检查继承引用；删除声明前必须先移除子蓝图引用。
+- 启用自动编译时，`ModifyVariable` 和 `RemoveVariable` 会返回编译诊断，并在终态不是 `UpToDate` 或 `Warning` 时回滚；禁用时结果会明确返回 `CompileStatus: Skipped`。
 - 删除资产不可 Undo。未传 `bForce` 时会拒绝删除被引用资产；强制删除可能清空引用并破坏依赖资产。
 - 截图文件输出限定在 `Saved/MCPBlueprint/Screenshots`；绝对路径和路径穿越会被拒绝。
 - 仅源码静态兼容审查不能代替在各目标引擎版本中的真实编译与测试。

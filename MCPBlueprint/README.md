@@ -67,6 +67,9 @@ The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Writ
 - New or moved Blueprint asset paths must be valid standalone package paths under `/Game`; existing in-memory and on-disk package collisions are rejected.
 - Level Blueprints can be read and graph-edited by object path, but `SaveAsset`, `DeleteAsset`, `RenameAsset`, and `DuplicateAsset` do not operate on them because those actions affect the owning level package. Use a World Editor workflow for the level itself.
 - `CloseAsset` reports whether an editor was open and verifies that all editors for the Blueprint and its subobjects actually closed; cancellation is returned as an error.
+- Member and local variable defaults are validated with Unreal's K2 pin rules before mutation; malformed UE text values are rejected.
+- Variable type changes, renames, and removals reject unsafe operations while derived Blueprint classes are unloaded. Load descendants first so inherited references can be checked; child references must be removed before deleting a declaration.
+- With automatic compilation enabled, `ModifyVariable` and `RemoveVariable` return compiler diagnostics and roll back when compilation does not reach `UpToDate` or `Warning`; when disabled, mutation results report `CompileStatus: Skipped`.
 - Destructive asset deletion is not undoable. Without `bForce`, referenced assets are refused; forced deletion may clear references and break dependents.
 - Screenshot file output is restricted to `Saved/MCPBlueprint/Screenshots`; absolute paths and traversal are rejected.
 - Source-only compatibility review is not a substitute for compiling and testing inside each target engine version.
