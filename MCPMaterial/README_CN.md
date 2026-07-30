@@ -28,6 +28,7 @@ MCPMaterial 为 Unreal Editor 提供面向 AI 客户端的材质与材质实例 
 - `SetInstanceParameters` 会根据父材质当前编译资源校验纹理参数类型；2D、Cube、2D/Cube Array、Volume 与 Virtual Texture 不能互相代填。父材质没有可用资源或参数不在当前静态开关排列中时会拒绝写入。
 - `SearchMaterialExpressions` 返回稳定的 `ClassPath` 以及输入/输出索引。短类名发生碰撞时，`ApplyMaterialPatch` 会拒绝猜测并要求精确 `ClassPath`；同名 Pin 必须使用 `[index]` 寻址。
 - `ApplyMaterialPatch` 不创建或删除需要专用编辑器结构管理的 Composite、PinBase、Function Input/Output、Named Reroute 等节点。
+- 工具输入 Schema 会拒绝未知的顶层字段；`ApplyMaterialPatch`、属性映射与实例参数映射也会递归校验嵌套字段和值类型。分页、预览尺寸、图布局间距、连接索引和参数类型等已知边界会在调用前校验。
 - 创建的资产先处于内存 Dirty 状态，必须显式调用 `SaveAsset` 才会写入磁盘。
 - 超时不能强制终止已被 GameThread 认领的编辑器操作；收到超时错误后应先核对编辑器状态，再决定是否重试。
 

@@ -28,6 +28,7 @@ Write, compile, and save tools reject targets that are still open in an asset ed
 - `SetInstanceParameters` validates texture parameters against the parent material's current compiled resource. 2D, Cube, 2D/Cube Array, Volume, and Virtual textures are not interchangeable. The write is rejected when the parent has no usable resource or the parameter is absent from the active static-switch permutation.
 - `SearchMaterialExpressions` returns a stable `ClassPath` and input/output indices. When short class names collide, `ApplyMaterialPatch` rejects guessing and requires an exact `ClassPath`; duplicate pin names must be addressed as `[index]`.
 - `ApplyMaterialPatch` does not create or remove Composite, PinBase, Function Input/Output, Named Reroute, or other nodes that require specialized editor-managed structure.
+- Tool input schemas reject unknown top-level fields. `ApplyMaterialPatch`, property maps, and instance-parameter maps also validate nested fields and value types recursively. Known pagination, preview-size, graph-spacing, connection-index, and parameter-type bounds are validated before execution.
 - Newly created assets remain dirty in memory until `SaveAsset` is called explicitly.
 - A timeout cannot forcibly stop an editor operation after the GameThread has claimed it. After a timeout error, inspect editor state before retrying.
 
