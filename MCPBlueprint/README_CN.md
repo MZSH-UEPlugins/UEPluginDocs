@@ -10,6 +10,8 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 服务器实现 `initialize`、`tools/list`、`tools/call` 和 `ping`。写操作在游戏线程执行；引擎支持时会纳入编辑器事务以便 Undo；修改只把资产标记为 Dirty，不会自动保存到磁盘。
 
+请求必须使用 JSON-RPC `2.0`，且 `params` 与工具 `arguments` 必须是对象。浏览器风格的 `Origin` 仅允许 `localhost`、`127.0.0.1` 或 `[::1]`；非浏览器客户端可以不发送 `Origin`。
+
 ## 工具（38 个）
 
 ### 发现与读取
@@ -69,14 +71,20 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 - `CloseAsset` 会返回之前是否打开，并核验蓝图及其子对象的所有编辑器是否真正关闭；用户取消关闭时返回错误。
 - 成员变量和局部变量的默认值会在修改前按 Unreal K2 Pin 规则校验；不合法的 UE 文本值会被拒绝。
 - 存在未加载派生蓝图时，变量类型变更、重命名和删除会被拒绝。请先加载派生蓝图以检查继承引用；删除声明前必须先移除子蓝图引用。
-- 启用自动编译时，`ModifyVariable` 和 `RemoveVariable` 会返回编译诊断，并在终态不是 `UpToDate` 或 `Warning` 时回滚；禁用时结果会明确返回 `CompileStatus: Skipped`。
+- 启用自动编译时，事务型蓝图修改会返回有界编译诊断，并在终态不是 `UpToDate` 或 `Warning` 时回滚且明确报告回滚状态；禁用时结果会返回 `CompileStatus: Skipped`。
 - 组件名称会对完整蓝图成员命名空间进行校验。短组件类名存在歧义时会被拒绝；请使用完整类路径消除歧义。
 - 组件类必须允许由蓝图创建。未显式指定父级的新 SceneComponent 会挂到唯一的本地、继承或原生场景根；存在多个根时会拒绝操作，不会创建第二个根。
 - SCS 层级编辑会为 Undo 快照本地层级，并在编译失败时回滚。`SetRootComponent` 只替换唯一且明确的本地场景根，不会替换继承或原生根。
 - `GetComponentProperties` 使用 `Offset`/`MaxResults` 分页（每页最多 100 个属性）；单个导出值最多返回 8,192 个字符，并报告被截断的属性名。
+- `GetGraphDetail` 必须使用有界分页；单次最多返回 200 个节点，不再接受非正数表示的无限返回请求。
 - 删除资产不可 Undo。未传 `bForce` 时会拒绝删除被引用资产；强制删除可能清空引用并破坏依赖资产。
 - 截图文件输出限定在 `Saved/MCPBlueprint/Screenshots`；绝对路径和路径穿越会被拒绝。
 - 仅源码静态兼容审查不能代替在各目标引擎版本中的真实编译与测试。
+
+- 工具 Schema 会拒绝未知顶层参数，并在执行前递归校验图补丁、函数/事件签名、Pin 默认值、组件属性与 Class Defaults 的结构。
+- HTTP 请求体在引擎 HTTP 服务器完成接收后按 1 MiB 上限拒绝；序列化响应上限为 16 MiB。工具文本最多 1 Mi 字符；图片最多 4 张、单张最多 8 Mi Base64 字符、合计最多 12 Mi。
+- 编译诊断最多返回 200 条错误/警告；单条最多 4,096 字符、合计最多 256 Ki 字符，每条最多 32 个去重 NodeGuid。`TotalErrors`、`TotalWarnings`、实际返回数量与 `bTruncated` 会明确报告省略情况。`CompileBlueprint` 和 `GetCompileErrors` 在非成功终态返回 MCP 错误；可用 `bWarningsAsErrors` 把警告也视为失败。
+- 请求超时只限制 Dispatcher 等待时间，无法抢占已在游戏线程同步执行的 Blueprint/UObject 操作。客户端超时后应先确认编辑器状态，不要立即重试写操作。
 
 ## 配置
 

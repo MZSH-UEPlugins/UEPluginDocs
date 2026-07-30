@@ -10,6 +10,8 @@ The default endpoint is `http://127.0.0.1:8766/mcp`. If that port is occupied, t
 
 The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Write operations run on the game thread, participate in editor transactions where Unreal supports Undo, mark assets dirty, and do not save automatically.
 
+Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments`. Browser-style `Origin` headers are accepted only for `localhost`, `127.0.0.1`, or `[::1]`; non-browser clients may omit `Origin`.
+
 ## Tools (38)
 
 ### Discovery and reading
@@ -69,11 +71,16 @@ The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Writ
 - `CloseAsset` reports whether an editor was open and verifies that all editors for the Blueprint and its subobjects actually closed; cancellation is returned as an error.
 - Member and local variable defaults are validated with Unreal's K2 pin rules before mutation; malformed UE text values are rejected.
 - Variable type changes, renames, and removals reject unsafe operations while derived Blueprint classes are unloaded. Load descendants first so inherited references can be checked; child references must be removed before deleting a declaration.
-- With automatic compilation enabled, `ModifyVariable` and `RemoveVariable` return compiler diagnostics and roll back when compilation does not reach `UpToDate` or `Warning`; when disabled, mutation results report `CompileStatus: Skipped`.
+- With automatic compilation enabled, transactional Blueprint mutations return bounded compiler diagnostics and roll back when compilation does not reach `UpToDate` or `Warning`; when disabled, mutation results report `CompileStatus: Skipped`. Rollback status is reported explicitly.
 - Component names are validated against the complete Blueprint member namespace. Ambiguous short component class names are rejected; use a full class path to disambiguate.
 - Component classes must be Blueprint-spawnable. A new SceneComponent without an explicit parent attaches to the unique local, inherited, or native scene root; ambiguous multi-root hierarchies are rejected instead of creating a second root.
 - SCS hierarchy edits snapshot the local hierarchy for Undo and roll back on compile failure. `SetRootComponent` only replaces one unambiguous local scene root, never an inherited/native root.
 - `GetComponentProperties` uses `Offset`/`MaxResults` pagination (maximum 100 properties) and truncates individual exported values at 8,192 characters while reporting affected property names.
+- `GetGraphDetail` requires bounded pagination and returns at most 200 nodes per call; non-positive unlimited requests are rejected.
+- Tool schemas reject unknown top-level arguments and validate the nested graph-patch, signature, pin-default, component-property, and class-default structures before execution.
+- HTTP request bodies are rejected above 1 MiB after the engine HTTP server has received them. Serialized responses are limited to 16 MiB; tool text is limited to 1 Mi characters, and image output is limited to four images, 8 Mi base64 characters per image, and 12 Mi total.
+- Compile diagnostics return at most 200 error/warning entries, 4,096 characters per message, 256 Ki characters in total, and 32 unique node GUIDs per entry. `TotalErrors`, `TotalWarnings`, returned counts, and `bTruncated` disclose omitted diagnostics. `CompileBlueprint` and `GetCompileErrors` return MCP errors for non-success terminal states; `bWarningsAsErrors` can make warnings fail the call.
+- Request timeout settings bound dispatcher waiting, but synchronous Blueprint/UObject work already running on the game thread cannot be preempted. Avoid immediate retries after a client-side timeout until editor state is known.
 - Destructive asset deletion is not undoable. Without `bForce`, referenced assets are refused; forced deletion may clear references and break dependents.
 - Screenshot file output is restricted to `Saved/MCPBlueprint/Screenshots`; absolute paths and traversal are rejected.
 - Source-only compatibility review is not a substitute for compiling and testing inside each target engine version.
