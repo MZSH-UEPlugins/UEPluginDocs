@@ -29,6 +29,12 @@ MCP Niagara 在 Unreal Editor 中提供面向 Niagara System、Emitter、模块�
 
 限制：UE 5.2 未导出 NiagaraEditor 私有的 merge-adapter cache 清理 API。`RemoveEmitter` 会销毁引用实例、移除并重连公开 System Graph、同步 Overview Graph 并发送编辑通知，但无法显式清该私有缓存；响应会返回 `Warnings`，在紧接着执行继承 Emitter merge 工作流前应刷新或重开 System。插件不会为此依赖引擎 Private 头或非导出符号。
 
+## Renderer 编辑
+
+`SetRendererType` 以单个撤销事务替换名称唯一的 Emitter 上至多 64 个 Renderer。新 Renderer 会先成功创建再移除旧项，因此创建失败不会破坏现有配置。UE 5.2+ 的公共交集类型为 Sprite、Mesh、Ribbon、Light、Decal 和 Component；仅新版本提供的 Volume 不会无条件暴露。
+
+`SetRendererProperties` 每次原子写入 1–64 个属性：所有名称和值先在临时 Renderer 上完成预校验，再一次性提交并逐项发送 PostEditChange，以触发绑定重建和必要的编译失效。仅允许可编辑的标量、枚举、字符串、名称、结构体及类型兼容的材质引用；容器、委托、非材质对象引用、临时、弃用和非编辑属性会被拒绝。`RendererIndex` 必须非负，工具输入 Schema 也声明相同的枚举、数量和类型边界。
+
 ## 验证边界
 
 源码支持 UE 5.2 及以上版本。本轮仅完成静态源码核对；实际编辑器写入、保存、重开和跨版本打包仍需后续验证。
