@@ -10,6 +10,8 @@ The plugin starts an MCP HTTP server in the Unreal Editor. Its default port is `
 
 Asset arguments use Unreal content paths such as `/Game/AI/BT_Enemy` and `/Game/AI/BB_Enemy`. Newly created or edited assets remain dirty until `SaveAsset` succeeds.
 
+`SaveAsset`, `OpenAsset`, and `CloseAsset` only accept Behavior Tree or Blackboard assets. Saving fails closed when the editor graph cannot be synchronized or Unreal cannot write the package; a successful MCP result therefore means the package save succeeded.
+
 ## Tools
 
 | Area | Tools |
@@ -59,6 +61,7 @@ The Epic toolset is Experimental and tied to UE 5.8's Toolset/MCP infrastructure
 - The plugin is editor-only and does not provide runtime or packaged-game control.
 - Blueprint task, decorator, and service logic is not authored here. Create and compile those Blueprint classes with a Blueprint-capable tool, then pass the generated `_C` class path.
 - Private Behavior Tree editor graph APIs vary by engine version. The plugin contains compatibility paths for UE 5.2+, but projects should still validate assets in their target editor version.
+- A Behavior Tree that has runtime nodes but no editor graph is rejected instead of being rebuilt as an empty graph. Repair that asset in the Behavior Tree editor before using MCP editing or save tools.
 - Source changes do not imply that an existing packaged plugin has been rebuilt or published.
 
 For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.

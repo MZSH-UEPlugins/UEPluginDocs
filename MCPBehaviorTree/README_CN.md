@@ -10,6 +10,8 @@ MCP Behavior Tree 是一个自包含的 Unreal Editor 插件，可通过 Model C
 
 资产参数使用 `/Game/AI/BT_Enemy`、`/Game/AI/BB_Enemy` 这类 Unreal 内容路径。新建或编辑后的资产保持脏状态，直到 `SaveAsset` 成功。
 
+`SaveAsset`、`OpenAsset` 和 `CloseAsset` 只接受行为树或黑板资产。编辑器图无法同步或 Unreal 无法写入包时，保存会直接失败；因此 MCP 返回成功即表示包保存成功。
+
 ## 工具
 
 | 领域 | 工具 |
@@ -59,6 +61,7 @@ Epic 工具集属于 Experimental，并绑定 UE 5.8 的 Toolset/MCP 基础设�
 - 插件仅用于编辑器，不控制运行时或打包后的游戏。
 - 本插件不编写 Blueprint 任务、装饰器和服务的内部逻辑。请先通过具备 Blueprint 能力的工具创建并编译这些类，再传入生成的 `_C` 类路径。
 - Behavior Tree 编辑器的私有图 API 会随引擎版本变化。插件包含 UE 5.2+ 兼容路径，但仍应在目标引擎版本中验证资产。
+- 若行为树已有运行时节点却缺失编辑器图，插件会拒绝把它重建为空图。请先在 Behavior Tree 编辑器中修复资产，再使用 MCP 编辑或保存工具。
 - 源码发生变化不代表既有插件包已经重新打包或发布。
 
 如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。
