@@ -36,6 +36,8 @@ Note: While runtime channel modification is supported, it's recommended to confi
 | Filter Mode       | None / Whitelist / Blacklist | IP filtering mode               |
 | Whitelist / Blacklist | `["192.168.1.0/24"]` | Supports CIDR format              |
 
+> **Important:** `Max Receive Bytes` defaults to `1024` bytes. If a single UDP datagram in your protocol may exceed 1024 bytes, increase this value in the receive channel configuration before receiving; otherwise, the datagram may not be received completely.
+
 ### 🔹 Send Channels
 
 | Field             | Example                         | Description                              |
@@ -44,6 +46,8 @@ Note: While runtime channel modification is supported, it's recommended to confi
 | Target Addresses  | `["255.255.255.255:9000"]`       | List of destination IP:Port              |
 | Fixed Port 🔧     | `0` (default)                    | Local bind port for sending socket (0 = auto) |
 | Max Send Bytes    | `1024`                           | Max size per packet                      |
+
+> **Important:** `Max Send Bytes` defaults to `1024` bytes. If a single UDP datagram in your protocol may exceed 1024 bytes, increase this value in the send channel configuration before sending; otherwise, only data up to the configured limit will be sent.
 
 ---
 
