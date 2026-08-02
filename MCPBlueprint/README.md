@@ -12,7 +12,7 @@ The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Writ
 
 Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments`. Browser-style `Origin` headers are accepted only for `localhost`, `127.0.0.1`, or `[::1]`; non-browser clients may omit `Origin`.
 
-## Tools (41)
+## Tools (44)
 
 ### Discovery and reading
 
@@ -30,12 +30,12 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 | Tool | Purpose |
 |---|---|
 | `AddVariable` / `ModifyVariable` / `RemoveVariable` | Manage Blueprint member variables. |
-| `CreateFunction` | Create a function or override with validated input/output signatures. |
+| `CreateFunction` / `RemoveFunction` | Create or safely remove a function graph with reference checks. |
 | `CreateCustomEvent` / `AddEventNode` / `AddBoundEvent` | Add custom, engine, component, or level-actor events. |
-| `AddLocalVariable` | Add a function-local variable. |
+| `AddLocalVariable` / `RemoveLocalVariable` | Add or safely remove a function-local variable. |
 | `AddNodePin` / `RemoveNodePin` | Add or remove supported dynamic pins on Sequence, container, and Switch nodes. |
 | `AddInterface` | Implement a Blueprint interface. |
-| `AddEventDispatcher` | Create a multicast event dispatcher with an optional signature. |
+| `AddEventDispatcher` / `RemoveEventDispatcher` | Create or safely remove a multicast event dispatcher and its signature. |
 
 ### Graph editing
 

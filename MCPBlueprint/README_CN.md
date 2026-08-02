@@ -12,7 +12,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 请求必须使用 JSON-RPC `2.0`，且 `params` 与工具 `arguments` 必须是对象。浏览器风格的 `Origin` 仅允许 `localhost`、`127.0.0.1` 或 `[::1]`；非浏览器客户端可以不发送 `Origin`。
 
-## 工具（41 个）
+## 工具（44 个）
 
 ### 发现与读取
 
@@ -30,12 +30,12 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 | 工具 | 用途 |
 |---|---|
 | `AddVariable` / `ModifyVariable` / `RemoveVariable` | 管理蓝图成员变量。 |
-| `CreateFunction` | 创建普通函数或重写函数，并严格校验输入/输出签名。 |
+| `CreateFunction` / `RemoveFunction` | 创建函数或在引用检查通过后安全删除函数图。 |
 | `CreateCustomEvent` / `AddEventNode` / `AddBoundEvent` | 添加自定义事件、引擎事件、组件事件或关卡 Actor 事件。 |
-| `AddLocalVariable` | 添加函数局部变量。 |
+| `AddLocalVariable` / `RemoveLocalVariable` | 添加或安全删除函数局部变量。 |
 | `AddNodePin` / `RemoveNodePin` | 为 Sequence、容器和 Switch 等节点添加或删除受支持的动态 Pin。 |
 | `AddInterface` | 实现蓝图接口。 |
-| `AddEventDispatcher` | 创建可选签名的多播事件分发器。 |
+| `AddEventDispatcher` / `RemoveEventDispatcher` | 创建或安全删除多播事件分发器及其签名。 |
 
 ### 图表编辑
 
