@@ -12,7 +12,7 @@ The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Writ
 
 Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments`. Browser-style `Origin` headers are accepted only for `localhost`, `127.0.0.1`, or `[::1]`; non-browser clients may omit `Origin`.
 
-## Tools (40)
+## Tools (41)
 
 ### Discovery and reading
 
@@ -33,7 +33,7 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 | `CreateFunction` | Create a function or override with validated input/output signatures. |
 | `CreateCustomEvent` / `AddEventNode` / `AddBoundEvent` | Add custom, engine, component, or level-actor events. |
 | `AddLocalVariable` | Add a function-local variable. |
-| `AddNodePin` | Add supported dynamic pins to Sequence, container, and Switch nodes. |
+| `AddNodePin` / `RemoveNodePin` | Add or remove supported dynamic pins on Sequence, container, and Switch nodes. |
 | `AddInterface` | Implement a Blueprint interface. |
 | `AddEventDispatcher` | Create a multicast event dispatcher with an optional signature. |
 
