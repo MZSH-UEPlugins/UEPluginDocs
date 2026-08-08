@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # MCPUMG
 
 AI-driven UMG editing plugin for Unreal Engine, powered by MCP (Model Context Protocol).
@@ -5,6 +7,15 @@ AI-driven UMG editing plugin for Unreal Engine, powered by MCP (Model Context Pr
 ## Overview
 
 MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via an HTTP server running inside the Unreal Editor. AI tools can discover, create, modify widget trees, properties, slots, animations, and events through a standardized protocol.
+
+## Installation and Updates
+
+1. Close every Unreal Editor instance that uses the target engine version.
+2. Choose the MCPUMG package that matches the engine version, then copy its contents to `Engine/Plugins/Marketplace/MCPUMG` under that engine installation.
+3. Open the copied `MCPUMG.uplugin`. Keep `"Installed": true`, and add or set `"EnabledByDefault": true`; packaged descriptors may omit this field during post-processing.
+4. Restart the editor. The plugin starts automatically unless `bAutoStart` is disabled in Project Settings.
+
+To update MCPUMG, close the editor and replace the entire existing `MCPUMG` directory with the matching new package. Do not mix files from different engine versions.
 
 ## Tools (26)
 
@@ -92,3 +103,5 @@ MCP client configuration varies by tool (Cursor, Windsurf, VS Code Copilot, etc.
 - Unreal Engine 5.2+
 - Editor only
 - Optional: [MCPBlueprint](https://github.com/MZSH-UEPlugins/MCPBlueprint) for Blueprint graph editing (widget event logic calls MCPBlueprint tools for advanced graph operations)
+
+For questions or feedback, email [mengzhishanghun@outlook.com](mailto:mengzhishanghun@outlook.com). I will take care of it when I see your message.
