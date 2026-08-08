@@ -47,7 +47,7 @@ MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via 
 | UnbindWidgetEvent | Remove a widget event binding |
 | AddEventActions | Add event actions |
 | CreateWidgetBlueprint | Create Widget Blueprint |
-| SetBlueprintSettings | Set Widget Blueprint settings |
+| SetWidgetBlueprintSettings | Set Widget Blueprint settings |
 | SetPropertyBinding | Set a widget property binding |
 
 ## Configuration
