@@ -104,6 +104,20 @@ Open **Project Settings > Plugins > MCP Blueprint**.
 | Compile Timeout | 120 seconds | Compile/patch timeout. |
 | Auto Compile After Modify | true | Compile after supported write operations. |
 
+## Current Testing Focus
+
+The current priority is complete real-editor regression testing of the existing 44 tools. This includes successful workflows, rejection paths, transaction rollback, stable pagination and output limits, compile feedback, asset persistence after save/restart, and cleanup verification. The roadmap below is not part of the current toolset and is excluded from this test scope.
+
+## Later Roadmap
+
+- **Member signatures and refactoring:** modify or rename function, Custom Event, and Event Dispatcher signatures and flags while preserving references safely.
+- **Variable metadata:** extend variable editing to cover category, tooltip, access control, Expose on Spawn, SaveGame, replication, and RepNotify settings.
+- **Graph lifecycle and impact analysis:** create, rename, and remove supported graph types; remove implemented interfaces; inspect references and affected assets before refactoring.
+- **Blueprint types and inheritance:** create additional Blueprint asset types such as Blueprint Interfaces, Function Libraries, and Macro Libraries, and support safe Blueprint reparenting.
+- **Authoring and diagnostics:** improve graph comments, member documentation, and debugging-oriented inspection after the higher-priority refactoring workflows are stable.
+
+These are candidate directions, not commitments to a particular release or date. They will be refined using evidence from testing and real usage.
+
 ## AI-Assisted Usage
 
 If a tool, parameter, or workflow is unclear, you can provide this document to an AI assistant and ask it to read the documentation before attempting the operation with the MCP tools actually available in the current Unreal Editor session. Confirm target assets before write operations, and read the affected Blueprint state back afterward instead of treating a successful tool response alone as completion.
