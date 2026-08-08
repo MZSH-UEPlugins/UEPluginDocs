@@ -8,7 +8,7 @@ AI-driven level/world editing plugin for Unreal Engine, powered by MCP (Model Co
 
 MCPWorldEditor exposes level editing capabilities to AI assistants via an HTTP server running inside the Unreal Editor. AI tools can spawn actors, modify transforms, edit properties, manage lighting, landscape, and capture viewport — all through a standardized protocol.
 
-> **Note**: This plugin is currently under development. The server infrastructure is ready, but tools are being implemented.
+> **Note**: This plugin is currently under development. The server infrastructure is ready, and tool capabilities continue to improve.
 
 ## Configuration
 
