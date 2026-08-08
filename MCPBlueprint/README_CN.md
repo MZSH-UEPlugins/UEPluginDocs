@@ -105,4 +105,12 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 | Compile Timeout | 120 秒 | 编译/图补丁工具超时。 |
 | Auto Compile After Modify | true | 支持的写操作后自动编译。 |
 
-如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。
+## AI 辅助使用
+
+如果对某个工具、参数或操作流程不清楚，可以把本文档提供给 AI，让 AI 先阅读文档，再根据当前 Unreal Editor 会话中实际可用的 MCP 工具尝试操作。涉及写入时请先确认目标资产，并在操作后重新读取受影响的蓝图状态，不要只凭工具返回成功就认定操作完成。
+
+## 支持
+
+如有问题、反馈或希望加入 UE 技术交流群，请访问以下统一联系方式页面。
+
+- **联系入口：** [邮箱、微信群和 X](https://mengzhishanghun.github.io/mengzhishanghun/contact/)

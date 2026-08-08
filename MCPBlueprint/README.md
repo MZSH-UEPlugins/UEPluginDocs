@@ -104,4 +104,12 @@ Open **Project Settings > Plugins > MCP Blueprint**.
 | Compile Timeout | 120 seconds | Compile/patch timeout. |
 | Auto Compile After Modify | true | Compile after supported write operations. |
 
-For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
+## AI-Assisted Usage
+
+If a tool, parameter, or workflow is unclear, you can provide this document to an AI assistant and ask it to read the documentation before attempting the operation with the MCP tools actually available in the current Unreal Editor session. Confirm target assets before write operations, and read the affected Blueprint state back afterward instead of treating a successful tool response alone as completion.
+
+## Support
+
+For questions, feedback, or the UE technical discussion group, use the unified contact page below.
+
+- **Contact:** [Email, WeChat group, and X](https://mengzhishanghun.github.io/mengzhishanghun/contact/)
