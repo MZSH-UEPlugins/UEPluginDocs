@@ -60,6 +60,14 @@ PIE 启动请求排队后即视为编辑器忙碌；`PIEControl/GetState` 与 `G
 - Unreal Engine 5.2+
 - 仅支持编辑器
 
+## 工具与编辑器状态合同
+
+当前源码版本注册了 71 个工具，且 71 个工具名称均唯一。
+
+`RemoveStreamingLevel` 操作本身不可撤销。它会请求 Unreal Engine 保留既有 Undo 缓冲，但引擎仍可能因过期引用而重置该缓冲，因此不能保证 Undo 历史一定保留。工具只移除属于目标关卡的 Actor、Component、Object 与 BSP Selection；它会快照并核验目标关卡之外已选 Actor、Component 与 Object 的恢复，其他关卡中的 BSP Selection 则保持原状而不会被全局清除。若移除失败，工具还会尝试恢复目标关卡内的选择，并报告恢复是否通过核验。
+
+`MoveActorsToLevel` 会尝试恢复并核验调用前的 Actor、Component、Object 与 BSP Selection；无法确认完整恢复时会返回错误。Selection Lock 启用或 Actor 身份无法唯一映射时，工具会在移动前拒绝请求。若批次结果不一致，工具不会自动执行 Undo，因为无法证明栈顶事务属于本次调用；继续操作前必须同时检查 Actor 所在关卡与 Selection 状态。
+
 ## World Partition 区域加载
 
 `LoadRegion` 通过 Unreal Engine 公开的 World Partition 加载器 API 创建并加载持久的编辑器区域。`BoundsMin` 与 `BoundsMax` 都必须包含有限的数值字段 `X`、`Y`、`Z`，且每个轴的最小值必须严格小于对应最大值。无效边界会在创建加载器之前被拒绝。
