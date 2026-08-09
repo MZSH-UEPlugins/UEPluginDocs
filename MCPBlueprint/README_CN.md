@@ -4,6 +4,8 @@
 
 MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI 客户端提供蓝图发现、图表编辑、成员管理、组件管理、资产生命周期与编译反馈能力。插件支持 Unreal Engine 5.2 及以上版本，不依赖其他用户制作的插件。
 
+整个 Unreal Engine MCP 套件的插件职责、当前能力与后续路线图见 [MCP 插件套件总览与路线图](./MCP_SUITE_ROADMAP_CN.md)。
+
 ## 连接方式
 
 默认端点为 `http://127.0.0.1:8766/mcp`。若端口被占用，服务器会继续尝试后续端口，工具栏会显示实际端点。请在 AI 客户端中把该 URL 配置为 HTTP MCP 服务器。
