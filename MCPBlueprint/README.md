@@ -108,12 +108,16 @@ Open **Project Settings > Plugins > MCP Blueprint**.
 
 The current priority is complete real-editor regression testing of the existing 44 tools. This includes successful workflows, rejection paths, transaction rollback, stable pagination and output limits, compile feedback, asset persistence after save/restart, and cleanup verification. The roadmap below is not part of the current toolset and is excluded from this test scope.
 
+## Priority Capability Gap
+
+- **Safe Blueprint reparenting (highest priority):** reparent an existing Blueprint to a compatible native or Blueprint class. Validate the target asset and parent-class compatibility, reject inheritance cycles and unsupported Blueprint types, use an editor transaction with rollback, report compile diagnostics, save explicitly, and read back the resulting parent class. This is the first capability to add after the current regression gate.
+
 ## Later Roadmap
 
 - **Member signatures and refactoring:** modify or rename function, Custom Event, and Event Dispatcher signatures and flags while preserving references safely.
 - **Variable metadata:** extend variable editing to cover category, tooltip, access control, Expose on Spawn, SaveGame, replication, and RepNotify settings.
 - **Graph lifecycle and impact analysis:** create, rename, and remove supported graph types; remove implemented interfaces; inspect references and affected assets before refactoring.
-- **Blueprint types and inheritance:** create additional Blueprint asset types such as Blueprint Interfaces, Function Libraries, and Macro Libraries, and support safe Blueprint reparenting.
+- **Blueprint types:** create additional Blueprint asset types such as Blueprint Interfaces, Function Libraries, and Macro Libraries.
 - **Authoring and diagnostics:** improve graph comments, member documentation, and debugging-oriented inspection after the higher-priority refactoring workflows are stable.
 
 These are candidate directions, not commitments to a particular release or date. They will be refined using evidence from testing and real usage.
