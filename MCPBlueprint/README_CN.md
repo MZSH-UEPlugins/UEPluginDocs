@@ -4,8 +4,6 @@
 
 MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI 客户端提供蓝图发现、图表编辑、成员管理、组件管理、资产生命周期与编译反馈能力。插件支持 Unreal Engine 5.2 及以上版本，不依赖其他用户制作的插件。
 
-整个 Unreal Engine MCP 套件的插件职责、当前能力与后续路线图见 [MCP 插件套件总览与路线图](./MCP_SUITE_ROADMAP_CN.md)。
-
 ## 连接方式
 
 默认端点为 `http://127.0.0.1:8766/mcp`。若端口被占用，服务器会继续尝试后续端口，工具栏会显示实际端点。请在 AI 客户端中把该 URL 配置为 HTTP MCP 服务器。
@@ -14,7 +12,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 请求必须使用 JSON-RPC `2.0`，且 `params` 与工具 `arguments` 必须是对象。浏览器风格的 `Origin` 仅允许 `localhost`、`127.0.0.1` 或 `[::1]`；非浏览器客户端可以不发送 `Origin`。
 
-## 工具（46 个）
+## 工具（52 个）
 
 ### 发现与读取
 
@@ -26,6 +24,15 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 | `GetGraphDetail` | 读取图表节点、Pin、默认值和连接。 |
 | `SearchGraphNodes` | 搜索蓝图动作并返回稳定的 `SpawnerId`。 |
 | `GetCompileErrors` | 编译并返回蓝图权威状态与诊断。 |
+
+### User Defined Struct 与 Enum
+
+| 工具 | 用途 |
+|---|---|
+| `CreateUserDefinedStruct` / `GetUserDefinedStruct` / `ModifyUserDefinedStruct` | 创建、读取并按稳定字段 GUID 安全修改结构体。 |
+| `CreateUserDefinedEnum` / `GetUserDefinedEnum` / `ModifyUserDefinedEnum` | 创建、读取并安全修改枚举项。 |
+
+先用 `bDryRun=true` 审阅有界引用影响结果；删除结构体字段或修改字段类型随后必须显式传入 `bAllowPotentialDataLoss=true`，删除或重排枚举项必须显式传入 `bAllowSerializedValueSemanticChange=true`。枚举重命名只修改显示名并保留内部枚举项名称。修改会刷新并编译引用 Blueprint，报告受影响的 DataTable/DataAsset，纳入 Undo 并只标记 Dirty，绝不自动保存。
 
 ### 变量、函数与事件
 
@@ -118,7 +125,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 ## 当前测试重点
 
-当前阶段优先完成现有 46 个工具在真实编辑器环境中的完整回归测试，包括正常工作流、拒绝路径、事务回滚、稳定分页与输出上限、编译反馈、保存并重启后的资产持久化，以及测试资产清理核验。安全父类修改和原生 Comment Box 已纳入当前工具集。
+当前阶段优先完成现有 52 个工具在真实编辑器环境中的完整回归测试，包括正常工作流、拒绝路径、事务回滚、稳定分页与输出上限、编译反馈、保存并重启后的资产持久化，以及测试资产清理核验。User Defined Struct/Enum 工具仍需真实编辑器与跨版本回归。
 
 ## 已知限制
 

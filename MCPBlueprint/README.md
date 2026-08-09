@@ -12,7 +12,7 @@ The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Writ
 
 Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments`. Browser-style `Origin` headers are accepted only for `localhost`, `127.0.0.1`, or `[::1]`; non-browser clients may omit `Origin`.
 
-## Tools (46)
+## Tools (52)
 
 ### Discovery and reading
 
@@ -24,6 +24,15 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 | `GetGraphDetail` | Read graph nodes, pins, defaults, and links. |
 | `SearchGraphNodes` | Search Blueprint action spawners and return stable `SpawnerId` values. |
 | `GetCompileErrors` | Compile and return the authoritative Blueprint status and diagnostics. |
+
+### User Defined Struct and Enum
+
+| Tool | Purpose |
+|---|---|
+| `CreateUserDefinedStruct` / `GetUserDefinedStruct` / `ModifyUserDefinedStruct` | Create, inspect, and safely edit fields by stable GUID. |
+| `CreateUserDefinedEnum` / `GetUserDefinedEnum` / `ModifyUserDefinedEnum` | Create, inspect, and safely edit enum entries. |
+
+Use `bDryRun=true` to review the bounded reference-impact result first. Struct removal and type changes then require `bAllowPotentialDataLoss=true`. Enum removal and reordering require `bAllowSerializedValueSemanticChange=true`. Enum renaming changes only the display name and preserves the internal enumerator name. Mutations refresh and compile referencing Blueprints, report affected DataTables/DataAssets, participate in Undo, mark assets dirty, and never save automatically.
 
 ### Variables, functions, and events
 
@@ -115,7 +124,7 @@ Open **Project Settings > Plugins > MCP Blueprint**.
 
 ## Current Testing Focus
 
-The current priority is complete real-editor regression testing of the existing 46 tools. This includes successful workflows, rejection paths, transaction rollback, stable pagination and output limits, compile feedback, asset persistence after save/restart, and cleanup verification. Safe Blueprint reparenting and native Comment Boxes are now part of the current toolset.
+The current priority is complete real-editor regression testing of the existing 52 tools. This includes successful workflows, rejection paths, transaction rollback, stable pagination and output limits, compile feedback, asset persistence after save/restart, and cleanup verification. User Defined Struct/Enum tools still require real-editor and cross-version regression.
 
 ## Known limitations
 
