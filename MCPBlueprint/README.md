@@ -12,7 +12,7 @@ The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Writ
 
 Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments`. Browser-style `Origin` headers are accepted only for `localhost`, `127.0.0.1`, or `[::1]`; non-browser clients may omit `Origin`.
 
-## Tools (44)
+## Tools (46)
 
 ### Discovery and reading
 
@@ -44,6 +44,13 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 | `ApplyGraphPatch` | Apply bounded node create/remove, connect/disconnect, defaults, and layout changes as one declarative transaction. |
 | `SetPinDefaults` | Set validated literal defaults on existing input pins. |
 | `FormatGraph` | Lay out a whole graph or a selected node set. |
+| `AddCommentBox` | Enclose selected nodes in a native Comment Box with configurable title, color, and padding. |
+
+#### Professional graph layout
+
+`FormatGraph` uses deterministic weak-component separation, SCC cycle condensation, left-to-right layered topology, barycentric crossing reduction, measured Slate node and pin-row sizes with bounded fallbacks, pin-aware vertical alignment, and component packing. `LayoutScope` accepts `WholeGraph`, `ConnectedComponent`, or `Selection`. `LayoutStyle` accepts `Balanced` (default general-purpose spacing), `Straight` (stronger wire alignment and more vertical room), or `Compact` (smaller footprint with lighter alignment). This small preset surface is suitable for project conventions or AI skill instructions without exposing algorithm-specific weights. Whole-graph layout protects comment boxes and the nodes they currently contain. Use `bDryRun=true` to return planned positions and before/after overlap, backward-edge, crossing, long-edge, area, `FlatEdgeRatio`, `AveragePinDeltaY`, and `P95PinDeltaY` metrics without calling `Modify()` or opening an editor transaction. Optional reroute insertion is disabled by default and bounded by `MaxRerouteNodes`; its quality metrics describe the original-node plan before knot insertion.
+
+`ApplyGraphPatch` accepts `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None` and the same `LayoutStyle` presets. `Auto` formats a newly implemented function together with its structural entry/result nodes, but limits changes to newly created nodes when adding to an existing implementation. A node with an explicit `Position` remains fixed. Layout failure, reroute failure, or compile failure participates in the same patch rollback. Both tools return the applied scope, style, and layout quality metrics.
 
 ### Actor Blueprint components and defaults
 
@@ -63,6 +70,7 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 | `CompileBlueprint` | Compile and return authoritative status and diagnostics. |
 | `SaveAsset` / `OpenAsset` / `CloseAsset` | Save or control the editor for a standalone Blueprint asset. |
 | `DeleteAsset` / `RenameAsset` / `DuplicateAsset` | Manage standalone Blueprint assets. |
+| `ReparentBlueprint` | Dry-run or apply a safe parent-class change with cycle and data-loss checks. |
 | `CaptureGraphScreenshot` | Return a PNG and optionally save it below `Saved/MCPBlueprint/Screenshots`. |
 
 ## Safety and behavior boundaries
@@ -89,6 +97,7 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 - Request timeout settings bound dispatcher waiting, but synchronous Blueprint/UObject work already running on the game thread cannot be preempted. Avoid immediate retries after a client-side timeout until editor state is known.
 - Blueprint listing and deletion are refused while Asset Registry discovery is running, so pagination and reference checks are not based on incomplete data.
 - Destructive asset deletion is not undoable. Without `bForce`, referenced assets are refused and normal editor deletion preserves live references; forced deletion may clear references and break dependents.
+- `DeleteAsset` can return `locked or in use` while the current session's Undo/Redo transaction history still retains the target. Do not mask this state with `bForce`; save work that must be kept, restart the editor, and retry with `bForce=false`.
 - Screenshot file output is restricted to `Saved/MCPBlueprint/Screenshots`; absolute paths, traversal, and existing link/reparse-point paths are rejected. Existing PNG files are not replaced unless `bOverwrite=true`; these checks reduce link-path and accidental-overwrite risks but do not claim to eliminate external filesystem races.
 - Source-only compatibility review is not a substitute for compiling and testing inside each target engine version.
 
@@ -106,11 +115,12 @@ Open **Project Settings > Plugins > MCP Blueprint**.
 
 ## Current Testing Focus
 
-The current priority is complete real-editor regression testing of the existing 44 tools. This includes successful workflows, rejection paths, transaction rollback, stable pagination and output limits, compile feedback, asset persistence after save/restart, and cleanup verification. The roadmap below is not part of the current toolset and is excluded from this test scope.
+The current priority is complete real-editor regression testing of the existing 46 tools. This includes successful workflows, rejection paths, transaction rollback, stable pagination and output limits, compile feedback, asset persistence after save/restart, and cleanup verification. Safe Blueprint reparenting and native Comment Boxes are now part of the current toolset.
 
-## Priority Capability Gap
+## Known limitations
 
-- **Safe Blueprint reparenting (highest priority):** reparent an existing Blueprint to a compatible native or Blueprint class. Validate the target asset and parent-class compatibility, reject inheritance cycles and unsupported Blueprint types, use an editor transaction with rollback, report compile diagnostics, save explicitly, and read back the resulting parent class. This is the first capability to add after the current regression gate.
+- When `LayoutScope=Selection` or `ConnectedComponent` targets nodes already inside a Comment Box, the current layout planner still treats that Comment Box as an outside obstacle and may shift the selected nodes out of the box. Inspect the plan with `bDryRun=true`; the reliable workflow today is layout first, then create the Comment Box.
+- An asset modified by many transactions in the same session may remain retained by Undo/Redo history and fail non-forced deletion. Follow the `DeleteAsset` safety guidance above. A future improvement will target this state without clearing unrelated undo history and will return more specific diagnostics.
 
 ## Later Roadmap
 
@@ -118,7 +128,7 @@ The current priority is complete real-editor regression testing of the existing 
 - **Variable metadata:** extend variable editing to cover category, tooltip, access control, Expose on Spawn, SaveGame, replication, and RepNotify settings.
 - **Graph lifecycle and impact analysis:** create, rename, and remove supported graph types; remove implemented interfaces; inspect references and affected assets before refactoring.
 - **Blueprint types:** create additional Blueprint asset types such as Blueprint Interfaces, Function Libraries, and Macro Libraries.
-- **Authoring and diagnostics:** improve graph comments, member documentation, and debugging-oriented inspection after the higher-priority refactoring workflows are stable.
+- **Authoring and diagnostics:** improve selection layout inside Comment containers, member documentation, and debugging-oriented inspection.
 
 These are candidate directions, not commitments to a particular release or date. They will be refined using evidence from testing and real usage.
 

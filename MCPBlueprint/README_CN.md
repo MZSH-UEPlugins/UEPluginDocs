@@ -12,7 +12,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 请求必须使用 JSON-RPC `2.0`，且 `params` 与工具 `arguments` 必须是对象。浏览器风格的 `Origin` 仅允许 `localhost`、`127.0.0.1` 或 `[::1]`；非浏览器客户端可以不发送 `Origin`。
 
-## 工具（44 个）
+## 工具（46 个）
 
 ### 发现与读取
 
@@ -44,6 +44,13 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 | `ApplyGraphPatch` | 在一个声明式事务中执行有上限的节点创建/删除、连接/断开、默认值和布局修改。 |
 | `SetPinDefaults` | 为现有输入 Pin 设置经过校验的字面量默认值。 |
 | `FormatGraph` | 自动排列整张图或指定节点集合。 |
+| `AddCommentBox` | 以可配置颜色、标题和边距把指定节点框入原生 Comment Box。 |
+
+#### 专业蓝图布局
+
+`FormatGraph` 使用确定性的弱连通区域分离、SCC 循环压缩、从左到右的分层拓扑、重心法交叉线优化、Slate 节点与 Pin 行尺寸及其有界回退、Pin-aware 纵向对齐，以及多区域装箱。`LayoutScope` 支持 `WholeGraph`、`ConnectedComponent` 和 `Selection`。`LayoutStyle` 支持 `Balanced`（默认通用间距）、`Straight`（更强的连线拉直和更多纵向空间）与 `Compact`（更小占用、较轻的拉直）；项目约定或 AI 技能规范只需选择预设，不必绑定算法内部权重。整图布局会保护注释框及其当前包围的节点。设置 `bDryRun=true` 时不会调用 `Modify()` 或开启编辑器事务，只返回规划位置，以及布局前后的重叠、反向边、交叉线、长连线、占用面积、`FlatEdgeRatio`、`AveragePinDeltaY` 和 `P95PinDeltaY` 指标。可选 Reroute 默认关闭，并受 `MaxRerouteNodes` 限制；其质量指标描述插入 Knot 前的原节点布局方案。
+
+`ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。`Auto` 会把新实现的函数与其结构性入口/返回节点一起整理；向已有复杂实现追加节点时只移动新节点，避免破坏人工布局。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；两个工具都会返回实际采用的范围、风格和布局质量指标。
 
 ### Actor 蓝图组件与默认值
 
@@ -63,6 +70,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 | `CompileBlueprint` | 编译并返回权威状态与诊断。 |
 | `SaveAsset` / `OpenAsset` / `CloseAsset` | 保存独立蓝图资产或控制其编辑器。 |
 | `DeleteAsset` / `RenameAsset` / `DuplicateAsset` | 管理独立蓝图资产。 |
+| `ReparentBlueprint` | 预演或执行安全父类修改，拒绝继承循环并报告潜在数据丢失。 |
 | `CaptureGraphScreenshot` | 返回 PNG，也可保存到 `Saved/MCPBlueprint/Screenshots` 下。 |
 
 ## 安全与行为边界
@@ -85,6 +93,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 - `GetGraphDetail` 单次最多请求 25 个稳定排序的节点，并受序列化页预算限制；每个节点的可见 Pin 独立分页（最多 64 个）且受单节点 Pin 预算限制，每个 Pin 最多返回 8 个有界连接，并提供明确的截断与续页元数据。
 - Asset Registry 仍在扫描时会拒绝列举和删除蓝图，避免分页与引用检查建立在不完整数据上。
 - 删除资产不可 Undo。未传 `bForce` 时会拒绝删除被引用资产，并使用编辑器常规删除流程保留实时引用；强制删除可能清空引用并破坏依赖资产。
+- 若目标资产仍被当前会话的 Undo/Redo 事务历史持有，`DeleteAsset` 可能返回 `locked or in use`。不要改用 `bForce` 掩盖状态；先保存需要保留的工作并重启编辑器，再以 `bForce=false` 重试。
 - 截图文件输出限定在 `Saved/MCPBlueprint/Screenshots`；绝对路径、路径穿越和已存在的链接/重解析点路径会被拒绝。除非显式传入 `bOverwrite=true`，否则不会覆盖已有 PNG；这些检查用于降低链接路径与误覆盖风险，但不宣称消除外部文件系统竞争。
 - 仅源码静态兼容审查不能代替在各目标引擎版本中的真实编译与测试。
 
@@ -107,11 +116,12 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 ## 当前测试重点
 
-当前阶段优先完成现有 44 个工具在真实编辑器环境中的完整回归测试，包括正常工作流、拒绝路径、事务回滚、稳定分页与输出上限、编译反馈、保存并重启后的资产持久化，以及测试资产清理核验。以下路线图不属于当前已提供的工具能力，也不纳入本轮测试范围。
+当前阶段优先完成现有 46 个工具在真实编辑器环境中的完整回归测试，包括正常工作流、拒绝路径、事务回滚、稳定分页与输出上限、编译反馈、保存并重启后的资产持久化，以及测试资产清理核验。安全父类修改和原生 Comment Box 已纳入当前工具集。
 
-## 优先功能缺失
+## 已知限制
 
-- **安全修改已有蓝图父类（最高优先级）：** 将已有蓝图的父类修改为兼容的原生类或蓝图类。操作前校验目标资产及父类兼容性，拒绝继承循环和不支持的蓝图类型；使用编辑器事务并支持失败回滚，返回编译诊断，显式保存资产，并读回最终父类进行核验。该能力是完成当前回归门槛后的第一优先新增项。
+- 对已经位于 Comment Box 内的节点执行 `LayoutScope=Selection` 或 `ConnectedComponent` 时，当前布局器仍会把 Comment Box 当作外部障碍，规划结果可能把节点整体移到框外。先使用 `bDryRun=true` 检查位置与指标；当前可靠流程是先布局、后创建 Comment Box。
+- 同一会话中经过大量事务修改的资产可能仍被 Undo/Redo 历史持有，导致非强制删除失败；处理方式见上方 `DeleteAsset` 安全边界。后续计划提供不清空无关 Undo 历史的定向处理与更明确诊断。
 
 ## 后期路线图
 
@@ -119,7 +129,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 - **变量元数据：** 扩展变量编辑，覆盖分类、提示、访问控制、Expose on Spawn、SaveGame、复制和 RepNotify 等设置。
 - **图表生命周期与影响分析：** 创建、重命名和删除受支持的图表类型；移除已实现接口；重构前查询引用与受影响资产。
 - **蓝图类型：** 创建 Blueprint Interface、Function Library、Macro Library 等其他蓝图资产类型。
-- **编辑体验与诊断：** 在高优先级重构流程稳定后，补充图表注释、成员文档和面向调试的状态检查能力。
+- **编辑体验与诊断：** 改进 Comment 容器内的选择布局、成员文档和面向调试的状态检查能力。
 
 以上内容是候选方向，不承诺具体版本或完成时间；后续将根据本轮测试与真实使用证据继续调整。
 
