@@ -23,6 +23,8 @@ Project Settings > Plugins > MCP World Editor:
 | MaxResponseBodyBytes | int32 | 8388608 | Maximum UTF-8 JSON response; screenshot Base64 content shares this budget |
 | MaxCapturePixels | int32 | 8294400 | Maximum pixels read by `CaptureViewport` (approximately 4K by default) |
 
+`CaptureViewport` normalizes viewport alpha to fully opaque before PNG encoding, so saved files and embedded screenshots display correctly in standard image viewers and Fab workflows.
+
 ## MCP Connection
 
 The plugin runs an HTTP server inside the Unreal Editor. AI clients connect via MCP protocol.

@@ -23,6 +23,8 @@ MCPWorldEditor 在 Unreal Editor 内运行 HTTP 服务，将 Actor 创建、变�
 | MaxResponseBodyBytes | int32 | 8388608 | 允许返回的最大 UTF-8 JSON 响应；截图 Base64 也受此预算约束 |
 | MaxCapturePixels | int32 | 8294400 | `CaptureViewport` 允许读取的最大像素数（默认约为 4K） |
 
+`CaptureViewport` 在 PNG 编码前会将视口 Alpha 统一为完全不透明，确保保存文件和内嵌截图可在标准图片查看器及 Fab 工作流中正确显示。
+
 ## MCP 连接
 
 服务地址为 `http://127.0.0.1:8764/mcp`。若默认端口被占用，请以编辑器工具栏显示的实际地址为准。
