@@ -32,7 +32,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 | `CreateUserDefinedStruct` / `GetUserDefinedStruct` / `ModifyUserDefinedStruct` | 创建、读取并按稳定字段 GUID 安全修改结构体。 |
 | `CreateUserDefinedEnum` / `GetUserDefinedEnum` / `ModifyUserDefinedEnum` | 创建、读取并安全修改枚举项。 |
 
-先用 `bDryRun=true` 审阅有界引用影响结果；删除结构体字段或修改字段类型随后必须显式传入 `bAllowPotentialDataLoss=true`，删除或重排枚举项必须显式传入 `bAllowSerializedValueSemanticChange=true`。枚举重命名只修改显示名并保留内部枚举项名称。修改会刷新并编译引用 Blueprint，报告受影响的 DataTable/DataAsset，纳入 Undo 并只标记 Dirty，绝不自动保存。
+先用 `bDryRun=true` 审阅有界引用影响结果；删除结构体字段或修改字段类型随后必须显式传入 `bAllowPotentialDataLoss=true`，删除或重排枚举项必须显式传入 `bAllowSerializedValueSemanticChange=true`。枚举重命名只修改显示名并保留内部枚举项名称。修改操作会刷新并编译引用 Blueprint，报告受影响的 DataTable/DataAsset，纳入 Undo 并只标记 Dirty，绝不自动保存。创建会先完成有效性验证；失败的部分资产会被丢弃，也不会通知 Asset Registry。
 
 ### 变量、函数与事件
 
