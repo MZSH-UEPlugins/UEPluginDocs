@@ -2,7 +2,7 @@
 
 # MCPBlueprint
 
-MCPBlueprint is a self-contained Unreal Editor plugin that exposes Blueprint discovery, graph editing, members, components, asset lifecycle operations, and compile feedback through MCP over HTTP. It supports Unreal Engine 5.2 and later and does not depend on another user plugin.
+MCPBlueprint is a self-contained Unreal Editor plugin that exposes Blueprint discovery, graph editing, members, components, asset lifecycle operations, and compile feedback through MCP over HTTP. It supports Unreal Engine 5.2 and later and does not depend on another user plugin. Win64 editor packages with precompiled binaries are verified across UE 5.2–5.8.
 
 ## Connection
 
@@ -124,7 +124,9 @@ Open **Project Settings > Plugins > MCP Blueprint**.
 
 ## Current Testing Focus
 
-The current priority is complete real-editor regression testing of the existing 52 tools. This includes successful workflows, rejection paths, transaction rollback, stable pagination and output limits, compile feedback, asset persistence after save/restart, and cleanup verification. User Defined Struct/Enum tools still require real-editor and cross-version regression.
+The existing 52-tool build has passed UE 5.2 compilation and automated Struct/Enum safety tests. The six User Defined Struct/Enum tools have also passed real-editor HTTP regression for create/read/modify workflows, stable GUID retention, dry runs, explicit approval gates, rejection paths, pagination, and direct Map-value cycle detection. The complete Win64 BuildPlugin matrix succeeds for UE 5.2–5.8, and each package has been verified after deployment with matching precompiled DLL hashes and `EnabledByDefault=true`.
+
+Packaging verification proves that every target engine can compile the plugin and receive the expected deployed layout; it is not a substitute for exercising every MCP operation in every editor version. Broader cross-version real-editor regression of the remaining tool surface, save/restart persistence, and cleanup behavior remains ongoing.
 
 ## Known limitations
 

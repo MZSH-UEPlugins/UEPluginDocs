@@ -2,7 +2,7 @@
 
 # MCPBlueprint
 
-MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI 客户端提供蓝图发现、图表编辑、成员管理、组件管理、资产生命周期与编译反馈能力。插件支持 Unreal Engine 5.2 及以上版本，不依赖其他用户制作的插件。
+MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI 客户端提供蓝图发现、图表编辑、成员管理、组件管理、资产生命周期与编译反馈能力。插件支持 Unreal Engine 5.2 及以上版本，不依赖其他用户制作的插件；带预编译二进制的 Win64 Editor 插件包已覆盖验证 UE 5.2–5.8。
 
 ## 连接方式
 
@@ -125,7 +125,9 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 ## 当前测试重点
 
-当前阶段优先完成现有 52 个工具在真实编辑器环境中的完整回归测试，包括正常工作流、拒绝路径、事务回滚、稳定分页与输出上限、编译反馈、保存并重启后的资产持久化，以及测试资产清理核验。User Defined Struct/Enum 工具仍需真实编辑器与跨版本回归。
+当前 52 工具版本已通过 UE 5.2 编译及 Struct/Enum 自动化安全测试。6 个 User Defined Struct/Enum 工具还完成了真实编辑器 HTTP 回归，覆盖创建、读取、修改、稳定 GUID 保留、dry-run、显式授权门禁、拒绝路径、分页和 Map value 直接循环检测。UE 5.2–5.8 的完整 Win64 BuildPlugin 矩阵均已成功，并逐版本验证部署后的预编译 DLL 哈希一致且 `EnabledByDefault=true`。
+
+打包验证证明各目标引擎可以编译插件并获得预期目录结构，但不能替代每个引擎版本内对全部 MCP 操作的运行时验证。其余工具的跨版本真实编辑器回归、保存/重启持久化与清理行为仍会继续推进。
 
 ## 已知限制
 
