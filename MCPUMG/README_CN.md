@@ -17,7 +17,7 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 
 更新 MCPUMG 时，请先关闭编辑器，再使用匹配版本的新安装包完整替换现有 `MCPUMG` 目录。不要混用不同引擎版本的文件。
 
-## 工具（26 个）
+## 工具（27 个）
 
 ### 发现与读取
 
@@ -41,6 +41,9 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | WrapWidget | 使用新的父容器包裹 Widget |
 | SetWidgetProperties | 设置 Widget 属性 |
 | SetSlotProperties | 设置插槽属性（布局参数） |
+| SetListViewEntryClass | 为 ListView、TileView 或 TreeView 配置经过校验的 `IUserObjectListEntry` 条目类 |
+
+`SetListViewEntryClass` 只持久化条目类。Unreal 将 `UListView::ListItems` 标记为瞬态，因此条目数据仍应在 Blueprint 或运行时通过 `SetListItems`/`AddItem` 注入。可重复验证资产为 `/Game/MCPTests/UMG/WBP_MCPUMG_ListViewProbe` 与 `/Game/MCPTests/UMG/WBP_MCPUMG_ListEntryProbe`：对控件 `ListAssets` 调用工具，用 `GetWidgetTree` 读回 `EntryWidgetClass`，保存并重开资产，再运行现有 Construct 数据注入并截图核验。
 
 ### UMG 动画（7 个工具）
 

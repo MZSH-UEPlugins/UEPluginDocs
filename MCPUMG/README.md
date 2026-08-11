@@ -17,7 +17,7 @@ MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via 
 
 To update MCPUMG, close the editor and replace the entire existing `MCPUMG` directory with the matching new package. Do not mix files from different engine versions.
 
-## Tools (26)
+## Tools (27)
 
 ### Discovery & Reading
 | Tool | Description |
@@ -39,6 +39,9 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | WrapWidget | Wrap a widget in a new parent container |
 | SetWidgetProperties | Set widget properties |
 | SetSlotProperties | Set slot properties (layout parameters) |
+| SetListViewEntryClass | Configure a validated `IUserObjectListEntry` class for ListView, TileView, or TreeView |
+
+`SetListViewEntryClass` persists only the entry class. Unreal marks `UListView::ListItems` as transient, so populate items from Blueprint or runtime data with `SetListItems`/`AddItem`. A repeatable verification asset pair is `/Game/MCPTests/UMG/WBP_MCPUMG_ListViewProbe` and `/Game/MCPTests/UMG/WBP_MCPUMG_ListEntryProbe`: call the tool for widget `ListAssets`, read back `EntryWidgetClass` with `GetWidgetTree`, save and reopen the asset, then run the existing Construct-driven item population and capture the result.
 
 ### UMG Animations (7 tools)
 | Tool | Description |
