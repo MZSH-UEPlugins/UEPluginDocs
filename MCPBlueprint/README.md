@@ -12,7 +12,7 @@ The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Writ
 
 Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments`. Browser-style `Origin` headers are accepted only for `localhost`, `127.0.0.1`, or `[::1]`; non-browser clients may omit `Origin`.
 
-## Tools (52)
+## Tools (53)
 
 ### Discovery and reading
 
@@ -39,12 +39,14 @@ Use `bDryRun=true` to review the bounded reference-impact result first. Struct r
 | Tool | Purpose |
 |---|---|
 | `AddVariable` / `ModifyVariable` / `RemoveVariable` | Manage Blueprint member variables. |
-| `CreateFunction` / `RemoveFunction` | Create or safely remove a function graph with reference checks. |
+| `CreateFunction` / `RenameFunction` / `RemoveFunction` | Create, safety-gated rename, or safely remove a function graph. Rename defaults to dry-run impact analysis and requires explicit approval before reference updates. |
 | `CreateCustomEvent` / `AddEventNode` / `AddBoundEvent` | Add custom, engine, component, or level-actor events. |
 | `AddLocalVariable` / `RemoveLocalVariable` | Add or safely remove a function-local variable. |
 | `AddNodePin` / `RemoveNodePin` | Add or remove supported dynamic pins on Sequence, container, and Switch nodes. |
 | `AddInterface` | Implement a Blueprint interface. |
 | `AddEventDispatcher` / `RemoveEventDispatcher` | Create or safely remove a multicast event dispatcher and its signature. |
+
+For `RenameFunction`, omit `bDryRun` (or set it to `true`) to inspect the stable graph GUID, bounded local/external reference counts, affected Blueprints, unloaded derived classes, and blockers without mutation. Apply only by sending both `bDryRun=false` and `bApproveReferenceUpdates=true`. The first version deliberately rejects override/protected and RepNotify functions, incomplete reference scans, unloaded derived Blueprints, `CreateDelegate` bindings, and AnimBlueprint/AnimGraph state found in the declaring Blueprint, loaded dependents, or Asset Registry referencers—even when ordinary node-reference counting is zero. This gate is fail-closed because UE 5.4+ can rewrite opaque nested function property bindings that cannot yet be scanned or restored transactionally. A successful apply preserves `FunctionGraphGuid`, verifies the old name has no remaining references, compiles every affected Blueprint, participates in Undo, marks packages dirty, and never saves automatically.
 
 ### Graph editing
 
@@ -124,7 +126,7 @@ Open **Project Settings > Plugins > MCP Blueprint**.
 
 ## Current Testing Focus
 
-The existing 52-tool build has passed UE 5.2 compilation and automated Struct/Enum safety tests. The six User Defined Struct/Enum tools have also passed real-editor HTTP regression for create/read/modify workflows, stable GUID retention, dry runs, explicit approval gates, rejection paths, pagination, and direct Map-value cycle detection. The complete Win64 BuildPlugin matrix succeeds for UE 5.2–5.8, and each package has been verified after deployment with matching precompiled DLL hashes and `EnabledByDefault=true`.
+The current 53-tool source has passed UE 5.2 compilation and the automated `RenameFunction` safety regression, including persisted Asset Registry referencers, GUID conflicts, `CreateDelegate`, AnimBlueprint/AnimGraph, override, RepNotify, explicit approval, Undo recovery, and injected-failure rollback. Real-editor HTTP verification covered initialize, `tools/list` (53), ping, default dry-run, approval-gated rename with a real external caller, stable Graph GUID retention, read-back, Blueprint compilation, save, close/reopen persistence, and screenshots. The six User Defined Struct/Enum tools have also passed real-editor HTTP regression for create/read/modify workflows, stable GUID retention, dry runs, explicit approval gates, rejection paths, pagination, and direct Map-value cycle detection. The complete Win64 BuildPlugin matrix succeeded for UE 5.2–5.8 on the previous baseline, with matching deployed precompiled DLL hashes and `EnabledByDefault=true`.
 
 Packaging verification proves that every target engine can compile the plugin and receive the expected deployed layout; it is not a substitute for exercising every MCP operation in every editor version. Broader cross-version real-editor regression of the remaining tool surface, save/restart persistence, and cleanup behavior remains ongoing.
 
@@ -135,7 +137,9 @@ Packaging verification proves that every target engine can compile the plugin an
 
 ## Later Roadmap
 
-- **Member signatures and refactoring:** modify or rename function, Custom Event, and Event Dispatcher signatures and flags while preserving references safely.
+After the current `RenameFunction` unit, later optimization work is paused and may resume when there is another suitable opportunity. The entries below remain directions, not active work or commitments.
+
+- **Member signatures and refactoring:** safely modify function signatures and flags, then extend the same model to Custom Event and Event Dispatcher signatures.
 - **Variable metadata:** extend variable editing to cover category, tooltip, access control, Expose on Spawn, SaveGame, replication, and RepNotify settings.
 - **Graph lifecycle and impact analysis:** create, rename, and remove supported graph types; remove implemented interfaces; inspect references and affected assets before refactoring.
 - **Blueprint types:** create additional Blueprint asset types such as Blueprint Interfaces, Function Libraries, and Macro Libraries.

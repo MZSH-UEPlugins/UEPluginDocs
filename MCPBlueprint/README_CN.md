@@ -12,7 +12,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 请求必须使用 JSON-RPC `2.0`，且 `params` 与工具 `arguments` 必须是对象。浏览器风格的 `Origin` 仅允许 `localhost`、`127.0.0.1` 或 `[::1]`；非浏览器客户端可以不发送 `Origin`。
 
-## 工具（52 个）
+## 工具（53 个）
 
 ### 发现与读取
 
@@ -39,12 +39,14 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 | 工具 | 用途 |
 |---|---|
 | `AddVariable` / `ModifyVariable` / `RemoveVariable` | 管理蓝图成员变量。 |
-| `CreateFunction` / `RemoveFunction` | 创建函数或在引用检查通过后安全删除函数图。 |
+| `CreateFunction` / `RenameFunction` / `RemoveFunction` | 创建、安全门禁重命名或安全删除函数图。重命名默认只做 dry-run 影响分析，更新引用前必须显式批准。 |
 | `CreateCustomEvent` / `AddEventNode` / `AddBoundEvent` | 添加自定义事件、引擎事件、组件事件或关卡 Actor 事件。 |
 | `AddLocalVariable` / `RemoveLocalVariable` | 添加或安全删除函数局部变量。 |
 | `AddNodePin` / `RemoveNodePin` | 为 Sequence、容器和 Switch 等节点添加或删除受支持的动态 Pin。 |
 | `AddInterface` | 实现蓝图接口。 |
 | `AddEventDispatcher` / `RemoveEventDispatcher` | 创建或安全删除多播事件分发器及其签名。 |
+
+调用 `RenameFunction` 时，省略 `bDryRun`（或设为 `true`）只会返回稳定 Graph GUID、有界的本地/外部引用计数、受影响 Blueprint、未加载派生类与阻断项，不产生修改。正式执行必须同时传入 `bDryRun=false` 与 `bApproveReferenceUpdates=true`。首版会主动拒绝 override/受保护函数、RepNotify 函数、不完整引用扫描、未加载派生 Blueprint、`CreateDelegate` 绑定，以及在声明 Blueprint、已加载依赖或 Asset Registry 外部引用项中发现 AnimBlueprint/AnimGraph 状态的情况，即使普通节点引用计数为 0 也会阻断。该门禁采用 fail-closed，因为 UE 5.4+ 可能改写目前无法完整扫描或事务恢复的嵌套函数属性绑定。成功执行会保留 `FunctionGraphGuid`、确认旧名称引用归零、编译全部受影响 Blueprint、纳入 Undo、只标记 Dirty，绝不自动保存。
 
 ### 图表编辑
 
@@ -125,7 +127,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 ## 当前测试重点
 
-当前 52 工具版本已通过 UE 5.2 编译及 Struct/Enum 自动化安全测试。6 个 User Defined Struct/Enum 工具还完成了真实编辑器 HTTP 回归，覆盖创建、读取、修改、稳定 GUID 保留、dry-run、显式授权门禁、拒绝路径、分页和 Map value 直接循环检测。UE 5.2–5.8 的完整 Win64 BuildPlugin 矩阵均已成功，并逐版本验证部署后的预编译 DLL 哈希一致且 `EnabledByDefault=true`。
+当前 53 工具源码已通过 UE 5.2 编译与 `RenameFunction` 自动化安全回归，覆盖真实落盘的 Asset Registry 外部引用、GUID 冲突、`CreateDelegate`、AnimBlueprint/AnimGraph、override、RepNotify、显式批准、Undo 恢复和注入失败回滚。真实编辑器 HTTP 回归还验证了 initialize、`tools/list`（53）、ping、默认 dry-run、带真实外部 Caller 的批准写入、稳定 Graph GUID、写后读回、Blueprint 编译、保存、关闭重开持久化和截图。6 个 User Defined Struct/Enum 工具也已完成真实编辑器 HTTP 回归，覆盖创建、读取、修改、稳定 GUID 保留、dry-run、显式授权门禁、拒绝路径、分页和 Map value 直接循环检测。此前基线的 UE 5.2–5.8 完整 Win64 BuildPlugin 矩阵均已成功，并逐版本验证部署后的预编译 DLL 哈希一致且 `EnabledByDefault=true`。
 
 打包验证证明各目标引擎可以编译插件并获得预期目录结构，但不能替代每个引擎版本内对全部 MCP 操作的运行时验证。其余工具的跨版本真实编辑器回归、保存/重启持久化与清理行为仍会继续推进。
 
@@ -136,7 +138,9 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 ## 后期路线图
 
-- **成员签名与重构：** 安全修改或重命名函数、Custom Event 和 Event Dispatcher 的签名与标志，并正确保留引用。
+当前 `RenameFunction` 单元结束后，后续优化暂停，后面有合适机会再继续。以下条目仅保留为方向，并非正在推进的工作或版本承诺。
+
+- **成员签名与重构：** 安全修改函数签名与标志，并把同一安全模型扩展到 Custom Event 和 Event Dispatcher 签名。
 - **变量元数据：** 扩展变量编辑，覆盖分类、提示、访问控制、Expose on Spawn、SaveGame、复制和 RepNotify 等设置。
 - **图表生命周期与影响分析：** 创建、重命名和删除受支持的图表类型；移除已实现接口；重构前查询引用与受影响资产。
 - **蓝图类型：** 创建 Blueprint Interface、Function Library、Macro Library 等其他蓝图资产类型。
