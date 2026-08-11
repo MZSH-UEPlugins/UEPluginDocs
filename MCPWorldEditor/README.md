@@ -68,7 +68,15 @@ The editor becomes busy as soon as a PIE start request is queued. `PIEControl/Ge
 
 ## Tool and Editor State Contracts
 
-This source revision registers 71 tools with 71 unique tool names.
+This source revision registers 73 tools with 73 unique tool names.
+
+### Landscape Height Data Safety
+
+`GetLandscapeHeightData` and `SetLandscapeHeightData` exchange row-major `uint16` height samples directly in JSON; they never probe or read caller-selected files. Regions use inclusive Landscape vertex coordinates and are limited to 65,536 samples per call. The target must be the main `ALandscape` actor, and the complete region must be loaded and owned by that actor. UE 5.8 and newer require an exact GUID for a standard `EditLayerGuid`; procedural and spline layers are rejected, and `SetLandscapeHeightData` also rejects locked layers while the read tool may inspect them. UE 5.2-5.7 reject landscapes that contain Edit Layers because those versions need a separate layer-aware contract.
+
+`SetLandscapeHeightData` defaults to `bDryRun=true`. Preflight returns `CurrentDataHash` and `ProposedDataHash` without changing editor state. Applying requires `bDryRun=false`, the exact fresh `ExpectedCurrentDataHash`, and the matching `ExpectedProposedDataHash`; stale state or changed proposed samples are rejected before the transaction. A write is read back and verified. If verification fails, the original samples are restored and verified before the transaction is cancelled; an unverified rollback is reported as potentially state-changing. The atomic boundary is one region call, not a multi-call whole-landscape import, and neither tool saves the level or assets.
+
+This bounded structured Landscape height-region unit is complete. Further MCPWorldEditor optimization work is paused and may continue in a future development cycle.
 
 `RemoveStreamingLevel` is not itself undoable. It requests that Unreal Engine preserve the existing Undo buffer, but stale references may still cause the engine to reset that buffer, so Undo-history preservation is not guaranteed. The tool removes Actor, Component, Object, and BSP selections that belong to the target level. It snapshots and verifies restoration of selected Actors, Components, and Objects outside that level; BSP selections in other levels are left untouched rather than cleared globally. If removal fails, the tool also attempts to restore the target-level selection and reports whether restoration was verified.
 

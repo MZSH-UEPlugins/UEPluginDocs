@@ -64,7 +64,15 @@ PIE 启动请求排队后即视为编辑器忙碌；`PIEControl/GetState` 与 `G
 
 ## 工具与编辑器状态合同
 
-当前源码版本注册了 71 个工具，且 71 个工具名称均唯一。
+当前源码版本注册了 73 个工具，且 73 个工具名称均唯一。
+
+### Landscape 高度数据安全合同
+
+`GetLandscapeHeightData` 与 `SetLandscapeHeightData` 直接通过 JSON 交换按行排列的 `uint16` 高度采样，不探测或读取调用方指定的文件。区域使用包含端点的 Landscape 顶点坐标，单次最多 65,536 个采样。目标必须是主 `ALandscape` Actor，且整个区域必须已加载并归该 Actor 所有。UE 5.8 及更高版本要求精确指向标准编辑层的 `EditLayerGuid`，并拒绝程序化层与样条层；写工具还会拒绝锁定层，读工具则允许检查锁定层。UE 5.2-5.7 会拒绝包含 Edit Layers 的 Landscape，因为这些版本需要另行定义分层编辑合同。
+
+`SetLandscapeHeightData` 默认使用 `bDryRun=true`。预检只返回 `CurrentDataHash` 与 `ProposedDataHash`，不改变编辑器状态。正式应用必须传入 `bDryRun=false`、刚刚预检得到的 `ExpectedCurrentDataHash`，以及匹配的 `ExpectedProposedDataHash`；当前状态或拟写入采样已变化时会在事务开始前拒绝。写入后工具会读回核验；核验失败时先恢复并验证原始采样，再取消事务，若恢复也无法确认则明确报告编辑器状态可能已变化。原子边界是单次区域调用，不是跨多次调用的整幅地形导入；两个工具均不会保存关卡或资产。
+
+当前“有界结构化 Landscape 高度区域读写”单元已完成；MCPWorldEditor 后续优化已暂停，有机会再继续。
 
 `RemoveStreamingLevel` 操作本身不可撤销。它会请求 Unreal Engine 保留既有 Undo 缓冲，但引擎仍可能因过期引用而重置该缓冲，因此不能保证 Undo 历史一定保留。工具只移除属于目标关卡的 Actor、Component、Object 与 BSP Selection；它会快照并核验目标关卡之外已选 Actor、Component 与 Object 的恢复，其他关卡中的 BSP Selection 则保持原状而不会被全局清除。若移除失败，工具还会尝试恢复目标关卡内的选择，并报告恢复是否通过核验。
 
