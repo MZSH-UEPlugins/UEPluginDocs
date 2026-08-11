@@ -8,6 +8,8 @@ MCPUMG 是一款由 MCP（Model Context Protocol，模型上下文协议）驱�
 
 MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供 Widget 专用的可视化编辑能力。AI 工具可以通过标准协议发现、创建和修改 Widget 树、属性、插槽、动画与事件。
 
+> 开发状态（2026-08-12）：ListView 数据驱动条目类单元已完成；动画轨道、事件/绑定及其他后续优化现已暂停，有机会再继续。
+
 ## 安装与更新
 
 1. 关闭所有正在使用目标引擎版本的 Unreal Editor 实例。

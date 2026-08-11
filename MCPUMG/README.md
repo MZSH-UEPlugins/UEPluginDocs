@@ -8,6 +8,8 @@ AI-driven UMG editing plugin for Unreal Engine, powered by MCP (Model Context Pr
 
 MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via an HTTP server running inside the Unreal Editor. AI tools can discover, create, modify widget trees, properties, slots, animations, and events through a standardized protocol.
 
+> Development status (2026-08-12): the data-driven ListView entry-class unit is complete. Further animation-track, event/binding, and other optimization work is paused and may continue when an opportunity arises.
+
 ## Installation and Updates
 
 1. Close every Unreal Editor instance that uses the target engine version.
