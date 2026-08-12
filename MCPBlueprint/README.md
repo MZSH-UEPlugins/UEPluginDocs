@@ -24,7 +24,7 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 | `GetBlueprintOverview` | Read graphs, variables, functions, components, interfaces, and parent class. |
 | `ListBlueprintMembers` | List functions, Custom Events, dispatchers, and local variables with unified stable pagination. |
 | `GetGraphDetail` | Read graph nodes, pins, defaults, and links. |
-| `SearchGraphNodes` | Search Blueprint action spawners by Unreal's English standard names and return stable `SpawnerId` values. Standard arithmetic queries include `Add`, `Subtract`, `Multiply`, and `Divide`. |
+| `SearchGraphNodes` | Search Blueprint action spawners by Unreal's English standard names and return stable `SpawnerId` values. Standard queries include `Branch`, `For Loop`, `For Each Loop`, `Switch on Int/Name/String`, and `Add/Subtract/Multiply/Divide`. |
 | `GetCompileErrors` | Compile and return the authoritative Blueprint status and diagnostics. |
 
 ### User Defined Struct and Enum
@@ -66,6 +66,12 @@ For `RenameFunction`, omit `bDryRun` (or set it to `true`) to inspect the stable
 `ApplyGraphPatch` accepts `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None` and the same `LayoutStyle` presets. MCP-driven placement is required to avoid overlap by default and must not silently accept an unresolved collision. A node with an explicit `Position` remains fixed. Layout failure, reroute failure, or compile failure participates in the same patch rollback. Both tools return the applied scope, style, and layout quality metrics.
 
 For standard arithmetic, call `SearchGraphNodes` with the English Unreal action name `Add`, `Subtract`, `Multiply`, or `Divide`, then pass the exact returned `Operator:<Name>` value to `ApplyGraphPatch`; never construct a SpawnerId manually. In that same patch, connect a Real/Double source pin to `A` or `B` and set the node's optional `PromotedType` to `double` or `real`. Unreal's schema performs its native connection-driven promotion; after all connections, the tool verifies that the operator function and `A`, `B`, and `ReturnValue` are Real/Double, otherwise the entire patch is rolled back. Unreal's UI and serialized pin text can use **Float**, **Double**, or **Real** wording depending on engine version and context; this workflow explicitly guarantees the Real/Double form, not an independently forced single-precision Float form.
+
+For standard flow control, search with the exact English Unreal names `Branch`, `For Loop`, `For Each Loop`, `Switch on Int`, `Switch on Name`, or `Switch on String`. Loop results are real StandardMacros Action Registry entries (for example `Macro:/Engine/EditorBlueprintResources/StandardMacros.StandardMacros:ForLoop`), while Branch and the three scalar switches use their registry-backed `Native:K2Node_*` IDs. Always use the returned value; fabricated macro or native IDs remain invalid. The editor UI can localize node titles after placement even though search uses stable English names.
+
+![Standard flow-control nodes created from SearchGraphNodes results](./Images/Fab/FlowControl_StandardNodes.png)
+
+*Real UE 5.2 capture after Search → ApplyGraphPatch → read-back → compile → save → close/reopen. The six standard nodes are separated with no overlap.*
 
 ### Actor Blueprint components and defaults
 

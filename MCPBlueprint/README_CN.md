@@ -24,7 +24,7 @@ Fab 英文商品文案、当前逐版本兼容矩阵、安装步骤、7 个完�
 | `GetBlueprintOverview` | 读取图表、变量、函数、组件、接口与父类。 |
 | `ListBlueprintMembers` | 使用统一稳定分页列出函数、Custom Event、Dispatcher 与局部变量。 |
 | `GetGraphDetail` | 读取图表节点、Pin、默认值和连接。 |
-| `SearchGraphNodes` | 使用 Unreal 英文标准名称搜索蓝图动作并返回稳定的 `SpawnerId`；标准算术查询包括 `Add`、`Subtract`、`Multiply`、`Divide`。 |
+| `SearchGraphNodes` | 使用 Unreal 英文标准名称搜索蓝图动作并返回稳定的 `SpawnerId`；标准查询包括 `Branch`、`For Loop`、`For Each Loop`、`Switch on Int/Name/String` 与 `Add/Subtract/Multiply/Divide`。 |
 | `GetCompileErrors` | 编译并返回蓝图权威状态与诊断。 |
 
 ### User Defined Struct 与 Enum
@@ -66,6 +66,12 @@ Fab 英文商品文案、当前逐版本兼容矩阵、安装步骤、7 个完�
 `ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。MCP 驱动的节点放置默认必须避免重叠，且不能静默接受仍未解决的碰撞。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；两个工具都会返回实际采用的范围、风格和布局质量指标。
 
 创建标准算术节点时，先用 Unreal 英文动作名 `Add`、`Subtract`、`Multiply` 或 `Divide` 调用 `SearchGraphNodes`，再把其返回的精确 `Operator:<Name>` 交给 `ApplyGraphPatch`，不要手工拼接 SpawnerId。在同一个 patch 中，把 Real/Double 来源 Pin 连接到 `A` 或 `B`，并为节点可选传入 `PromotedType: "double"` 或 `"real"`。Unreal Schema 会执行原生的连接驱动类型提升；全部连接完成后，工具再验证目标运算函数与 `A`、`B`、`ReturnValue` 均为 Real/Double，否则整笔 patch 回滚。不同引擎版本和 Pin 上下文可能在界面或序列化文本中显示为 **Float**、**Double** 或 **Real**；当前流程明确保证 Real/Double 形式，不承诺强制独立的单精度 Float 形式。
+
+标准流程控制节点请使用 Unreal 英文名称搜索：`Branch`、`For Loop`、`For Each Loop`、`Switch on Int`、`Switch on Name`、`Switch on String`。循环节点来自真实的 StandardMacros Action Registry（例如 `Macro:/Engine/EditorBlueprintResources/StandardMacros.StandardMacros:ForLoop`），Branch 和三种标量 Switch 使用 Registry 支持的 `Native:K2Node_*` ID。必须使用搜索返回值；手工伪造宏或原生 ID 仍会被拒绝。节点放置后，编辑器界面标题可按 UE 当前语言本地化，但搜索名保持英文标准名称。
+
+![由 SearchGraphNodes 结果创建的标准流程控制节点](./Images/Fab/FlowControl_StandardNodes.png)
+
+*真实 UE 5.2 截图：已完成 Search → ApplyGraphPatch → 读回 → 编译 → 保存 → 关闭重开；六个标准节点彼此分离且无重叠。*
 
 ### Actor 蓝图组件与默认值
 
