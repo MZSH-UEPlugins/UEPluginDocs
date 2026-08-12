@@ -38,7 +38,7 @@ Use `bDryRun=true` to review the bounded reference-impact result first. Struct r
 
 | Tool | Purpose |
 |---|---|
-| `AddVariable` / `ModifyVariable` / `RemoveVariable` | Manage Blueprint member variables. |
+| `AddVariable` / `ModifyVariable` / `RemoveVariable` | Manage Blueprint member variables. `ModifyVariable` also updates `Category` and `Tooltip` transactionally. |
 | `CreateFunction` / `RenameFunction` / `RemoveFunction` | Create, safety-gated rename, or safely remove a function graph. Rename defaults to dry-run impact analysis and requires explicit approval before reference updates. |
 | `CreateCustomEvent` / `AddEventNode` / `AddBoundEvent` | Add custom, engine, component, or level-actor events. |
 | `AddLocalVariable` / `RemoveLocalVariable` | Add or safely remove a function-local variable. |
@@ -90,6 +90,7 @@ For `RenameFunction`, omit `bDryRun` (or set it to `true`) to inspect the stable
 - Level Blueprints can be read and graph-edited by object path, but `SaveAsset`, `DeleteAsset`, `RenameAsset`, and `DuplicateAsset` do not operate on them because those actions affect the owning level package. Use a World Editor workflow for the level itself.
 - `CloseAsset` reports whether an editor was open and verifies that all editors for the Blueprint and its subobjects actually closed; cancellation is returned as an error.
 - Member and local variable defaults are validated with Unreal's K2 pin rules before mutation; malformed UE text values are rejected.
+- `ModifyVariable` accepts optional `Category` and `Tooltip` for member variables. An empty `Category` restores Unreal's default category; an empty `Tooltip` removes its metadata. The tool updates the variable declaration transactionally, marks the Blueprint modified without forcing a structural rebuild, participates in Undo, rolls back on compile failure, and never saves automatically. `GetBlueprintOverview` returns `Tooltip` when present.
 - Variable type changes, renames, and removals reject unsafe operations while derived Blueprint classes are unloaded. Load descendants first so inherited references can be checked; child references must be removed before deleting a declaration.
 - With automatic compilation enabled, transactional Blueprint mutations return bounded compiler diagnostics and roll back when compilation does not reach `UpToDate` or `Warning`; when disabled, mutation results report `CompileStatus: Skipped`. Rollback status is reported explicitly.
 - Component names are validated against the complete Blueprint member namespace. Ambiguous short component class names are rejected; use a full class path to disambiguate.
@@ -137,10 +138,10 @@ Packaging verification proves that every target engine can compile the plugin an
 
 ## Later Roadmap
 
-After the current `RenameFunction` unit, later optimization work is paused and may resume when there is another suitable opportunity. The entries below remain directions, not active work or commitments.
+Development has resumed in bounded, independently verified units. The current descriptive-variable-metadata unit covers `Category` and `Tooltip`; the entries below are remaining directions, not commitments to a specific version or date.
 
 - **Member signatures and refactoring:** safely modify function signatures and flags, then extend the same model to Custom Event and Event Dispatcher signatures.
-- **Variable metadata:** extend variable editing to cover category, tooltip, access control, Expose on Spawn, SaveGame, replication, and RepNotify settings.
+- **Remaining variable metadata:** extend variable editing to cover access control, Expose on Spawn, SaveGame, replication, and RepNotify settings.
 - **Graph lifecycle and impact analysis:** create, rename, and remove supported graph types; remove implemented interfaces; inspect references and affected assets before refactoring.
 - **Blueprint types:** create additional Blueprint asset types such as Blueprint Interfaces, Function Libraries, and Macro Libraries.
 - **Authoring and diagnostics:** improve selection layout inside Comment containers, member documentation, and debugging-oriented inspection.

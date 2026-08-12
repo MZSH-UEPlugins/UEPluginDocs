@@ -38,7 +38,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 | 工具 | 用途 |
 |---|---|
-| `AddVariable` / `ModifyVariable` / `RemoveVariable` | 管理蓝图成员变量。 |
+| `AddVariable` / `ModifyVariable` / `RemoveVariable` | 管理蓝图成员变量；`ModifyVariable` 还可事务化更新 `Category` 与 `Tooltip`。 |
 | `CreateFunction` / `RenameFunction` / `RemoveFunction` | 创建、安全门禁重命名或安全删除函数图。重命名默认只做 dry-run 影响分析，更新引用前必须显式批准。 |
 | `CreateCustomEvent` / `AddEventNode` / `AddBoundEvent` | 添加自定义事件、引擎事件、组件事件或关卡 Actor 事件。 |
 | `AddLocalVariable` / `RemoveLocalVariable` | 添加或安全删除函数局部变量。 |
@@ -90,6 +90,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 - 关卡蓝图可以通过对象路径读取和编辑图表，但 `SaveAsset`、`DeleteAsset`、`RenameAsset` 与 `DuplicateAsset` 不处理关卡蓝图，因为这些操作会影响所属关卡包；请通过 World Editor 工作流处理关卡本身。
 - `CloseAsset` 会返回之前是否打开，并核验蓝图及其子对象的所有编辑器是否真正关闭；用户取消关闭时返回错误。
 - 成员变量和局部变量的默认值会在修改前按 Unreal K2 Pin 规则校验；不合法的 UE 文本值会被拒绝。
+- `ModifyVariable` 可选接收成员变量的 `Category` 与 `Tooltip`。空 `Category` 恢复 Unreal 默认类别；空 `Tooltip` 删除该元数据。该工具会在事务中更新变量声明，只把蓝图标记为已修改而不强制结构重建，支持 Undo，编译失败会回滚，且绝不自动保存；`GetBlueprintOverview` 会在存在时返回 `Tooltip`。
 - 存在未加载派生蓝图时，变量类型变更、重命名和删除会被拒绝。请先加载派生蓝图以检查继承引用；删除声明前必须先移除子蓝图引用。
 - 启用自动编译时，事务型蓝图修改会返回有界编译诊断，并在终态不是 `UpToDate` 或 `Warning` 时回滚且明确报告回滚状态；禁用时结果会返回 `CompileStatus: Skipped`。
 - 组件名称会对完整蓝图成员命名空间进行校验。短组件类名存在歧义时会被拒绝；请使用完整类路径消除歧义。
@@ -138,10 +139,10 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 ## 后期路线图
 
-当前 `RenameFunction` 单元结束后，后续优化暂停，后面有合适机会再继续。以下条目仅保留为方向，并非正在推进的工作或版本承诺。
+开发已恢复，并继续按可独立验证的有界单元推进。当前描述性变量元数据单元覆盖 `Category` 与 `Tooltip`；以下条目是剩余方向，不代表具体版本或日期承诺。
 
 - **成员签名与重构：** 安全修改函数签名与标志，并把同一安全模型扩展到 Custom Event 和 Event Dispatcher 签名。
-- **变量元数据：** 扩展变量编辑，覆盖分类、提示、访问控制、Expose on Spawn、SaveGame、复制和 RepNotify 等设置。
+- **剩余变量元数据：** 扩展变量编辑，覆盖访问控制、Expose on Spawn、SaveGame、复制和 RepNotify 等设置。
 - **图表生命周期与影响分析：** 创建、重命名和删除受支持的图表类型；移除已实现接口；重构前查询引用与受影响资产。
 - **蓝图类型：** 创建 Blueprint Interface、Function Library、Macro Library 等其他蓝图资产类型。
 - **编辑体验与诊断：** 改进 Comment 容器内的选择布局、成员文档和面向调试的状态检查能力。
