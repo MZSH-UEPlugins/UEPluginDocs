@@ -136,7 +136,7 @@ Fab 英文商品文案、当前逐版本兼容矩阵、安装步骤、7 个完�
 
 ## 已验证截图
 
-[`Images/Fab`](./Images/Fab/) 中的 7 张 PNG 均由真实 Unreal Blueprint Graph 控件直接捕获，未合成伪 UI，也不含本机文件路径。各图说明与对应工作流见 [FAB_LISTING.md](./FAB_LISTING.md)。这些图片不会被描述为 HTTP 响应或变量 Details 面板截图。
+[`Images/Fab`](./Images/Fab/) 中的 PNG 均由真实 Unreal Blueprint Graph 控件直接捕获，未合成伪 UI，也不含本机文件路径。各图说明与对应工作流见 [FAB_LISTING.md](./FAB_LISTING.md)。这些图片不会被描述为 HTTP 响应或变量 Details 面板截图。算术节点使用两张真实画面共同证明持久化后的 Real/Double `Add → Subtract → Multiply → Divide → Result` 链：全图缩放图覆盖左侧与中段，节点聚焦图覆盖 `Subtract → Multiply → Divide → Result`；原因是 UE 5.2 的离屏 Graph Widget 全图捕获有时不绘制最右侧节点本体。
 
 当前 53 工具源码已通过 UE 5.2 编译与 `RenameFunction` 自动化安全回归，覆盖真实落盘的 Asset Registry 外部引用、GUID 冲突、`CreateDelegate`、AnimBlueprint/AnimGraph、override、RepNotify、显式批准、Undo 恢复和注入失败回滚。真实编辑器 HTTP 回归还验证了 initialize、`tools/list`（53）、ping、默认 dry-run、带真实外部 Caller 的批准写入、稳定 Graph GUID、写后读回、Blueprint 编译、保存、关闭重开持久化和截图。6 个 User Defined Struct/Enum 工具也已完成真实编辑器 HTTP 回归，覆盖创建、读取、修改、稳定 GUID 保留、dry-run、显式授权门禁、拒绝路径、分页和 Map value 直接循环检测。当前 UE 5.2–5.8 完整 Win64 BuildPlugin 矩阵均已成功；修正版部署与 DLL 哈希验证已通过 UE 5.2–5.6 和 UE 5.8，UE 5.7 等待无关编辑器释放 DLL 占用后重部署。
 

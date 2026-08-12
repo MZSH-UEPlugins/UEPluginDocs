@@ -121,4 +121,12 @@ MCPBlueprint does not require a vendor cloud service and does not include analyt
 
 *Real external caller graph whose function-reference node was updated by the approved rename.*
 
+![Real/Double arithmetic chain without node overlap](Images/Fab/PromotableOperators_Arithmetic_NoOverlap.png)
+
+*Real UE 5.2 function-graph capture after registry-backed Add/Subtract/Multiply/Divide creation and whole-graph formatting. This zoom-to-fit view shows the entry, typed inputs, and the Add → Subtract → Multiply portion with no node overlap.*
+
+![Divide operator connected to the function result](Images/Fab/PromotableOperator_Divide_Result.png)
+
+*Node-focused capture of the same persisted function, showing Subtract → Multiply → Divide → Result. Two views are used because UE 5.2's off-screen graph-widget full-frame capture can omit far-right node bodies; the graph read-back, compile, save, close, and reopen checks cover the complete chain.*
+
 These seven verified media files are real graph captures. They do not yet include separate captures of the toolbar endpoint, the 53-tool protocol response, variable Category/Tooltip Details, the dry-run impact report, save/reopen state, or a safety rejection/Undo result.
