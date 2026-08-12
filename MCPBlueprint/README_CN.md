@@ -4,6 +4,8 @@
 
 MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI 客户端提供蓝图发现、图表编辑、成员管理、组件管理、资产生命周期与编译反馈能力。插件支持 Unreal Engine 5.2 及以上版本，不依赖其他用户制作的插件；带预编译二进制的 Win64 Editor 插件包已覆盖验证 UE 5.2–5.8。
 
+Fab 英文商品文案、当前逐版本兼容矩阵、安装步骤、7 个完整工作流、隐私/网络说明、故障排查与真实截图见 [FAB_LISTING.md](./FAB_LISTING.md)。
+
 ## 连接方式
 
 默认端点为 `http://127.0.0.1:8766/mcp`。若端口被占用，服务器会继续尝试后续端口，工具栏会显示实际端点。请在 AI 客户端中把该 URL 配置为 HTTP MCP 服务器。
@@ -22,7 +24,7 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 | `GetBlueprintOverview` | 读取图表、变量、函数、组件、接口与父类。 |
 | `ListBlueprintMembers` | 使用统一稳定分页列出函数、Custom Event、Dispatcher 与局部变量。 |
 | `GetGraphDetail` | 读取图表节点、Pin、默认值和连接。 |
-| `SearchGraphNodes` | 搜索蓝图动作并返回稳定的 `SpawnerId`。 |
+| `SearchGraphNodes` | 使用 Unreal 英文标准名称搜索蓝图动作并返回稳定的 `SpawnerId`；标准算术查询包括 `Add`、`Subtract`、`Multiply`、`Divide`。 |
 | `GetCompileErrors` | 编译并返回蓝图权威状态与诊断。 |
 
 ### User Defined Struct 与 Enum
@@ -61,7 +63,9 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 `FormatGraph` 使用确定性的弱连通区域分离、SCC 循环压缩、从左到右的分层拓扑、重心法交叉线优化、Slate 节点与 Pin 行尺寸及其有界回退、Pin-aware 纵向对齐，以及多区域装箱。`LayoutScope` 支持 `WholeGraph`、`ConnectedComponent` 和 `Selection`。`LayoutStyle` 支持 `Balanced`（默认通用间距）、`Straight`（更强的连线拉直和更多纵向空间）与 `Compact`（更小占用、较轻的拉直）；项目约定或 AI 技能规范只需选择预设，不必绑定算法内部权重。整图布局会保护注释框及其当前包围的节点。设置 `bDryRun=true` 时不会调用 `Modify()` 或开启编辑器事务，只返回规划位置，以及布局前后的重叠、反向边、交叉线、长连线、占用面积、`FlatEdgeRatio`、`AveragePinDeltaY` 和 `P95PinDeltaY` 指标。可选 Reroute 默认关闭，并受 `MaxRerouteNodes` 限制；其质量指标描述插入 Knot 前的原节点布局方案。
 
-`ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。`Auto` 会把新实现的函数与其结构性入口/返回节点一起整理；向已有复杂实现追加节点时只移动新节点，避免破坏人工布局。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；两个工具都会返回实际采用的范围、风格和布局质量指标。
+`ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。MCP 驱动的节点放置默认必须避免重叠，且不能静默接受仍未解决的碰撞。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；两个工具都会返回实际采用的范围、风格和布局质量指标。
+
+创建标准算术节点时，先用 Unreal 英文动作名 `Add`、`Subtract`、`Multiply` 或 `Divide` 调用 `SearchGraphNodes`，再把其返回的精确 `Operator:<Name>` 交给 `ApplyGraphPatch`，不要手工拼接 SpawnerId。在同一个 patch 中，把 Real/Double 来源 Pin 连接到 `A` 或 `B`，并为节点可选传入 `PromotedType: "double"` 或 `"real"`。Unreal Schema 会执行原生的连接驱动类型提升；全部连接完成后，工具再验证目标运算函数与 `A`、`B`、`ReturnValue` 均为 Real/Double，否则整笔 patch 回滚。不同引擎版本和 Pin 上下文可能在界面或序列化文本中显示为 **Float**、**Double** 或 **Real**；当前流程明确保证 Real/Double 形式，不承诺强制独立的单精度 Float 形式。
 
 ### Actor 蓝图组件与默认值
 
@@ -128,12 +132,19 @@ MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI
 
 ## 当前测试重点
 
-当前 53 工具源码已通过 UE 5.2 编译与 `RenameFunction` 自动化安全回归，覆盖真实落盘的 Asset Registry 外部引用、GUID 冲突、`CreateDelegate`、AnimBlueprint/AnimGraph、override、RepNotify、显式批准、Undo 恢复和注入失败回滚。真实编辑器 HTTP 回归还验证了 initialize、`tools/list`（53）、ping、默认 dry-run、带真实外部 Caller 的批准写入、稳定 Graph GUID、写后读回、Blueprint 编译、保存、关闭重开持久化和截图。6 个 User Defined Struct/Enum 工具也已完成真实编辑器 HTTP 回归，覆盖创建、读取、修改、稳定 GUID 保留、dry-run、显式授权门禁、拒绝路径、分页和 Map value 直接循环检测。此前基线的 UE 5.2–5.8 完整 Win64 BuildPlugin 矩阵均已成功，并逐版本验证部署后的预编译 DLL 哈希一致且 `EnabledByDefault=true`。
+当前源码的 UE 5.2–5.8 Win64 BuildPlugin 矩阵均已通过。修正版包已部署到 UE 5.2–5.6 与 UE 5.8 的 Marketplace 目录，DLL 哈希与包一致、BuildId 按版本匹配且 `EnabledByDefault=true`。UE 5.7 修正版包已生成，但因无关编辑器正在占用已安装 DLL，重部署尚待完成；此前按版本部署的包已经通过 EnginePlugin 加载与 MCP 健康检查。UE 5.2、5.3、5.5–5.8 的 initialize、`tools/list`（53）和 ping 均通过；UE 5.4 已确认 EnginePlugin 加载、注册 53 个工具并启动 endpoint。
+
+## 已验证截图
+
+[`Images/Fab`](./Images/Fab/) 中的 7 张 PNG 均由真实 Unreal Blueprint Graph 控件直接捕获，未合成伪 UI，也不含本机文件路径。各图说明与对应工作流见 [FAB_LISTING.md](./FAB_LISTING.md)。这些图片不会被描述为 HTTP 响应或变量 Details 面板截图。
+
+当前 53 工具源码已通过 UE 5.2 编译与 `RenameFunction` 自动化安全回归，覆盖真实落盘的 Asset Registry 外部引用、GUID 冲突、`CreateDelegate`、AnimBlueprint/AnimGraph、override、RepNotify、显式批准、Undo 恢复和注入失败回滚。真实编辑器 HTTP 回归还验证了 initialize、`tools/list`（53）、ping、默认 dry-run、带真实外部 Caller 的批准写入、稳定 Graph GUID、写后读回、Blueprint 编译、保存、关闭重开持久化和截图。6 个 User Defined Struct/Enum 工具也已完成真实编辑器 HTTP 回归，覆盖创建、读取、修改、稳定 GUID 保留、dry-run、显式授权门禁、拒绝路径、分页和 Map value 直接循环检测。当前 UE 5.2–5.8 完整 Win64 BuildPlugin 矩阵均已成功；修正版部署与 DLL 哈希验证已通过 UE 5.2–5.6 和 UE 5.8，UE 5.7 等待无关编辑器释放 DLL 占用后重部署。
 
 打包验证证明各目标引擎可以编译插件并获得预期目录结构，但不能替代每个引擎版本内对全部 MCP 操作的运行时验证。其余工具的跨版本真实编辑器回归、保存/重启持久化与清理行为仍会继续推进。
 
 ## 已知限制
 
+- 向已有函数插入部分逻辑时，新增块所需空间可能超过当前“只移动新增节点”策略能够安全让出的范围。后续预定方案是识别受影响的既有局部逻辑块，在同一事务中把该逻辑块整体平移，同时保护显式固定位置与 Comment Box 包含关系。该“既有逻辑整体让位”能力尚未完成或验证；当前在此边界暂停，之后再继续。
 - 对已经位于 Comment Box 内的节点执行 `LayoutScope=Selection` 或 `ConnectedComponent` 时，当前布局器仍会把 Comment Box 当作外部障碍，规划结果可能把节点整体移到框外。先使用 `bDryRun=true` 检查位置与指标；当前可靠流程是先布局、后创建 Comment Box。
 - 同一会话中经过大量事务修改的资产可能仍被 Undo/Redo 历史持有，导致非强制删除失败；处理方式见上方 `DeleteAsset` 安全边界。后续计划提供不清空无关 Undo 历史的定向处理与更明确诊断。
 

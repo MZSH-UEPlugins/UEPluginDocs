@@ -4,6 +4,8 @@
 
 MCPBlueprint is a self-contained Unreal Editor plugin that exposes Blueprint discovery, graph editing, members, components, asset lifecycle operations, and compile feedback through MCP over HTTP. It supports Unreal Engine 5.2 and later and does not depend on another user plugin. Win64 editor packages with precompiled binaries are verified across UE 5.2–5.8.
 
+For Fab-ready product copy, the current compatibility matrix, installation, seven end-to-end workflows, privacy, troubleshooting, and verified media, see [FAB_LISTING.md](./FAB_LISTING.md).
+
 ## Connection
 
 The default endpoint is `http://127.0.0.1:8766/mcp`. If that port is occupied, the server tries the next ports and the toolbar displays the actual endpoint. Add that URL as an HTTP MCP server in your AI client.
@@ -22,7 +24,7 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 | `GetBlueprintOverview` | Read graphs, variables, functions, components, interfaces, and parent class. |
 | `ListBlueprintMembers` | List functions, Custom Events, dispatchers, and local variables with unified stable pagination. |
 | `GetGraphDetail` | Read graph nodes, pins, defaults, and links. |
-| `SearchGraphNodes` | Search Blueprint action spawners and return stable `SpawnerId` values. |
+| `SearchGraphNodes` | Search Blueprint action spawners by Unreal's English standard names and return stable `SpawnerId` values. Standard arithmetic queries include `Add`, `Subtract`, `Multiply`, and `Divide`. |
 | `GetCompileErrors` | Compile and return the authoritative Blueprint status and diagnostics. |
 
 ### User Defined Struct and Enum
@@ -61,7 +63,9 @@ For `RenameFunction`, omit `bDryRun` (or set it to `true`) to inspect the stable
 
 `FormatGraph` uses deterministic weak-component separation, SCC cycle condensation, left-to-right layered topology, barycentric crossing reduction, measured Slate node and pin-row sizes with bounded fallbacks, pin-aware vertical alignment, and component packing. `LayoutScope` accepts `WholeGraph`, `ConnectedComponent`, or `Selection`. `LayoutStyle` accepts `Balanced` (default general-purpose spacing), `Straight` (stronger wire alignment and more vertical room), or `Compact` (smaller footprint with lighter alignment). This small preset surface is suitable for project conventions or AI skill instructions without exposing algorithm-specific weights. Whole-graph layout protects comment boxes and the nodes they currently contain. Use `bDryRun=true` to return planned positions and before/after overlap, backward-edge, crossing, long-edge, area, `FlatEdgeRatio`, `AveragePinDeltaY`, and `P95PinDeltaY` metrics without calling `Modify()` or opening an editor transaction. Optional reroute insertion is disabled by default and bounded by `MaxRerouteNodes`; its quality metrics describe the original-node plan before knot insertion.
 
-`ApplyGraphPatch` accepts `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None` and the same `LayoutStyle` presets. `Auto` formats a newly implemented function together with its structural entry/result nodes, but limits changes to newly created nodes when adding to an existing implementation. A node with an explicit `Position` remains fixed. Layout failure, reroute failure, or compile failure participates in the same patch rollback. Both tools return the applied scope, style, and layout quality metrics.
+`ApplyGraphPatch` accepts `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None` and the same `LayoutStyle` presets. MCP-driven placement is required to avoid overlap by default and must not silently accept an unresolved collision. A node with an explicit `Position` remains fixed. Layout failure, reroute failure, or compile failure participates in the same patch rollback. Both tools return the applied scope, style, and layout quality metrics.
+
+For standard arithmetic, call `SearchGraphNodes` with the English Unreal action name `Add`, `Subtract`, `Multiply`, or `Divide`, then pass the exact returned `Operator:<Name>` value to `ApplyGraphPatch`; never construct a SpawnerId manually. In that same patch, connect a Real/Double source pin to `A` or `B` and set the node's optional `PromotedType` to `double` or `real`. Unreal's schema performs its native connection-driven promotion; after all connections, the tool verifies that the operator function and `A`, `B`, and `ReturnValue` are Real/Double, otherwise the entire patch is rolled back. Unreal's UI and serialized pin text can use **Float**, **Double**, or **Real** wording depending on engine version and context; this workflow explicitly guarantees the Real/Double form, not an independently forced single-precision Float form.
 
 ### Actor Blueprint components and defaults
 
@@ -127,12 +131,19 @@ Open **Project Settings > Plugins > MCP Blueprint**.
 
 ## Current Testing Focus
 
-The current 53-tool source has passed UE 5.2 compilation and the automated `RenameFunction` safety regression, including persisted Asset Registry referencers, GUID conflicts, `CreateDelegate`, AnimBlueprint/AnimGraph, override, RepNotify, explicit approval, Undo recovery, and injected-failure rollback. Real-editor HTTP verification covered initialize, `tools/list` (53), ping, default dry-run, approval-gated rename with a real external caller, stable Graph GUID retention, read-back, Blueprint compilation, save, close/reopen persistence, and screenshots. The six User Defined Struct/Enum tools have also passed real-editor HTTP regression for create/read/modify workflows, stable GUID retention, dry runs, explicit approval gates, rejection paths, pagination, and direct Map-value cycle detection. The complete Win64 BuildPlugin matrix succeeded for UE 5.2–5.8 on the previous baseline, with matching deployed precompiled DLL hashes and `EnabledByDefault=true`.
+The current UE 5.2–5.8 Win64 BuildPlugin matrix passed. Refreshed packages were deployed to UE 5.2–5.6 and UE 5.8 with matching DLL hashes, version-specific BuildIds, and `EnabledByDefault=true`. The refreshed UE 5.7 package is built but its redeployment is pending because an unrelated editor currently locks the installed DLL; the previously deployed version-matched build had already passed EnginePlugin loading and MCP health. MCP initialize, `tools/list` (53), and ping passed on UE 5.2, 5.3, and 5.5–5.8. UE 5.4 reached EnginePlugin load, 53-tool registration, and endpoint startup.
+
+## Verified media
+
+The seven images in [`Images/Fab`](./Images/Fab/) are uncomposited PNGs captured from real Unreal Blueprint graph widgets. Captions and workflow context are maintained in [FAB_LISTING.md](./FAB_LISTING.md). They contain no local filesystem paths and are not presented as HTTP-response or variable-Details screenshots.
+
+The current 53-tool source has passed UE 5.2 compilation and the automated `RenameFunction` safety regression, including persisted Asset Registry referencers, GUID conflicts, `CreateDelegate`, AnimBlueprint/AnimGraph, override, RepNotify, explicit approval, Undo recovery, and injected-failure rollback. Real-editor HTTP verification covered initialize, `tools/list` (53), ping, default dry-run, approval-gated rename with a real external caller, stable Graph GUID retention, read-back, Blueprint compilation, save, close/reopen persistence, and screenshots. The six User Defined Struct/Enum tools have also passed real-editor HTTP regression for create/read/modify workflows, stable GUID retention, dry runs, explicit approval gates, rejection paths, pagination, and direct Map-value cycle detection. The current Win64 BuildPlugin matrix succeeded for UE 5.2–5.8; refreshed deployment and DLL-hash verification passed on UE 5.2–5.6 and UE 5.8, with UE 5.7 pending release of an unrelated editor's DLL lock.
 
 Packaging verification proves that every target engine can compile the plugin and receive the expected deployed layout; it is not a substitute for exercising every MCP operation in every editor version. Broader cross-version real-editor regression of the remaining tool surface, save/restart persistence, and cleanup behavior remains ongoing.
 
 ## Known limitations
 
+- Inserting a partial logic block into an existing function can still require more space than the current created-node-only placement can safely reserve. The intended follow-up is to identify the affected existing local block and shift that block as one transaction, while protecting explicit fixed positions and Comment Box containment. This broader displacement behavior is not complete or verified yet; work is paused at this boundary and will continue later.
 - When `LayoutScope=Selection` or `ConnectedComponent` targets nodes already inside a Comment Box, the current layout planner still treats that Comment Box as an outside obstacle and may shift the selected nodes out of the box. Inspect the plan with `bDryRun=true`; the reliable workflow today is layout first, then create the Comment Box.
 - An asset modified by many transactions in the same session may remain retained by Undo/Redo history and fail non-forced deletion. Follow the `DeleteAsset` safety guidance above. A future improvement will target this state without clearing unrelated undo history and will return more specific diagnostics.
 
