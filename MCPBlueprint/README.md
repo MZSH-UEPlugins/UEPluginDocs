@@ -67,25 +67,31 @@ For `RenameFunction`, omit `bDryRun` (or set it to `true`) to inspect the stable
 
 When `Auto` falls back to `CreatedNodes` inside an existing implementation, it first anchors each created connected block between its real external predecessor and successor. If that block needs more horizontal space, only a bounded colliding right-side closure is shifted rigidly along `+X`; every node in the closure receives the same delta and keeps its `Y`, while nodes outside the closure keep their GUIDs, coordinates, and connections. The patch fails closed rather than moving a function entry, crossing Comment Box containment, exceeding the node/iteration/distance limits, or introducing any new backward edge. Explicit `LayoutScope=CreatedNodes` intentionally retains the older below-existing placement and does not move existing nodes. Write tools still do not auto-save: read back and compile first, then call `SaveAsset` explicitly. One editor Undo restores both created nodes and the displaced closure.
 
-![102-node function before local insertion](./Images/LayoutShift/01_Baseline_102Nodes.png)
+### Layout-pressure evidence and readable-logic acceptance
 
-*Baseline: a real 102-node UE 5.2 function containing Branch, For Loop, For Each Loop, integer/string Switch nodes, and Add/Subtract/Multiply/Divide operators.*
+The following UE 5.2 captures remain available as **layout-pressure evidence only**. They prove bounded `+X` displacement, one-step Undo, and save/close/reopen persistence. They do **not** represent a real business function or pass the readable-logic acceptance bar: their 102/108-node setup must not be used as an example of normal production wiring. The replacement acceptance run used the connected 120-node `BP_ReadableLogic100.ProcessReadableWorkflow`: inserting one registry-backed Real Add completed in 743 ms, moved only its 12-node right-side dependency closure by a rigid `+140` with 108 old nodes unchanged, and reported zero overlaps, backward edges, and long edges. Compile, save/close/reopen, and one-step Undo back to the 120-node baseline all passed. The before/after full and local PNGs (`09_Baseline120_*` and `10_AfterLocalShift_*`) are archived as AIHub task outputs; `Saved/` remains intentionally outside source control.
+
+![102-node layout-pressure baseline](./Images/LayoutShift/01_Baseline_102Nodes.png)
+
+*Layout-pressure baseline only; not a real connected business-logic example.*
 
 ![Three arithmetic nodes inserted with bounded local displacement](./Images/LayoutShift/03_Insert_ArithmeticChain_AutoShift.png)
 
-*Stage 2 (`103 → 106` nodes): after a Subtract → Multiply → Divide insertion, only nine pre-existing nodes moved, all by `+633` graph units with `DeltaY=0`; the other 94 nodes from the 103-node stage remained in place.*
+*Pressure-test stage 2 (`103 → 106`): nine old nodes moved by the same `+633` graph units with `DeltaY=0`. This proves local displacement only, not business-logic readability.*
 
-![Readable local view of the persisted arithmetic insertion](./Images/LayoutShift/03_ArithmeticChain_Local.png)
+![Persisted arithmetic insertion pressure-test view](./Images/LayoutShift/03_ArithmeticChain_Local.png)
 
-*Local view captured after the final 108-node state was saved and reopened; it makes the inserted arithmetic operators and nearby graph context readable. The preceding full-frame image is the stage-specific evidence for the bounded whole-graph displacement.*
+*Saved/reopened pressure-test view; it is retained as local-displacement evidence, not a readable workflow example.*
 
 ![A second local insertion moves a smaller closure](./Images/LayoutShift/04_Insert_AddPair_AutoShift.png)
 
-*Stage 3 (`106 → 108` nodes): a separate two-Add insertion moved only two pre-existing nodes by the same local `+298`; compile, Undo, save, close, and reopen all passed. Stage 1 was `102 → 103`, where one Add fit in the existing gap and therefore moved zero old nodes.*
+*Pressure-test stage 3 (`106 → 108`): two old nodes moved by the same local `+298`; compile, Undo, save, close, and reopen passed. It is not a business-logic acceptance image.*
 
-![Readable local view of the persisted two-Add region](./Images/LayoutShift/04_AddPair_Local.png)
+![Persisted two-Add pressure-test view](./Images/LayoutShift/04_AddPair_Local.png)
 
-*Local view of the final persisted two-Add region. A separate [stage-1 local view](./Images/LayoutShift/02_Insert_Add_Local.png) shows the single Add that fit without moving old nodes.*
+*Saved/reopened pressure-test view only; the [stage-1 local view](./Images/LayoutShift/02_Insert_Add_Local.png) remains evidence that a single Add fit without moving old nodes.*
+
+For a readable real workflow with 100+ nodes, require connected Exec and data paths. Branch, For Loop, For Each Loop, Switch, and Add/Subtract/Multiply/Divide results must feed a later assignment, condition, or return—not merely exist as separate nodes. Create a legal member-variable, function-parameter, or local-variable Get near each consuming region; do not fan out a Function Entry pin or distant getter across the entire graph. A temporary calculation is not safely replaceable with a duplicated Get: keep its semantics with a local-variable Set/Get pair or a bounded reroute. `ApplyGraphPatch` does not silently rewrite old logic or old connections outside the requested patch; `Auto` may only change the coordinates of the explicitly reported bounded right-side closure described above. Use dry-run/read-back to review placement and wiring before applying a mutation.
 
 For standard arithmetic, call `SearchGraphNodes` with the English Unreal action name `Add`, `Subtract`, `Multiply`, or `Divide`, then pass the exact returned `Operator:<Name>` value to `ApplyGraphPatch`; never construct a SpawnerId manually. In that same patch, connect a Real/Double source pin to `A` or `B` and set the node's optional `PromotedType` to `double` or `real`. Unreal's schema performs its native connection-driven promotion; after all connections, the tool verifies that the operator function and `A`, `B`, and `ReturnValue` are Real/Double, otherwise the entire patch is rolled back. Unreal's UI and serialized pin text can use **Float**, **Double**, or **Real** wording depending on engine version and context; this workflow explicitly guarantees the Real/Double form, not an independently forced single-precision Float form.
 

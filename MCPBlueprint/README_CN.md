@@ -67,25 +67,31 @@ Fab 英文商品文案、当前逐版本兼容矩阵、安装步骤、7 个完�
 
 当 `Auto` 在已有实现中回退到 `CreatedNodes` 时，会先根据真实的外部前驱/后继连接，把每个新增连通块锚定到插入位置。如果新增块需要更多水平空间，只把右侧有界碰撞闭包沿 `+X` 整体刚体平移：闭包内所有节点使用同一个位移且 `Y` 不变，闭包外节点的 GUID、坐标和连接保持不变。若需要移动 Function Entry、破坏 Comment Box 包围关系、超过节点/迭代/距离上限，或产生任何新的反向边，整笔补丁会 fail-closed。显式 `LayoutScope=CreatedNodes` 则保留原有的“放到既有逻辑下方”语义，不移动旧节点。所有写工具仍然不会自动保存：应先读回并编译，再显式调用 `SaveAsset`；一次编辑器 Undo 会同时恢复新增节点和被平移的闭包。
 
-![局部插入前的 102 节点长函数](./Images/LayoutShift/01_Baseline_102Nodes.png)
+### 布局压力证据与可读逻辑验收
 
-*基线：真实 UE 5.2 的 102 节点函数，包含 Branch、For Loop、For Each Loop、整型/字符串 Switch，以及 Add/Subtract/Multiply/Divide。*
+以下 UE 5.2 截图保留为**布局压力测试证据**：它们只证明有界 `+X` 平移、一次 Undo 和保存/关闭/重开后的持久化；**不代表真实业务逻辑，也不通过可读性验收**。102/108 节点场景不能再作为正常生产连线示例。替代验收已在连通的 120 节点 `BP_ReadableLogic100.ProcessReadableWorkflow` 上完成：插入一个来自 Registry 的 Real Add 用时 743 ms，只把右侧 12 节点依赖闭包统一平移 `+140`，其余 108 个旧节点不动，并报告 0 重叠、0 反向边、0 长边；编译、保存/关闭/重开，以及一次 Undo 精确恢复 120 节点基线均通过。修改前后全图与局部 PNG（`09_Baseline120_*`、`10_AfterLocalShift_*`）已归档为 AIHub 任务产出；`Saved/` 按约定不进入源码版本控制。
+
+![102 节点布局压力测试基线](./Images/LayoutShift/01_Baseline_102Nodes.png)
+
+*仅为布局压力测试基线，不是连通的真实业务逻辑示例。*
 
 ![插入三节点算术链并局部让位](./Images/LayoutShift/03_Insert_ArithmeticChain_AutoShift.png)
 
-*第 2 阶段（`103 → 106` 节点）：插入 Subtract → Multiply → Divide 后，仅 9 个既有节点统一平移 `+633`，`DeltaY=0`；103 节点阶段中的其余 94 个节点位置不变。*
+*压力测试第 2 阶段（`103 → 106`）：9 个旧节点统一平移 `+633`、`DeltaY=0`。此图仅证明局部让位，不证明业务逻辑可读性。*
 
-![最终持久化状态中的算术插入局部图](./Images/LayoutShift/03_ArithmeticChain_Local.png)
+![持久化算术插入的压力测试局部图](./Images/LayoutShift/03_ArithmeticChain_Local.png)
 
-*该局部图在最终 108 节点状态保存并重开后拍摄，用于清晰展示新增算术节点与周边上下文；上一张全图才是对应阶段整体位移范围的证据。*
+*保存并重开后的压力测试视图；仅保留为局部平移证据，不是可读工作流示例。*
 
 ![第二处插入只移动更小闭包](./Images/LayoutShift/04_Insert_AddPair_AutoShift.png)
 
-*第 3 阶段（`106 → 108` 节点）：另一处插入两个 Add 时，仅 2 个既有节点统一平移 `+298`；编译、Undo、保存、关闭和重开均通过。第 1 阶段为 `102 → 103`，单个 Add 可以放入原有空隙，因此旧节点移动数为 0。*
+*压力测试第 3 阶段（`106 → 108`）：2 个旧节点统一局部平移 `+298`；编译、Undo、保存、关闭和重开通过。它不是业务逻辑验收图。*
 
-![最终持久化状态中的双 Add 局部图](./Images/LayoutShift/04_AddPair_Local.png)
+![持久化双 Add 的压力测试局部图](./Images/LayoutShift/04_AddPair_Local.png)
 
-*最终持久化双 Add 区域的局部图；另有[第 1 阶段局部图](./Images/LayoutShift/02_Insert_Add_Local.png)，展示未移动旧节点即可插入的单个 Add。*
+*仅为保存/重开后的压力测试局部图；[第 1 阶段局部图](./Images/LayoutShift/02_Insert_Add_Local.png) 仍证明单个 Add 可在不移动旧节点时放入空隙。*
+
+真实工作流的 100+ 节点验收必须具有连通的 Exec 与数据链。Branch、For Loop、For Each Loop、Switch，以及 Add/Subtract/Multiply/Divide 的结果必须进入后续赋值、判断或返回，不能只作为孤立节点存在。成员变量、函数参数或局部变量应在每个消费区域附近创建合法的 Get；不要把 Function Entry Pin 或远端 Getter 向全图星形扇出。临时计算值不能被盲目复制成 Get；应通过局部变量 Set/Get 对或有界 Reroute 保持原有语义。`ApplyGraphPatch` 不会静默改写请求 patch 之外的旧逻辑或旧连线；`Auto` 仅允许改变上文明确报告的右侧有界闭包坐标。因此写入前应 dry-run 并读回确认放置与连线。
 
 创建标准算术节点时，先用 Unreal 英文动作名 `Add`、`Subtract`、`Multiply` 或 `Divide` 调用 `SearchGraphNodes`，再把其返回的精确 `Operator:<Name>` 交给 `ApplyGraphPatch`，不要手工拼接 SpawnerId。在同一个 patch 中，把 Real/Double 来源 Pin 连接到 `A` 或 `B`，并为节点可选传入 `PromotedType: "double"` 或 `"real"`。Unreal Schema 会执行原生的连接驱动类型提升；全部连接完成后，工具再验证目标运算函数与 `A`、`B`、`ReturnValue` 均为 Real/Double，否则整笔 patch 回滚。不同引擎版本和 Pin 上下文可能在界面或序列化文本中显示为 **Float**、**Double** 或 **Real**；当前流程明确保证 Real/Double 形式，不承诺强制独立的单精度 Float 形式。
 
