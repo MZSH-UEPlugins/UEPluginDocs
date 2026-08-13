@@ -65,11 +65,13 @@ Fab 英文商品文案、当前逐版本兼容矩阵、安装步骤、7 个完�
 
 `ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。MCP 驱动的节点放置默认必须避免重叠，且不能静默接受仍未解决的碰撞。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；两个工具都会返回实际采用的范围、风格和布局质量指标。
 
+当新增业务块需要让出空间，或复杂图需要按阶段重新组织时，可使用 `Patch.MoveNodes` 有界、显式地移动既有节点。每项格式为 `{ "NodeGuid": "...", "Position": { "X": 1200, "Y": 600 } }`，坐标是图中的绝对坐标。该操作只改变位置，节点 GUID、类型、Pin、默认值和全部既有连线保持不变；所有移动与同一 `ApplyGraphPatch` 的编译门禁、失败回滚和单次 Undo 共用一个事务。应先通过 `GetGraphDetail` 读取 GUID 与当前坐标。未知或重复 GUID、非法/越界坐标以及超过共享 60 项补丁上限的请求会整体拒绝，不留下部分修改。
+
 当 `Auto` 在已有实现中回退到 `CreatedNodes` 时，会先根据真实的外部前驱/后继连接，把每个新增连通块锚定到插入位置。如果新增块需要更多水平空间，只把右侧有界碰撞闭包沿 `+X` 整体刚体平移：闭包内所有节点使用同一个位移且 `Y` 不变，闭包外节点的 GUID、坐标和连接保持不变。若需要移动 Function Entry、破坏 Comment Box 包围关系、超过节点/迭代/距离上限，或产生任何新的反向边，整笔补丁会 fail-closed。显式 `LayoutScope=CreatedNodes` 则保留原有的“放到既有逻辑下方”语义，不移动旧节点。所有写工具仍然不会自动保存：应先读回并编译，再显式调用 `SaveAsset`；一次编辑器 Undo 会同时恢复新增节点和被平移的闭包。
 
 ### 布局压力证据与可读逻辑验收
 
-以下 UE 5.2 截图保留为**布局压力测试证据**：它们只证明有界 `+X` 平移、一次 Undo 和保存/关闭/重开后的持久化；**不代表真实业务逻辑，也不通过可读性验收**。102/108 节点场景不能再作为正常生产连线示例。替代验收已在连通的 120 节点 `BP_ReadableLogic100.ProcessReadableWorkflow` 上完成：插入一个来自 Registry 的 Real Add 用时 743 ms，只把右侧 12 节点依赖闭包统一平移 `+140`，其余 108 个旧节点不动，并报告 0 重叠、0 反向边、0 长边；编译、保存/关闭/重开，以及一次 Undo 精确恢复 120 节点基线均通过。修改前后全图与局部 PNG（`09_Baseline120_*`、`10_AfterLocalShift_*`）已归档为 AIHub 任务产出；`Saved/` 按约定不进入源码版本控制。
+以下 UE 5.2 截图保留为**布局压力测试证据**：它们只证明有界 `+X` 平移、一次 Undo 和保存/关闭/重开后的持久化；**不代表真实业务逻辑，也不通过可读性验收**。102/108 节点场景不能再作为正常生产连线示例。替代验收使用连通的 112 节点 `BP_ConnectedWorkflow100.EvaluateBatchWorkflow`：这是一个批量样本评分与风险筛选函数，真实连接了 For Each、Branch、For Loop、Switch、算术链和结果链。在归一化路径插入 Registry 返回的 Real/Double Add 与 Clamp 后，形成 `Multiply -> Add 校准偏移 -> Clamp [0,1] -> Set NormalizedScore`，只整体平移右侧 7 节点闭包腾出空间，其余 103 个业务节点的坐标和连线不变。读回为 114 节点且无孤立节点；编译 0 错误/0 警告，保存/关闭/重开持久化，一次 Undo 精确恢复 112 节点基线，Redo 恢复 114 节点结果。固定画幅的修改前/修改后/Undo 图、可读局部图和完整最终阶段图均归档为 AIHub 项目产出；`Saved/` 按约定不进入源码版本控制。
 
 ![102 节点布局压力测试基线](./Images/LayoutShift/01_Baseline_102Nodes.png)
 
