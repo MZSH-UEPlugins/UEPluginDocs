@@ -65,6 +65,28 @@ Fab 英文商品文案、当前逐版本兼容矩阵、安装步骤、7 个完�
 
 `ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。MCP 驱动的节点放置默认必须避免重叠，且不能静默接受仍未解决的碰撞。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；两个工具都会返回实际采用的范围、风格和布局质量指标。
 
+当 `Auto` 在已有实现中回退到 `CreatedNodes` 时，会先根据真实的外部前驱/后继连接，把每个新增连通块锚定到插入位置。如果新增块需要更多水平空间，只把右侧有界碰撞闭包沿 `+X` 整体刚体平移：闭包内所有节点使用同一个位移且 `Y` 不变，闭包外节点的 GUID、坐标和连接保持不变。若需要移动 Function Entry、破坏 Comment Box 包围关系、超过节点/迭代/距离上限，或产生任何新的反向边，整笔补丁会 fail-closed。显式 `LayoutScope=CreatedNodes` 则保留原有的“放到既有逻辑下方”语义，不移动旧节点。所有写工具仍然不会自动保存：应先读回并编译，再显式调用 `SaveAsset`；一次编辑器 Undo 会同时恢复新增节点和被平移的闭包。
+
+![局部插入前的 102 节点长函数](./Images/LayoutShift/01_Baseline_102Nodes.png)
+
+*基线：真实 UE 5.2 的 102 节点函数，包含 Branch、For Loop、For Each Loop、整型/字符串 Switch，以及 Add/Subtract/Multiply/Divide。*
+
+![插入三节点算术链并局部让位](./Images/LayoutShift/03_Insert_ArithmeticChain_AutoShift.png)
+
+*第 2 阶段（`103 → 106` 节点）：插入 Subtract → Multiply → Divide 后，仅 9 个既有节点统一平移 `+633`，`DeltaY=0`；103 节点阶段中的其余 94 个节点位置不变。*
+
+![最终持久化状态中的算术插入局部图](./Images/LayoutShift/03_ArithmeticChain_Local.png)
+
+*该局部图在最终 108 节点状态保存并重开后拍摄，用于清晰展示新增算术节点与周边上下文；上一张全图才是对应阶段整体位移范围的证据。*
+
+![第二处插入只移动更小闭包](./Images/LayoutShift/04_Insert_AddPair_AutoShift.png)
+
+*第 3 阶段（`106 → 108` 节点）：另一处插入两个 Add 时，仅 2 个既有节点统一平移 `+298`；编译、Undo、保存、关闭和重开均通过。第 1 阶段为 `102 → 103`，单个 Add 可以放入原有空隙，因此旧节点移动数为 0。*
+
+![最终持久化状态中的双 Add 局部图](./Images/LayoutShift/04_AddPair_Local.png)
+
+*最终持久化双 Add 区域的局部图；另有[第 1 阶段局部图](./Images/LayoutShift/02_Insert_Add_Local.png)，展示未移动旧节点即可插入的单个 Add。*
+
 创建标准算术节点时，先用 Unreal 英文动作名 `Add`、`Subtract`、`Multiply` 或 `Divide` 调用 `SearchGraphNodes`，再把其返回的精确 `Operator:<Name>` 交给 `ApplyGraphPatch`，不要手工拼接 SpawnerId。在同一个 patch 中，把 Real/Double 来源 Pin 连接到 `A` 或 `B`，并为节点可选传入 `PromotedType: "double"` 或 `"real"`。Unreal Schema 会执行原生的连接驱动类型提升；全部连接完成后，工具再验证目标运算函数与 `A`、`B`、`ReturnValue` 均为 Real/Double，否则整笔 patch 回滚。不同引擎版本和 Pin 上下文可能在界面或序列化文本中显示为 **Float**、**Double** 或 **Real**；当前流程明确保证 Real/Double 形式，不承诺强制独立的单精度 Float 形式。
 
 标准流程控制节点请使用 Unreal 英文名称搜索：`Branch`、`For Loop`、`For Each Loop`、`Switch on Int`、`Switch on Name`、`Switch on String`。循环节点来自真实的 StandardMacros Action Registry（例如 `Macro:/Engine/EditorBlueprintResources/StandardMacros.StandardMacros:ForLoop`），Branch 和三种标量 Switch 使用 Registry 支持的 `Native:K2Node_*` ID。必须使用搜索返回值；手工伪造宏或原生 ID 仍会被拒绝。节点放置后，编辑器界面标题可按 UE 当前语言本地化，但搜索名保持英文标准名称。
@@ -150,7 +172,7 @@ Fab 英文商品文案、当前逐版本兼容矩阵、安装步骤、7 个完�
 
 ## 已知限制
 
-- 向已有函数插入部分逻辑时，新增块所需空间可能超过当前“只移动新增节点”策略能够安全让出的范围。后续预定方案是识别受影响的既有局部逻辑块，在同一事务中把该逻辑块整体平移，同时保护显式固定位置与 Comment Box 包含关系。该“既有逻辑整体让位”能力尚未完成或验证；当前在此边界暂停，之后再继续。
+- `Auto` 局部让位被刻意限制为最多 128 个既有节点、128 轮闭包扩展和 100000 Graph Units。触及 Function Entry 或 Comment 包围边界时会 fail-closed，而不会扩张成不安全的整图重排；此时应缩小插入块或显式整理受保护区域。
 - 对已经位于 Comment Box 内的节点执行 `LayoutScope=Selection` 或 `ConnectedComponent` 时，当前布局器仍会把 Comment Box 当作外部障碍，规划结果可能把节点整体移到框外。先使用 `bDryRun=true` 检查位置与指标；当前可靠流程是先布局、后创建 Comment Box。
 - 同一会话中经过大量事务修改的资产可能仍被 Undo/Redo 历史持有，导致非强制删除失败；处理方式见上方 `DeleteAsset` 安全边界。后续计划提供不清空无关 Undo 历史的定向处理与更明确诊断。
 

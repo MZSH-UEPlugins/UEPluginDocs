@@ -65,6 +65,28 @@ For `RenameFunction`, omit `bDryRun` (or set it to `true`) to inspect the stable
 
 `ApplyGraphPatch` accepts `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None` and the same `LayoutStyle` presets. MCP-driven placement is required to avoid overlap by default and must not silently accept an unresolved collision. A node with an explicit `Position` remains fixed. Layout failure, reroute failure, or compile failure participates in the same patch rollback. Both tools return the applied scope, style, and layout quality metrics.
 
+When `Auto` falls back to `CreatedNodes` inside an existing implementation, it first anchors each created connected block between its real external predecessor and successor. If that block needs more horizontal space, only a bounded colliding right-side closure is shifted rigidly along `+X`; every node in the closure receives the same delta and keeps its `Y`, while nodes outside the closure keep their GUIDs, coordinates, and connections. The patch fails closed rather than moving a function entry, crossing Comment Box containment, exceeding the node/iteration/distance limits, or introducing any new backward edge. Explicit `LayoutScope=CreatedNodes` intentionally retains the older below-existing placement and does not move existing nodes. Write tools still do not auto-save: read back and compile first, then call `SaveAsset` explicitly. One editor Undo restores both created nodes and the displaced closure.
+
+![102-node function before local insertion](./Images/LayoutShift/01_Baseline_102Nodes.png)
+
+*Baseline: a real 102-node UE 5.2 function containing Branch, For Loop, For Each Loop, integer/string Switch nodes, and Add/Subtract/Multiply/Divide operators.*
+
+![Three arithmetic nodes inserted with bounded local displacement](./Images/LayoutShift/03_Insert_ArithmeticChain_AutoShift.png)
+
+*Stage 2 (`103 → 106` nodes): after a Subtract → Multiply → Divide insertion, only nine pre-existing nodes moved, all by `+633` graph units with `DeltaY=0`; the other 94 nodes from the 103-node stage remained in place.*
+
+![Readable local view of the persisted arithmetic insertion](./Images/LayoutShift/03_ArithmeticChain_Local.png)
+
+*Local view captured after the final 108-node state was saved and reopened; it makes the inserted arithmetic operators and nearby graph context readable. The preceding full-frame image is the stage-specific evidence for the bounded whole-graph displacement.*
+
+![A second local insertion moves a smaller closure](./Images/LayoutShift/04_Insert_AddPair_AutoShift.png)
+
+*Stage 3 (`106 → 108` nodes): a separate two-Add insertion moved only two pre-existing nodes by the same local `+298`; compile, Undo, save, close, and reopen all passed. Stage 1 was `102 → 103`, where one Add fit in the existing gap and therefore moved zero old nodes.*
+
+![Readable local view of the persisted two-Add region](./Images/LayoutShift/04_AddPair_Local.png)
+
+*Local view of the final persisted two-Add region. A separate [stage-1 local view](./Images/LayoutShift/02_Insert_Add_Local.png) shows the single Add that fit without moving old nodes.*
+
 For standard arithmetic, call `SearchGraphNodes` with the English Unreal action name `Add`, `Subtract`, `Multiply`, or `Divide`, then pass the exact returned `Operator:<Name>` value to `ApplyGraphPatch`; never construct a SpawnerId manually. In that same patch, connect a Real/Double source pin to `A` or `B` and set the node's optional `PromotedType` to `double` or `real`. Unreal's schema performs its native connection-driven promotion; after all connections, the tool verifies that the operator function and `A`, `B`, and `ReturnValue` are Real/Double, otherwise the entire patch is rolled back. Unreal's UI and serialized pin text can use **Float**, **Double**, or **Real** wording depending on engine version and context; this workflow explicitly guarantees the Real/Double form, not an independently forced single-precision Float form.
 
 For standard flow control, search with the exact English Unreal names `Branch`, `For Loop`, `For Each Loop`, `Switch on Int`, `Switch on Name`, or `Switch on String`. Loop results are real StandardMacros Action Registry entries (for example `Macro:/Engine/EditorBlueprintResources/StandardMacros.StandardMacros:ForLoop`), while Branch and the three scalar switches use their registry-backed `Native:K2Node_*` IDs. Always use the returned value; fabricated macro or native IDs remain invalid. The editor UI can localize node titles after placement even though search uses stable English names.
@@ -149,7 +171,7 @@ Packaging verification proves that every target engine can compile the plugin an
 
 ## Known limitations
 
-- Inserting a partial logic block into an existing function can still require more space than the current created-node-only placement can safely reserve. The intended follow-up is to identify the affected existing local block and shift that block as one transaction, while protecting explicit fixed positions and Comment Box containment. This broader displacement behavior is not complete or verified yet; work is paused at this boundary and will continue later.
+- `Auto` local displacement is deliberately bounded to 128 existing nodes, 128 closure iterations, and 100000 graph units. It fails closed at Function Entry or Comment containment boundaries instead of expanding into an unsafe whole-graph rewrite; use a smaller insertion or explicitly reorganize the protected region.
 - When `LayoutScope=Selection` or `ConnectedComponent` targets nodes already inside a Comment Box, the current layout planner still treats that Comment Box as an outside obstacle and may shift the selected nodes out of the box. Inspect the plan with `bDryRun=true`; the reliable workflow today is layout first, then create the Comment Box.
 - An asset modified by many transactions in the same session may remain retained by Undo/Redo history and fail non-forced deletion. Follow the `DeleteAsset` safety guidance above. A future improvement will target this state without clearing unrelated undo history and will return more specific diagnostics.
 
