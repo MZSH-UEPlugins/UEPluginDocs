@@ -93,7 +93,7 @@ Fab 英文商品文案、当前逐版本兼容矩阵、安装步骤、7 个完�
 
 *仅为保存/重开后的压力测试局部图；[第 1 阶段局部图](./Images/LayoutShift/02_Insert_Add_Local.png) 仍证明单个 Add 可在不移动旧节点时放入空隙。*
 
-真实工作流的 100+ 节点验收必须具有连通的 Exec 与数据链。Branch、For Loop、For Each Loop、Switch，以及 Add/Subtract/Multiply/Divide 的结果必须进入后续赋值、判断或返回，不能只作为孤立节点存在。成员变量、函数参数或局部变量应在每个消费区域附近创建合法的 Get；不要把 Function Entry Pin 或远端 Getter 向全图星形扇出。临时计算值不能被盲目复制成 Get；应通过局部变量 Set/Get 对或有界 Reroute 保持原有语义。`ApplyGraphPatch` 不会静默改写请求 patch 之外的旧逻辑或旧连线；`Auto` 仅允许改变上文明确报告的右侧有界闭包坐标。因此写入前应 dry-run 并读回确认放置与连线。
+真实工作流的 100+ 节点验收必须具有连通的 Exec 与数据链。Branch、For Loop、For Each Loop、Switch，以及 Add/Subtract/Multiply/Divide 的结果必须进入后续赋值、判断或返回，不能只作为孤立节点存在。成员变量、函数参数或局部变量应在每个消费区域附近创建合法的 Get；不要把 Function Entry Pin 或远端 Getter 向全图星形扇出。临时计算值不能被盲目复制成 Get；应通过局部变量 Set/Get 对或有界 Reroute 保持原有语义。只有没有执行 Pin 的纯变量 Getter 才会按消费者自动拆分并放到使用位置附近；同一消费者旁的多个局部 Getter 会稳定纵向堆叠，并使用与图布局一致的 60 单位间距检查。找不到安全局部位置时，整笔 patch 失败并回滚。Validated Get 等带执行流语义的非纯 Getter 始终保持单节点和原有执行连接，不参与自动拆分。消费者局部重锚只在 `Auto` 与 `ConnectedComponent` 下执行；显式 `CreatedNodes` 保留原有的旧图下方放置方式，`None` 不触发任何隐式布局。`ApplyGraphPatch` 不会静默改写请求 patch 之外的旧逻辑或旧连线；`Auto` 仅允许改变上文明确报告的右侧有界闭包坐标。因此写入前应 dry-run 并读回确认放置与连线。
 
 创建标准算术节点时，先用 Unreal 英文动作名 `Add`、`Subtract`、`Multiply` 或 `Divide` 调用 `SearchGraphNodes`，再把其返回的精确 `Operator:<Name>` 交给 `ApplyGraphPatch`，不要手工拼接 SpawnerId。在同一个 patch 中，把 Real/Double 来源 Pin 连接到 `A` 或 `B`，并为节点可选传入 `PromotedType: "double"` 或 `"real"`。Unreal Schema 会执行原生的连接驱动类型提升；全部连接完成后，工具再验证目标运算函数与 `A`、`B`、`ReturnValue` 均为 Real/Double，否则整笔 patch 回滚。不同引擎版本和 Pin 上下文可能在界面或序列化文本中显示为 **Float**、**Double** 或 **Real**；当前流程明确保证 Real/Double 形式，不承诺强制独立的单精度 Float 形式。
 
