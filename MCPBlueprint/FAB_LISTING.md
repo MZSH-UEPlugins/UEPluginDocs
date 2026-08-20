@@ -1,4 +1,6 @@
-# MCPBlueprint — Fab listing copy
+# MCPBlueprint — Fab listing draft
+
+> Release-preparation draft only. It is not ready for Fab submission: `MarketplaceURL`, final release metadata, the packaged product icon, technical details, and the 1920×1080 thumbnail remain pending a real listing UUID and final rebuild.
 
 ## One-line pitch
 
@@ -33,12 +35,12 @@ The plugin is designed for editor automation rather than runtime gameplay. Mutat
 | UE 5.4 | Passed | Passed | Passed | 53 tools registered; endpoint started |
 | UE 5.5 | Passed | Passed | Passed | initialize / 53 tools / ping passed |
 | UE 5.6 | Passed | Passed | Passed | initialize / 53 tools / ping passed |
-| UE 5.7 | Passed | Refresh pending: installed DLL locked by an unrelated editor | Passed on the previously deployed version-matched build | initialize / 53 tools / ping passed on the previously deployed version-matched build |
+| UE 5.7 | Passed | Passed | Passed | initialize / 53 tools / ping passed |
 | UE 5.8 | Passed | Passed | Passed | initialize / 53 tools / ping passed |
 
 These results cover installed Windows editor builds. They do not claim macOS/Linux support or exhaustive execution of all 53 tools on every engine version.
 
-The current UE 5.7 package contains the refreshed Fab metadata and icon, but it has not replaced the installed copy while an unrelated editor holds that engine's plugin DLL open. No unrelated editor is closed automatically for deployment.
+All seven version-matched compatibility packages are deployed with matching DLL hashes. They are not final Fab packages: their descriptors remain beta, `DocsURL`/`MarketplaceURL` are not populated for release, and the product icon is not packaged yet.
 
 ## Installation and first connection
 
@@ -97,17 +99,17 @@ MCPBlueprint does not require a vendor cloud service and does not include analyt
 
 *Real Blueprint Event Graph capture showing event orchestration and variable pins.*
 
-![Arrays and local variables](Images/Fab/02-array-local-variables.png)
+![Array length read and return](Images/Fab/02-array-local-variables.png)
 
-*Real function graph for array and local-variable work.*
+*Real function graph showing an array input, a length read, and a returned result. This frame does not independently demonstrate local-variable mutation.*
 
 ![Object cast and validation](Images/Fab/03-object-cast-validation.png)
 
 *Real object-cast and validity-check graph.*
 
-![Components and events](Images/Fab/04-components-events.png)
+![Component and event validation section](Images/Fab/04-components-events.png)
 
-*Real component/event workflow with a native Comment Box.*
+*Real function graph showing the component/event validation section inside a native Comment Box. This frame does not independently prove component-template mutation.*
 
 ![Weighted score layout](Images/Fab/05-weighted-score-layout.png)
 
@@ -129,4 +131,4 @@ MCPBlueprint does not require a vendor cloud service and does not include analyt
 
 *Node-focused capture of the same persisted function, showing Subtract → Multiply → Divide → Result. Two views are used because UE 5.2's off-screen graph-widget full-frame capture can omit far-right node bodies; the graph read-back, compile, save, close, and reopen checks cover the complete chain.*
 
-These seven verified media files are real graph captures. They do not yet include separate captures of the toolbar endpoint, the 53-tool protocol response, variable Category/Tooltip Details, the dry-run impact report, save/reopen state, or a safety rejection/Undo result.
+The first seven newly added files and the final two arithmetic images are real graph captures. Some draft frames contain localized Chinese editor guidance or development-only node banners, so they are internal evidence rather than the final English Fab gallery. The set does not yet include separate captures of the toolbar endpoint, the 53-tool protocol response, variable Category/Tooltip Details, the dry-run impact report, save/reopen state, or a safety rejection/Undo result.

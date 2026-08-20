@@ -4,7 +4,7 @@
 
 MCPBlueprint 是一个自包含的 Unreal Editor 插件，通过 HTTP MCP 向 AI 客户端提供蓝图发现、图表编辑、成员管理、组件管理、资产生命周期与编译反馈能力。插件支持 Unreal Engine 5.2 及以上版本，不依赖其他用户制作的插件；带预编译二进制的 Win64 Editor 插件包已覆盖验证 UE 5.2–5.8。
 
-Fab 英文商品文案、当前逐版本兼容矩阵、安装步骤、7 个完整工作流、隐私/网络说明、故障排查与真实截图见 [FAB_LISTING.md](./FAB_LISTING.md)。
+Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 个完整工作流、隐私/网络说明、故障排查与截图素材见 [FAB_LISTING.md](./FAB_LISTING.md)。该文件不是最终提交产物。
 
 ## 连接方式
 
@@ -168,13 +168,13 @@ Fab 英文商品文案、当前逐版本兼容矩阵、安装步骤、7 个完�
 
 ## 当前测试重点
 
-当前源码的 UE 5.2–5.8 Win64 BuildPlugin 矩阵均已通过。修正版包已部署到 UE 5.2–5.6 与 UE 5.8 的 Marketplace 目录，DLL 哈希与包一致、BuildId 按版本匹配且 `EnabledByDefault=true`。UE 5.7 修正版包已生成，但因无关编辑器正在占用已安装 DLL，重部署尚待完成；此前按版本部署的包已经通过 EnginePlugin 加载与 MCP 健康检查。UE 5.2、5.3、5.5–5.8 的 initialize、`tools/list`（53）和 ping 均通过；UE 5.4 已确认 EnginePlugin 加载、注册 53 个工具并启动 endpoint。
+当前源码的 UE 5.2–5.8 Win64 BuildPlugin 矩阵均已通过，七个引擎版本都已部署对应兼容包且 DLL 哈希与包一致。UE 5.2、5.3、5.5–5.8 的 initialize、`tools/list`（53）和 ping 均通过；UE 5.4 已确认 EnginePlugin 加载、注册 53 个工具并启动 endpoint。这些兼容包不是最终 Fab 提交产物：描述符仍保持 Beta，正式发布元数据与产品图标需要取得真实 listing UUID 后重新打包。
 
 ## 已验证截图
 
 [`Images/Fab`](./Images/Fab/) 中的 PNG 均由真实 Unreal Blueprint Graph 控件直接捕获，未合成伪 UI，也不含本机文件路径。各图说明与对应工作流见 [FAB_LISTING.md](./FAB_LISTING.md)。这些图片不会被描述为 HTTP 响应或变量 Details 面板截图。算术节点使用两张真实画面共同证明持久化后的 Real/Double `Add → Subtract → Multiply → Divide → Result` 链：全图缩放图覆盖左侧与中段，节点聚焦图覆盖 `Subtract → Multiply → Divide → Result`；原因是 UE 5.2 的离屏 Graph Widget 全图捕获有时不绘制最右侧节点本体。
 
-当前 53 工具源码已通过 UE 5.2 编译与 `RenameFunction` 自动化安全回归，覆盖真实落盘的 Asset Registry 外部引用、GUID 冲突、`CreateDelegate`、AnimBlueprint/AnimGraph、override、RepNotify、显式批准、Undo 恢复和注入失败回滚。真实编辑器 HTTP 回归还验证了 initialize、`tools/list`（53）、ping、默认 dry-run、带真实外部 Caller 的批准写入、稳定 Graph GUID、写后读回、Blueprint 编译、保存、关闭重开持久化和截图。6 个 User Defined Struct/Enum 工具也已完成真实编辑器 HTTP 回归，覆盖创建、读取、修改、稳定 GUID 保留、dry-run、显式授权门禁、拒绝路径、分页和 Map value 直接循环检测。当前 UE 5.2–5.8 完整 Win64 BuildPlugin 矩阵均已成功；修正版部署与 DLL 哈希验证已通过 UE 5.2–5.6 和 UE 5.8，UE 5.7 等待无关编辑器释放 DLL 占用后重部署。
+当前 53 工具源码已通过 UE 5.2 编译与 `RenameFunction` 自动化安全回归，覆盖真实落盘的 Asset Registry 外部引用、GUID 冲突、`CreateDelegate`、AnimBlueprint/AnimGraph、override、RepNotify、显式批准、Undo 恢复和注入失败回滚。真实编辑器 HTTP 回归还验证了 initialize、`tools/list`（53）、ping、默认 dry-run、带真实外部 Caller 的批准写入、稳定 Graph GUID、写后读回、Blueprint 编译、保存、关闭重开持久化和截图。6 个 User Defined Struct/Enum 工具也已完成真实编辑器 HTTP 回归，覆盖创建、读取、修改、稳定 GUID 保留、dry-run、显式授权门禁、拒绝路径、分页和 Map value 直接循环检测。当前 UE 5.2–5.8 完整 Win64 BuildPlugin 矩阵均已成功，七个引擎版本均完成部署与 DLL 哈希验证。
 
 打包验证证明各目标引擎可以编译插件并获得预期目录结构，但不能替代每个引擎版本内对全部 MCP 操作的运行时验证。其余工具的跨版本真实编辑器回归、保存/重启持久化与清理行为仍会继续推进。
 
