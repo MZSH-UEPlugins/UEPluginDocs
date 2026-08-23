@@ -67,6 +67,14 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 
 `ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。普通 AI 调用只提交节点逻辑、Pin 默认值和连接关系，省略 `Position` 与 `LayoutScope`，由 MCPBlueprint 默认 `Auto` 负责连接后的标准分层、Pin 顺序、节点间距和少交叉排版；只有用户明确要求固定手工布局时才使用 `Position` 或 `None`。MCP 驱动的节点放置默认必须避免重叠，且不能静默接受仍未解决的碰撞。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；两个工具都会返回实际采用的范围、风格和布局质量指标。
 
+UE 5.2 真实 MCP 验收覆盖了三种调用方式，全部省略 `Position` 与 `LayoutScope`：一次 Patch 创建并连接节点后，交叉从 1 降为 0、反向边从 2 降为 0；先创建节点、再用纯 `Connections` Patch 接线时，第二笔请求自动识别受影响连通组件并把反向边从 2 降为 0；复用已有 `BeginPlay` 事件再连接 `Print String` 时，反向边从 1 降为 0，Pin 高差从 552 降为 1。`Auto` 同样会处理复用节点、Move-only、断连端点和删除节点的存活邻居；普通数据输入的互斥连接会整笔拒绝，Exec 输入允许多来源，合法自动转换节点会纳入最终连接验证和布局。
+
+![一次 Patch 自动成图](./Images/LayoutContract/01_OneShotAuto.png)
+
+![分两次调用后由纯连接 Patch 自动重排](./Images/LayoutContract/02_TwoStageAuto.png)
+
+![复用已有 BeginPlay 事件并自动接续布局](./Images/LayoutContract/03_ReusedEventAuto.png)
+
 当新增业务块需要让出空间，或复杂图需要按阶段重新组织时，可使用 `Patch.MoveNodes` 有界、显式地移动既有节点。每项格式为 `{ "NodeGuid": "...", "Position": { "X": 1200, "Y": 600 } }`，坐标是图中的绝对坐标。该操作只改变位置，节点 GUID、类型、Pin、默认值和全部既有连线保持不变；所有移动与同一 `ApplyGraphPatch` 的编译门禁、失败回滚和单次 Undo 共用一个事务。应先通过 `GetGraphDetail` 读取 GUID 与当前坐标。未知或重复 GUID、非法/越界坐标以及超过共享 60 项补丁上限的请求会整体拒绝，不留下部分修改。
 
 当 `Auto` 在已有实现中回退到 `CreatedNodes` 时，会先根据真实的外部前驱/后继连接，把每个新增连通块锚定到插入位置。如果新增块需要更多水平空间，只把右侧有界碰撞闭包沿 `+X` 整体刚体平移：闭包内所有节点使用同一个位移且 `Y` 不变，闭包外节点的 GUID、坐标和连接保持不变。若需要移动 Function Entry、破坏 Comment Box 包围关系、超过节点/迭代/距离上限，或产生任何新的反向边，整笔补丁会 fail-closed。显式 `LayoutScope=CreatedNodes` 则保留原有的“放到既有逻辑下方”语义，不移动旧节点。所有写工具仍然不会自动保存：应先读回并编译，再显式调用 `SaveAsset`；一次编辑器 Undo 会同时恢复新增节点和被平移的闭包。
