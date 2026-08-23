@@ -24,7 +24,7 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 | `GetBlueprintOverview` | 读取图表、变量、函数、组件、接口与父类。 |
 | `ListBlueprintMembers` | 使用统一稳定分页列出函数、Custom Event、Dispatcher 与局部变量。 |
 | `GetGraphDetail` | 读取图表节点、Pin、默认值和连接。 |
-| `SearchGraphNodes` | 使用 Unreal 英文标准名称搜索蓝图动作并返回稳定的 `SpawnerId`；标准查询包括 `Branch`、`For Loop`、`For Each Loop`、`Switch on Int/Name/String` 与 `Add/Subtract/Multiply/Divide`。 |
+| `SearchGraphNodes` | 使用 Unreal 英文标准名称搜索蓝图动作并返回稳定的 `SpawnerId`；标准查询包括 `Branch`、`For Loop`、`For Each Loop`、`Switch on Int/Name/String`、`Add/Subtract/Multiply/Divide`，以及函数作用域变量的 `Get`/`Set`。 |
 | `GetCompileErrors` | 编译并返回蓝图权威状态与诊断。 |
 
 ### User Defined Struct 与 Enum
@@ -43,12 +43,14 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 | `AddVariable` / `ModifyVariable` / `RemoveVariable` | 管理蓝图成员变量；`ModifyVariable` 还可事务化更新 `Category` 与 `Tooltip`。 |
 | `CreateFunction` / `RenameFunction` / `RemoveFunction` | 创建、安全门禁重命名或安全删除函数图。重命名默认只做 dry-run 影响分析，更新引用前必须显式批准。 |
 | `CreateCustomEvent` / `AddEventNode` / `AddBoundEvent` | 添加自定义事件、引擎事件、组件事件或关卡 Actor 事件。 |
-| `AddLocalVariable` / `RemoveLocalVariable` | 添加或安全删除函数局部变量。 |
+| `AddLocalVariable` / `RemoveLocalVariable` | 添加或安全删除函数局部变量；添加后，在该变量所属的精确函数图中按名称搜索，以取得 Action Registry 支持的 `LocalGet` 与 `LocalSet` 动作。 |
 | `AddNodePin` / `RemoveNodePin` | 为 Sequence、容器和 Switch 等节点添加或删除受支持的动态 Pin。 |
 | `AddInterface` | 实现蓝图接口。 |
 | `AddEventDispatcher` / `RemoveEventDispatcher` | 创建或安全删除多播事件分发器及其签名。 |
 
 调用 `RenameFunction` 时，省略 `bDryRun`（或设为 `true`）只会返回稳定 Graph GUID、有界的本地/外部引用计数、受影响 Blueprint、未加载派生类与阻断项，不产生修改。正式执行必须同时传入 `bDryRun=false` 与 `bApproveReferenceUpdates=true`。首版会主动拒绝 override/受保护函数、RepNotify 函数、不完整引用扫描、未加载派生 Blueprint、`CreateDelegate` 绑定，以及在声明 Blueprint、已加载依赖或 Asset Registry 外部引用项中发现 AnimBlueprint/AnimGraph 状态的情况，即使普通节点引用计数为 0 也会阻断。该门禁采用 fail-closed，因为 UE 5.4+ 可能改写目前无法完整扫描或事务恢复的嵌套函数属性绑定。成功执行会保留 `FunctionGraphGuid`、确认旧名称引用归零、编译全部受影响 Blueprint、纳入 Undo、只标记 Dirty，绝不自动保存。
+
+函数局部变量动作同时受函数图 GUID 和局部变量声明 GUID 约束。`SearchGraphNodes` 只会在声明图中返回 `LocalGet:<GraphGuidDigits>:<LocalVarGuidDigits>` 与 `LocalSet:<GraphGuidDigits>:<LocalVarGuidDigits>`；Setter 提供 `execute`、`then`、同名变量值输入和 `Output_Get`。必须把搜索返回的精确 ID 交给 `ApplyGraphPatch`；跨图、过期或伪造的 GUID 组合会 fail-closed，节点放置则复用原始 Action Registry Spawner，以保留 Unreal 原生局部作用域。
 
 ### 图表编辑
 
@@ -119,10 +121,54 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 |---|---|
 | `CreateBlueprint` | 在 `/Game` 下创建内存中的蓝图资产。 |
 | `CompileBlueprint` | 编译并返回权威状态与诊断。 |
-| `SaveAsset` / `OpenAsset` / `CloseAsset` | 保存独立蓝图资产或控制其编辑器。 |
+| `SaveAsset` | 显式保存独立 Blueprint、User Defined Struct 或 User Defined Enum 包；关卡蓝图和其他资产类型会被拒绝。 |
+| `OpenAsset` / `CloseAsset` | 在蓝图编辑器中打开或关闭独立 Blueprint。 |
 | `DeleteAsset` / `RenameAsset` / `DuplicateAsset` | 管理独立蓝图资产。 |
 | `ReparentBlueprint` | 预演或执行安全父类修改，拒绝继承循环并报告潜在数据丢失。 |
 | `CaptureGraphScreenshot` | 返回 PNG，也可保存到 `Saved/MCPBlueprint/Screenshots` 下。 |
+
+## 固定订单结算基线用例
+
+该已纳管示例是一个**五节点可执行基线**，不是完整订单结算业务流，也不是 100+ 节点产品验收目标。
+
+- 订单行结构体：`/Game/MCPBP_AutoTest/BusinessWorkflow/OrderSettlement/ST_OrderLine`
+- 结果结构体：`/Game/MCPBP_AutoTest/BusinessWorkflow/OrderSettlement/ST_SettlementResult`
+- Actor Blueprint：`/Game/MCPBP_AutoTest/BusinessWorkflow/OrderSettlement/BP_OrderSettlementBaseline`
+- 函数：`EvaluateOrderBatch(Items) -> SettlementResult`
+
+图中使用 `For Each Loop`、`Length`、`Break ST_OrderLine`、整数 `Multiply` 和 `Make ST_SettlementResult`。循环在第一次 Loop Body 执行时直接返回，`ConsumedLineCount` 则来自数组 `Length`；因此结果为 `2` 只证明读取了输入数组长度，不代表已经完整结算两条订单行。
+
+| 输入 | 预期输出 |
+|---|---|
+| `(UnitPriceCents=5000, Quantity=2)`、`(7000, 3)` | `ConsumedLineCount=2`、`FirstLineTotalCents=10000`、`ProofMarker=24680` |
+
+项目编译后，运行固定路径只读 Automation 测试：
+
+```powershell
+& "<UE_5.2>/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" "<Project>/UEPluginDev.uproject" -unattended -nop4 -nosplash -NullRHI '-ExecCmds=Automation RunTests MCPBlueprint.BusinessWorkflow.OrderSettlementBaseline;Automation Quit' '-TestExit=Automation Test Queue Empty' -log
+```
+
+通过结果包含 `bPackagesCleanBefore=true`、`bPackagesCleanAfter=true` 和 `bExpectedOutput=true`。`SaveAsset` 会分别保存 Blueprint 与两个 User Defined Struct 包，不会执行 Save All。
+
+![五节点固定订单结算基线](./Images/OrderSettlement/Baseline_5Node.png)
+
+*真实 UE 5.2 Blueprint 图：已完成 MCP 创建、读回、编译、逐包显式保存、关闭编辑器、磁盘重载和固定输入执行。*
+
+### V2 全行小计切片
+
+`EvaluateOrderBatchV2` 保留上述 V1 基线不动，并完成了首个真实业务切片：遍历全部 `Items`，逐行计算 `UnitPriceCents * Quantity`，通过函数局部变量 `SubtotalCents` 的 `LocalGet` / `LocalSet` 累加，循环完成后才返回。`ConsumedLineCount` 仍来自数组 `Length`。
+
+固定输入 `(5000, 2)`、`(7000, 3)`，并设置 `CustomerTier=0`、`Region=0`、`bFirstOrder=false`，磁盘重载后的运行结果为 `ConsumedLineCount=2`、`SubtotalCents=31000`。当前只验证全行小计；折扣、税、运费、积分、风控与最终决策尚未在此切片中实现。
+
+```powershell
+& "<UE_5.2>/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" "<Project>/UEPluginDev.uproject" -unattended -nop4 -nosplash -NullRHI '-ExecCmds=Automation RunTests MCPBlueprint.BusinessWorkflow.OrderSettlementV2Subtotal' '-TestExit=Automation Test Queue Empty' -log
+```
+
+本阶段 `UEQuickStart.exe --test` 退出码为 0，`MCPBlueprint.Graph.PromotableOperators` 定向测试通过；订单结算共同前缀一次运行 3 个测试且全部通过。V2 日志包含 `MCPBP_ORDER_SETTLEMENT_V2_SUBTOTAL_RESULT=ConsumedLineCount=2 SubtotalCents=31000`，测试同时验证三个相关包在调用前后保持 clean。
+
+![订单结算 V2 全行小计](./Images/OrderSettlement/V2_Subtotal_11Node.png)
+
+*真实 UE 5.2 Blueprint 图：11 个节点，执行流为 Entry → For Each Loop → LocalSet，Completed → Return；数据流覆盖 Length、Break、Multiply、Add、LocalGet/LocalSet 与 V2 结果结构体。*
 
 ## 安全与行为边界
 

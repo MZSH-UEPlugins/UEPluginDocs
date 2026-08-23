@@ -24,7 +24,7 @@ Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments
 | `GetBlueprintOverview` | Read graphs, variables, functions, components, interfaces, and parent class. |
 | `ListBlueprintMembers` | List functions, Custom Events, dispatchers, and local variables with unified stable pagination. |
 | `GetGraphDetail` | Read graph nodes, pins, defaults, and links. |
-| `SearchGraphNodes` | Search Blueprint action spawners by Unreal's English standard names and return stable `SpawnerId` values. Standard queries include `Branch`, `For Loop`, `For Each Loop`, `Switch on Int/Name/String`, and `Add/Subtract/Multiply/Divide`. |
+| `SearchGraphNodes` | Search Blueprint action spawners by Unreal's English standard names and return stable `SpawnerId` values. Standard queries include `Branch`, `For Loop`, `For Each Loop`, `Switch on Int/Name/String`, `Add/Subtract/Multiply/Divide`, and function-scoped variable `Get`/`Set`. |
 | `GetCompileErrors` | Compile and return the authoritative Blueprint status and diagnostics. |
 
 ### User Defined Struct and Enum
@@ -43,12 +43,14 @@ Use `bDryRun=true` to review the bounded reference-impact result first. Struct r
 | `AddVariable` / `ModifyVariable` / `RemoveVariable` | Manage Blueprint member variables. `ModifyVariable` also updates `Category` and `Tooltip` transactionally. |
 | `CreateFunction` / `RenameFunction` / `RemoveFunction` | Create, safety-gated rename, or safely remove a function graph. Rename defaults to dry-run impact analysis and requires explicit approval before reference updates. |
 | `CreateCustomEvent` / `AddEventNode` / `AddBoundEvent` | Add custom, engine, component, or level-actor events. |
-| `AddLocalVariable` / `RemoveLocalVariable` | Add or safely remove a function-local variable. |
+| `AddLocalVariable` / `RemoveLocalVariable` | Add or safely remove a function-local variable. After adding one, search its name in that exact function graph to obtain its registry-backed `LocalGet` and `LocalSet` actions. |
 | `AddNodePin` / `RemoveNodePin` | Add or remove supported dynamic pins on Sequence, container, and Switch nodes. |
 | `AddInterface` | Implement a Blueprint interface. |
 | `AddEventDispatcher` / `RemoveEventDispatcher` | Create or safely remove a multicast event dispatcher and its signature. |
 
 For `RenameFunction`, omit `bDryRun` (or set it to `true`) to inspect the stable graph GUID, bounded local/external reference counts, affected Blueprints, unloaded derived classes, and blockers without mutation. Apply only by sending both `bDryRun=false` and `bApproveReferenceUpdates=true`. The first version deliberately rejects override/protected and RepNotify functions, incomplete reference scans, unloaded derived Blueprints, `CreateDelegate` bindings, and AnimBlueprint/AnimGraph state found in the declaring Blueprint, loaded dependents, or Asset Registry referencers—even when ordinary node-reference counting is zero. This gate is fail-closed because UE 5.4+ can rewrite opaque nested function property bindings that cannot yet be scanned or restored transactionally. A successful apply preserves `FunctionGraphGuid`, verifies the old name has no remaining references, compiles every affected Blueprint, participates in Undo, marks packages dirty, and never saves automatically.
+
+Function-local variable actions are scoped by both the function graph GUID and the local declaration GUID. `SearchGraphNodes` returns `LocalGet:<GraphGuidDigits>:<LocalVarGuidDigits>` and `LocalSet:<GraphGuidDigits>:<LocalVarGuidDigits>` only for the declaring graph. The setter exposes `execute`, `then`, the named value input, and `Output_Get`. Pass the exact returned ID to `ApplyGraphPatch`; cross-graph, stale, or fabricated GUID combinations fail closed, and placement reuses the original Action Registry spawner so Unreal retains the native local scope.
 
 ### Graph editing
 
@@ -119,10 +121,54 @@ For standard flow control, search with the exact English Unreal names `Branch`, 
 |---|---|
 | `CreateBlueprint` | Create an in-memory Blueprint asset under `/Game`. |
 | `CompileBlueprint` | Compile and return authoritative status and diagnostics. |
-| `SaveAsset` / `OpenAsset` / `CloseAsset` | Save or control the editor for a standalone Blueprint asset. |
+| `SaveAsset` | Explicitly save a standalone Blueprint, User Defined Struct, or User Defined Enum package. Level Blueprints and unsupported asset types are rejected. |
+| `OpenAsset` / `CloseAsset` | Open or close a standalone Blueprint in the Blueprint Editor. |
 | `DeleteAsset` / `RenameAsset` / `DuplicateAsset` | Manage standalone Blueprint assets. |
 | `ReparentBlueprint` | Dry-run or apply a safe parent-class change with cycle and data-loss checks. |
 | `CaptureGraphScreenshot` | Return a PNG and optionally save it below `Saved/MCPBlueprint/Screenshots`. |
+
+## Fixed Order Settlement Baseline Example
+
+This checked-in example is a **five-node executable baseline**, not the completed order-settlement workflow or the 100+ node product-acceptance target.
+
+- Order line struct: `/Game/MCPBP_AutoTest/BusinessWorkflow/OrderSettlement/ST_OrderLine`
+- Result struct: `/Game/MCPBP_AutoTest/BusinessWorkflow/OrderSettlement/ST_SettlementResult`
+- Actor Blueprint: `/Game/MCPBP_AutoTest/BusinessWorkflow/OrderSettlement/BP_OrderSettlementBaseline`
+- Function: `EvaluateOrderBatch(Items) -> SettlementResult`
+
+The graph uses `For Each Loop`, `Length`, `Break ST_OrderLine`, integer `Multiply`, and `Make ST_SettlementResult`. The loop returns during its first body execution, while `ConsumedLineCount` is populated from the array `Length`; therefore a value of `2` proves the input array length was read, not that two lines were fully settled.
+
+| Input | Expected output |
+|---|---|
+| `(UnitPriceCents=5000, Quantity=2)`, `(7000, 3)` | `ConsumedLineCount=2`, `FirstLineTotalCents=10000`, `ProofMarker=24680` |
+
+Run the fixed-path, read-only Automation test after compiling the project:
+
+```powershell
+& "<UE_5.2>/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" "<Project>/UEPluginDev.uproject" -unattended -nop4 -nosplash -NullRHI '-ExecCmds=Automation RunTests MCPBlueprint.BusinessWorkflow.OrderSettlementBaseline;Automation Quit' '-TestExit=Automation Test Queue Empty' -log
+```
+
+The passing result includes `bPackagesCleanBefore=true`, `bPackagesCleanAfter=true`, and `bExpectedOutput=true`. `SaveAsset` persists the Blueprint and both User Defined Struct packages independently; it does not perform Save All.
+
+![Five-node fixed order settlement baseline](./Images/OrderSettlement/Baseline_5Node.png)
+
+*Real UE 5.2 Blueprint graph capture after MCP creation, read-back, compilation, explicit per-package save, editor close, disk reload, and fixed-input execution.*
+
+### V2 all-line subtotal slice
+
+`EvaluateOrderBatchV2` leaves the V1 baseline unchanged and implements the first real business slice: iterate over every `Items` entry, calculate `UnitPriceCents * Quantity`, accumulate through the function-local `SubtotalCents` `LocalGet` / `LocalSet` actions, and return only after the loop completes. `ConsumedLineCount` still comes from array `Length`.
+
+With fixed inputs `(5000, 2)` and `(7000, 3)`, plus `CustomerTier=0`, `Region=0`, and `bFirstOrder=false`, execution after a disk reload returns `ConsumedLineCount=2` and `SubtotalCents=31000`. This slice verifies all-line subtotal accumulation only; discount, tax, shipping, points, risk, and final decision logic are not implemented here yet.
+
+```powershell
+& "<UE_5.2>/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" "<Project>/UEPluginDev.uproject" -unattended -nop4 -nosplash -NullRHI '-ExecCmds=Automation RunTests MCPBlueprint.BusinessWorkflow.OrderSettlementV2Subtotal' '-TestExit=Automation Test Queue Empty' -log
+```
+
+For this slice, `UEQuickStart.exe --test` exited with code 0, the targeted `MCPBlueprint.Graph.PromotableOperators` test passed, and one shared-prefix order-settlement run completed all three matching tests successfully. The V2 log includes `MCPBP_ORDER_SETTLEMENT_V2_SUBTOTAL_RESULT=ConsumedLineCount=2 SubtotalCents=31000`; the runner also verifies that all three related packages remain clean before and after invocation.
+
+![Order settlement V2 all-line subtotal](./Images/OrderSettlement/V2_Subtotal_11Node.png)
+
+*Real UE 5.2 Blueprint graph: 11 nodes, with Entry → For Each Loop → LocalSet and Completed → Return execution paths, plus Length, Break, Multiply, Add, LocalGet/LocalSet, and the V2 result struct data flow.*
 
 ## Safety and behavior boundaries
 
