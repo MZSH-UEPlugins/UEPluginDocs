@@ -65,7 +65,7 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 
 `FormatGraph` 使用确定性的弱连通区域分离、SCC 循环压缩、从左到右的分层拓扑、重心法交叉线优化、Slate 节点与 Pin 行尺寸及其有界回退、Pin-aware 纵向对齐，以及多区域装箱。`LayoutScope` 支持 `WholeGraph`、`ConnectedComponent` 和 `Selection`。`LayoutStyle` 支持 `Balanced`（默认通用间距）、`Straight`（更强的连线拉直和更多纵向空间）与 `Compact`（更小占用、较轻的拉直）；项目约定或 AI 技能规范只需选择预设，不必绑定算法内部权重。整图布局会保护注释框及其当前包围的节点。设置 `bDryRun=true` 时不会调用 `Modify()` 或开启编辑器事务，只返回规划位置，以及布局前后的重叠、反向边、交叉线、长连线、占用面积、`FlatEdgeRatio`、`AveragePinDeltaY` 和 `P95PinDeltaY` 指标。可选 Reroute 默认关闭，并受 `MaxRerouteNodes` 限制；其质量指标描述插入 Knot 前的原节点布局方案。
 
-`ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。MCP 驱动的节点放置默认必须避免重叠，且不能静默接受仍未解决的碰撞。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；两个工具都会返回实际采用的范围、风格和布局质量指标。
+`ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。普通 AI 调用只提交节点逻辑、Pin 默认值和连接关系，省略 `Position` 与 `LayoutScope`，由 MCPBlueprint 默认 `Auto` 负责连接后的标准分层、Pin 顺序、节点间距和少交叉排版；只有用户明确要求固定手工布局时才使用 `Position` 或 `None`。MCP 驱动的节点放置默认必须避免重叠，且不能静默接受仍未解决的碰撞。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；两个工具都会返回实际采用的范围、风格和布局质量指标。
 
 当新增业务块需要让出空间，或复杂图需要按阶段重新组织时，可使用 `Patch.MoveNodes` 有界、显式地移动既有节点。每项格式为 `{ "NodeGuid": "...", "Position": { "X": 1200, "Y": 600 } }`，坐标是图中的绝对坐标。该操作只改变位置，节点 GUID、类型、Pin、默认值和全部既有连线保持不变；所有移动与同一 `ApplyGraphPatch` 的编译门禁、失败回滚和单次 Undo 共用一个事务。应先通过 `GetGraphDetail` 读取 GUID 与当前坐标。未知或重复 GUID、非法/越界坐标以及超过共享 60 项补丁上限的请求会整体拒绝，不留下部分修改。
 
