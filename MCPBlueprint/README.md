@@ -178,6 +178,38 @@ For this slice, `UEQuickStart.exe --test` exited with code 0, the targeted `MCPB
 
 *Real UE 5.2 Blueprint graph: 11 nodes, with Entry → For Each Loop → LocalSet and Completed → Return execution paths, plus Length, Break, Multiply, Add, LocalGet/LocalSet, and the V2 result struct data flow.*
 
+### Complex order-policy validation
+
+`BP_OrderSettlementComplex` is an isolated duplicate of the baseline, so the V1/V2 reference assets remain unchanged. Its `EvaluateOrderBatchV2` graph is a single connected 55-node, 68-edge long function: accumulate every order line, choose a tier discount through `Switch on Int`, apply the first-order bonus through a Branch, choose regional shipping, then calculate net, 8% integer tax, total, points, risk score, and decision. The business flow is not split into helper functions, and its ABI and graph topology remain unchanged.
+
+The long-function layout fix combines cached semantic stable keys, 12 barycentric candidates, real geometric crossing scores, bounded adjacent/global swaps, and whole-layer Y-offset search. Each layout has hard budgets of 4096 global-swap candidate evaluations and 2048 layer-offset metric evaluations. Running `FormatGraph(WholeGraph, Straight)` on the previous saved layout produces crossings `26 → 11`, `OverlapCount=0`, `BackwardEdgeCount=0`, and average pin delta `236 → 212`. A structurally identical copy with every NodeGuid regenerated produces the same metrics; all 17 graph-layout automation tests pass.
+
+The fixed order lines remain `(5000, 2)` and `(7000, 3)`. Real `ProcessEvent` execution covers three paths:
+
+| Case | Tier / Region / First order | Discount | Net | Tax | Shipping | Total | Points / Risk / Decision |
+|---|---|---:|---:|---:|---:|---:|---|
+| Regular order | `0 / 0 / false` | 0 | 31000 | 2480 | 800 | 34280 | `342 / 3 / 1` |
+| Tier-2 first order | `2 / 1 / true` | 1750 | 29250 | 2340 | 1200 | 32790 | `327 / 3 / 1` |
+| Default branches | `99 / 99 / false` | 1500 | 29500 | 2360 | 2500 | 34360 | `343 / 3 / 1` |
+
+`MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` returns `Success` on UE 5.2; every output matches and the related packages remain clean before and after invocation. The four-test order-settlement regression passes. The asset is explicitly saved, closed, reopened, recompiled, and captured; `UEQuickStart.exe --test` also exits with code 0.
+
+The screenshots below are the **current complex-logic acceptance baseline**. Native UE Comment Boxes identify three business regions; they are not a local-logic Before/After comparison. The overview remains unboxed because distant zoom levels reduce large comments to opaque color blocks. A future local business-logic change must first preserve a same-frame baseline, then capture the same view after nodes, pin defaults, or links actually change, with a Comment Box enclosing only that change.
+
+![Complex order-policy full graph](./Images/OrderSettlementComplex/ComplexPolicy_Full.png)
+
+#### Current local baseline: tier discount and first-order bonus
+
+![Current baseline: tier discount and first-order bonus marked with a Comment Box](./Images/OrderSettlementComplex/ComplexPolicy_Discount.png)
+
+#### Current local baseline: regional shipping and tax calculation
+
+![Current baseline: regional shipping policy marked with a Comment Box](./Images/OrderSettlementComplex/ComplexPolicy_ShippingTax.png)
+
+#### Current local baseline: result assembly
+
+![Current baseline: result assembly marked with a Comment Box after save and reopen](./Images/OrderSettlementComplex/ComplexPolicy_ReopenedResult.png)
+
 ## Safety and behavior boundaries
 
 - New or moved Blueprint asset paths must be valid standalone package paths under `/Game`; existing in-memory and on-disk package collisions are rejected.

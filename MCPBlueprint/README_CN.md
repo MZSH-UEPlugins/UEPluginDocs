@@ -178,6 +178,38 @@ UE 5.2 真实 MCP 验收覆盖了三种调用方式，全部省略 `Position` �
 
 *真实 UE 5.2 Blueprint 图：11 个节点，执行流为 Entry → For Each Loop → LocalSet，Completed → Return；数据流覆盖 Length、Break、Multiply、Add、LocalGet/LocalSet 与 V2 结果结构体。*
 
+### 复杂订单策略验证
+
+`BP_OrderSettlementComplex` 是从基线复制出的隔离示例，不修改上述 V1/V2 资产。它把 `EvaluateOrderBatchV2` 扩展为 55 节点、68 条边的单一连通长函数：遍历订单行累计小计，按 `CustomerTier` 的 `Switch on Int` 选择折扣，使用 `bFirstOrder` Branch 叠加首单优惠，再按 `Region` 选择运费，最后计算净额、8% 整数税费、总额、积分、风险分数与决策。没有把业务拆到辅助函数，也没有改变函数 ABI 或图拓扑。
+
+长函数布局修复使用语义稳定键缓存、12 轮重心候选、真实几何交叉评分、有界相邻/全局交换与整层 Y 偏移搜索；每次布局的全局交换最多执行 4096 次候选评分，层偏移最多执行 2048 次指标评分。对上一版已保存布局运行 `FormatGraph(WholeGraph, Straight)`，真实读回为交叉线 `26 → 11`、`OverlapCount=0`、`BackwardEdgeCount=0`，平均 Pin 高差 `236 → 212`。重新生成全部 NodeGuid 的同构副本得到相同指标；布局自动化 17/17 通过。
+
+固定订单行仍为 `(5000, 2)`、`(7000, 3)`，实际 `ProcessEvent` 运行覆盖三组路径：
+
+| 用例 | Tier / Region / 首单 | 折扣 | 净额 | 税 | 运费 | 总额 | 积分 / 风险 / 决策 |
+|---|---|---:|---:|---:|---:|---:|---|
+| 普通订单 | `0 / 0 / false` | 0 | 31000 | 2480 | 800 | 34280 | `342 / 3 / 1` |
+| 高等级首单 | `2 / 1 / true` | 1750 | 29250 | 2340 | 1200 | 32790 | `327 / 3 / 1` |
+| 默认分支 | `99 / 99 / false` | 1500 | 29500 | 2360 | 2500 | 34360 | `343 / 3 / 1` |
+
+`MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` 在 UE 5.2 中返回 `Success`，三组输出均满足预期，相关包在调用前后保持 clean；订单结算前缀 4/4 回归通过。资产先显式保存，再关闭、重开、重新编译并截图；`UEQuickStart.exe --test` 同样退出码为 0。
+
+以下截图是当前复杂业务逻辑的**验收基线**，使用 UE 原生 Comment Box 标出三个业务区；它们不是局部逻辑修改的 Before/After。总览图继续保留无框版本，避免远景缩放把节点简化为色块。后续真正修改某一段局部业务逻辑时，必须先保留修改前同画幅截图，再在节点、Pin 默认值或连线发生实际变化后拍摄修改后截图，并只框住该次变化范围。
+
+![复杂订单策略全图](./Images/OrderSettlementComplex/ComplexPolicy_Full.png)
+
+#### 当前局部基线：等级折扣与首单优惠
+
+![当前基线：Comment Box 标注等级折扣与首单优惠](./Images/OrderSettlementComplex/ComplexPolicy_Discount.png)
+
+#### 当前局部基线：地区运费与税费计算
+
+![当前基线：Comment Box 标注地区运费策略](./Images/OrderSettlementComplex/ComplexPolicy_ShippingTax.png)
+
+#### 当前局部基线：结果装配
+
+![当前基线：保存重开后的 Comment Box 结果装配](./Images/OrderSettlementComplex/ComplexPolicy_ReopenedResult.png)
+
 ## 安全与行为边界
 
 - 新建、移动或复制蓝图时，目标必须是 `/Game` 下合法的独立包路径；若内存或磁盘已有同名包会拒绝操作。
