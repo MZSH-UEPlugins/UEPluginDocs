@@ -180,16 +180,17 @@ For this slice, `UEQuickStart.exe --test` exited with code 0, the targeted `MCPB
 
 ### Complex order-policy validation
 
-`BP_OrderSettlementComplex` is an isolated duplicate of the baseline, so the V1/V2 reference assets remain unchanged. Its `EvaluateOrderBatchV2` graph is a single connected 55-node, 68-edge long function: accumulate every order line, choose a tier discount through `Switch on Int`, apply the first-order bonus through a Branch, choose regional shipping, then calculate net, 8% integer tax, total, points, risk score, and decision. The business flow is not split into helper functions, and its ABI and graph topology remain unchanged.
+`BP_OrderSettlementComplex` is an isolated duplicate of the baseline, so the V1/V2 reference assets remain unchanged. Its `EvaluateOrderBatchV2` graph is now a single connected 58-node, 72-edge long function: accumulate every order line, choose a tier discount, apply the first-order discount, then choose regional shipping. `Region=1` enters a local Branch: first orders receive free shipping, while non-first orders retain 1000. The graph then calculates net, 8% integer tax, total, points, risk score, and decision. The long function remains intact instead of being split into helpers, and its ABI is unchanged.
 
 The long-function layout fix combines cached semantic stable keys, 12 barycentric candidates, real geometric crossing scores, bounded adjacent/global swaps, and whole-layer Y-offset search. Each layout has hard budgets of 4096 global-swap candidate evaluations and 2048 layer-offset metric evaluations. Running `FormatGraph(WholeGraph, Straight)` on the previous saved layout produces crossings `26 → 11`, `OverlapCount=0`, `BackwardEdgeCount=0`, and average pin delta `236 → 212`. A structurally identical copy with every NodeGuid regenerated produces the same metrics; all 17 graph-layout automation tests pass.
 
-The fixed order lines remain `(5000, 2)` and `(7000, 3)`. Real `ProcessEvent` execution covers three paths:
+The fixed order lines remain `(5000, 2)` and `(7000, 3)`. Real `ProcessEvent` execution covers four paths:
 
 | Case | Tier / Region / First order | Discount | Net | Tax | Shipping | Total | Points / Risk / Decision |
 |---|---|---:|---:|---:|---:|---:|---|
 | Regular order | `0 / 0 / false` | 0 | 31000 | 2480 | 800 | 34280 | `342 / 3 / 1` |
-| Tier-2 first order | `2 / 1 / true` | 1750 | 29250 | 2340 | 1200 | 32790 | `327 / 3 / 1` |
+| Tier-2 first order | `2 / 1 / true` | 1750 | 29250 | 2340 | 0 | 31590 | `315 / 3 / 1` |
+| Tier-2 regular order | `2 / 1 / false` | 1000 | 30000 | 2400 | 1000 | 33400 | `334 / 3 / 1` |
 | Default branches | `99 / 99 / false` | 1500 | 29500 | 2360 | 2500 | 34360 | `343 / 3 / 1` |
 
 `MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` returns `Success` on UE 5.2; every output matches and the related packages remain clean before and after invocation. The four-test order-settlement regression passes. The asset is explicitly saved, closed, reopened, recompiled, and captured; `UEQuickStart.exe --test` also exits with code 0.
@@ -209,6 +210,21 @@ The screenshots below are the **current complex-logic acceptance baseline**. Nat
 #### Current local baseline: result assembly
 
 ![Current baseline: result assembly marked with a Comment Box after save and reopen](./Images/OrderSettlementComplex/ComplexPolicy_ReopenedResult.png)
+
+### Real local structural-logic change: free first-order shipping in Region 1
+
+Before the change, the `Region=1` Exec path entered `Set ShippingCents(1000)` directly. The modified long function locally adds `Get bFirstOrder`, a Branch, and `Set ShippingCents(0)`. Case 1 is rewired so True receives free shipping, False reuses the original `1000` node, and both paths rejoin the original downstream `Set NetCents`. All other Region cases and the tax, total, points, and decision links remain unchanged.
+
+| Path | Before Shipping / Total / Points | After Shipping / Total / Points |
+|---|---:|---:|
+| `Tier=2, Region=1, bFirstOrder=true` | `1000 / 32590 / 325` | `0 / 31590 / 315` |
+| `Tier=2, Region=1, bFirstOrder=false` | `1000 / 33400 / 334` | `1000 / 33400 / 334` |
+
+Before and After are both 2560×1440 at 1:1 zoom and use the unmoved Region Switch as their common frame anchor. In After, the native red Comment Box encloses only the new Getter, Branch, free-shipping Set, and the rewired original `1000` node. The targeted test returns `bExpectedOutput=true`, and the final four-test order-settlement regression passes 4/4.
+
+![Before the structural-logic change: Region 1 directly sets shipping to 1000](./Images/OrderSettlementLogicRewire/Region1FirstOrder_Before.png)
+
+![After the structural-logic change: Region 1 adds a first-order free-shipping Branch and new links](./Images/OrderSettlementLogicRewire/Region1FirstOrder_After.png)
 
 ## Safety and behavior boundaries
 

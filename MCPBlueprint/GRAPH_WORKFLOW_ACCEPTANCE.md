@@ -2,23 +2,24 @@
 
 本文是 MCPBlueprint 图编辑、自动布局和截图验证的权威交接规范。它用于防止把“节点很多、没有重叠、能够编译”误判为“真实业务逻辑可运行”。下次任务必须先阅读本文，再设计测试资产或生成验收截图。
 
-## 0. 2026-08-24 后续验证
+## 0. 2026-08-24 至 2026-08-25 后续验证
 
 - 新增隔离资产 `/Game/MCPBP_AutoTest/BusinessWorkflow/OrderSettlement/BP_OrderSettlementComplex`，未修改原基线资产。
-- `EvaluateOrderBatchV2` 已扩展为 55 节点、68 条边、单一连通组件的订单策略流；覆盖订单循环、等级与地区 Switch、首单 Branch、折扣、运费、净额、税、总额、积分、风险和决策。
+- `EvaluateOrderBatchV2` 已扩展为 58 节点、72 条边、单一连通组件的订单策略流；覆盖订单循环、等级与地区 Switch、首单折扣 Branch、Region 1 首单免运费 Branch、折扣、运费、净额、税、总额、积分、风险和决策。
 - 用户否决了交叉线仍为 26 的首版截图，因此该结果不再视为通过。布局器随后在不拆函数、不改 ABI/拓扑的前提下加入语义稳定排序、真实几何候选、确定性多起点、有界全局交换和整层 Y 偏移搜索。
 - 对上一版保存布局执行 `FormatGraph(WholeGraph, Straight)` 的最终真实读回为交叉线 `26 → 11`、`OverlapCount=0`、`BackwardEdgeCount=0`、平均 Pin 高差 `236 → 212`；保存、关闭、重开后的截图与再次编译均通过。GUID 重映射同构图保持相同指标，布局自动化 17/17 通过。
-- `MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` 通过三组固定输入的真实 `ProcessEvent` 调用，机器证据为 `bExpectedOutput=true`、`bPackagesCleanBefore=true`、`bPackagesCleanAfter=true`。
-- 本单元证明 55 节点复杂业务示例可运行并可截图验收；它没有通过复制装饰逻辑追求 100+ 节点，因此不把本结果表述成“100+ 节点压力目标已完成”。以下旧失败结论继续作为反例与验收边界保留。
+- `MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` 通过四组固定输入的真实 `ProcessEvent` 调用，机器证据为 `bExpectedOutput=true`、`bPackagesCleanBefore=true`、`bPackagesCleanAfter=true`。
+- 已完成真实局部结构逻辑 Before/After：将 `RegionSwitch.Case1 → Set ShippingCents(1000)` 直连改为 `Case1 → bFirstOrder Branch → 0/1000 两条 Set 路径 → Set NetCents`。首单用例的 `ShippingCents 1000 → 0`、`TotalCents 32590 → 31590`、`PointsEarned 325 → 315`；新增非首单镜像用例确认 False 路径仍为 `1000 / 33400 / 334`。两图均为 2560×1440、1:1，并以未移动的 Region Switch 作为共同画幅锚点；After 的红色 Comment Box 只包含本次结构修改子图。
+- 本单元证明 58 节点复杂业务示例可运行并可截图验收；它没有通过复制装饰逻辑追求 100+ 节点，因此不把本结果表述成“100+ 节点压力目标已完成”。以下旧失败结论继续作为反例与验收边界保留。
 
-## 1. 当前结论（2026-08-14）
+## 1. 历史失败结论（2026-08-14，已被第 0 节后续验证取代）
 
 - 源码基线：`main` / `461f514f6a3e79a9d5ecd3a0d18abb1d2cc96e1b`。
 - 消费者局部 Getter 防重叠的实现级验证已通过：自动化覆盖候选位置耗尽与事务回滚；真实 MCP 读回证明 Getter 位于消费者附近，且保存、关闭、重开后位置和连接保持。
 - 产品级“真实业务函数”截图验收**未通过**。用户明确拒绝了现有长函数截图，因为节点虽多，但有效业务连接不足，不像能够实际运行的项目函数。
 - 现有 GetterSafety `01–05` 和 102/108 节点 LayoutShift 图片只能作为布局、回滚或持久化的过程证据，不能作为真实业务验收证据。
 - 曾用于替代验收的 112/114 节点场景，即使满足零孤立节点、编译、保存重开和 Undo/Redo，也没有完成固定输入下的实际调用与输出验证，因此不得宣称已通过产品验收。
-- MCPBlueprint 项目当前状态为 `paused`。本轮只完善文档，不启动编辑器、不修改代码/资产、不制作新截图。
+- 当时 MCPBlueprint 项目状态为 `paused`；该轮只完善文档，没有启动编辑器、修改代码/资产或制作新截图。此状态不代表第 0 节后续验证后的当前状态。
 
 ## 2. 此前验证方向为什么不成立
 
@@ -119,22 +120,21 @@ Compile 是运行验证的前置条件，不是终点。每个修改阶段都必
 - 截图文字不可读、只显示线，或修改前后不是可比较画幅。
 - 在人工构造的布局压力图上证明局部改善后，将其表述成真实项目验收。
 
-## 9. 下次新任务交接
+## 9. 当前后续任务交接（2026-08-25）
 
 - 权威仓库：`E:/GitHub/MZSH-UEPlugins/MCP/MCPBlueprint`。
-- 起始基线：先实时核对 `main`、`origin/main` 和工作区；本记录生成时为 `461f514f6a3e79a9d5ecd3a0d18abb1d2cc96e1b`。
-- AIHub 项目状态：`paused`。新任务获得用户明确授权后再设为 `active`。
+- 起始前必须实时核对 `main`、`origin/main` 和工作区；本节不固定会随提交立即过期的 SHA。AIHub 状态同样必须实时读取，不沿用第 1 节的历史 `paused`。
+- 当前复杂业务基线：`/Game/MCPBP_AutoTest/BusinessWorkflow/OrderSettlement/BP_OrderSettlementComplex`，`EvaluateOrderBatchV2` 为 58 节点的单一连通长函数，没有拆分辅助函数。
+- 当前 Region 1 规则为首单 `ShippingCents=0`、非首单 `ShippingCents=1000`；首单固定用例输出为 `TotalCents=31590`、`PointsEarned=315`。
 - 不复用 `/Game/MCPBP_AutoTest/LayoutShift/BP_MCPBP_LayoutShift_100Nodes` 作为验收基线；它只属于旧的压力测试方向。
 - 新建隔离测试资产，不修改或保存用户业务项目 `E:/SVN/BenCaoYuan` 及其中任何业务资产。
-- 第一个里程碑不是搭图，而是提交业务故事、测试用例和预期修改点供用户审核。
-- 用户确认场景后再搭建完整可运行基线；基线实际执行成功并截图后，才允许开始修改。
-- 每次只改一个逻辑点，每次修改都必须有同画幅截图、读回、编译和运行结果。
+- 后续每次只改一个真实局部业务逻辑点；修改前先运行固定用例并拍同画幅基线，修改后必须完成 Pin/连线读回、编译、显式保存、关闭重开、同画幅截图和运行输出核对。Comment Box 只包围本次实际变化节点。
 - 加减乘除节点必须走 `SearchGraphNodes(Add/Subtract/Multiply/Divide) -> ApplyGraphPatch -> Readback -> Compile` 的合法路径，并覆盖 UE 5.7 Real/Double 显示与类型提升；不得伪造 SpawnerId。
 
 ## 10. Definition of Done
 
 - [ ] 用户已确认业务故事、输入输出、修改点和至少 3 个确定性用例。
-- [ ] 100+ 节点来自真实业务复杂度，不是数量填充。
+- [ ] 节点规模来自真实业务复杂度，不以 100+ 为硬门槛，也不复制装饰逻辑填充数量。
 - [ ] Exec 可达性、终止路径和 pure-node 贡献检查全部通过。
 - [ ] 修改前基线已编译、实际调用、结果核对、保存重开。
 - [ ] 每个原子修改均先审阅完整 Patch 和当前图详情，再原子应用、读回、编译、实际调用；未伪造 patch 级 dry-run。
