@@ -180,20 +180,21 @@ UE 5.2 真实 MCP 验收覆盖了三种调用方式，全部省略 `Position` �
 
 ### 复杂订单策略验证
 
-`BP_OrderSettlementComplex` 是从基线复制出的隔离示例，不修改上述 V1/V2 资产。它的 `EvaluateOrderBatchV2` 现为 59 节点、73 条边的单一连通长函数：遍历订单行累计小计，按 `CustomerTier` 选择折扣，叠加首单折扣，再按 `Region` 选择运费；`Region=1` 还会进入局部 Branch，首单免运费，非首单保持 1000。最后计算净额、8% 整数税费、总额、积分、风险分数与决策。长函数没有被拆成辅助函数，函数 ABI 保持不变。
+`BP_OrderSettlementComplex` 是从基线复制出的隔离示例，不修改上述 V1/V2 资产。它的 `EvaluateOrderBatchV2` 现为 62 节点、79 条边的单一连通长函数：遍历订单行累计小计，按 `CustomerTier` 选择折扣，叠加首单折扣，再按 `Region` 选择运费；`Region=1` 还会进入局部 Branch，首单免运费，非首单保持 1000。最后计算净额、8% 整数税费、总额、积分、风险分数与决策。长函数没有被拆成辅助函数，函数 ABI 保持不变。
 
 长函数布局修复使用语义稳定键缓存、12 轮重心候选、真实几何交叉评分、有界相邻/全局交换与整层 Y 偏移搜索；每次布局的全局交换最多执行 4096 次候选评分，层偏移最多执行 2048 次指标评分。对上一版已保存布局运行 `FormatGraph(WholeGraph, Straight)`，真实读回为交叉线 `26 → 11`、`OverlapCount=0`、`BackwardEdgeCount=0`，平均 Pin 高差 `236 → 212`。重新生成全部 NodeGuid 的同构副本得到相同指标；布局自动化 17/17 通过。
 
-固定订单行仍为 `(5000, 2)`、`(7000, 3)`，实际 `ProcessEvent` 运行覆盖四组路径：
+固定订单行仍为 `(5000, 2)`、`(7000, 3)`，实际 `ProcessEvent` 运行覆盖五组路径：
 
 | 用例 | Tier / Region / 首单 | 折扣 | 净额 | 税 | 运费 | 总额 | 积分 / 风险 / 决策 |
 |---|---|---:|---:|---:|---:|---:|---|
 | 普通订单 | `0 / 0 / false` | 0 | 31000 | 2480 | 800 | 34280 | `342 / 3 / 1` |
 | 高等级首单 | `2 / 1 / true` | 2550 | 28450 | 2276 | 0 | 30726 | `307 / 3 / 1` |
 | 高等级非首单 | `2 / 1 / false` | 1000 | 30000 | 2400 | 1000 | 33400 | `334 / 3 / 1` |
-| 默认分支 | `99 / 99 / false` | 1500 | 29500 | 2360 | 2500 | 34360 | `343 / 3 / 1` |
+| Region 2 普通订单 | `0 / 2 / false` | 0 | 31000 | 2480 | 2000 | 35480 | `354 / 3 / 1` |
+| 默认分支 | `99 / 99 / false` | 1500 | 29500 | 2360 | 2500 | 34360 | `343 / 3 / 2` |
 
-`MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` 在 UE 5.2 中返回 `Success`，四组输出均满足预期，相关包在调用前后保持 clean；订单结算前缀 4/4 回归通过。资产先显式保存，再关闭、重开、重新编译并截图；`UEQuickStart.exe --test` 同样退出码为 0。
+`MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` 在 UE 5.2 中返回 `Success`，五组输出均满足预期，相关包在调用前后保持 clean；订单结算前缀 4/4 回归通过。资产先显式保存，再关闭、重开、重新编译并截图；`UEQuickStart.exe --test` 同样退出码为 0。
 
 以下截图是当前复杂业务逻辑的**验收基线**，使用 UE 原生 Comment Box 标出三个业务区；它们不是局部逻辑修改的 Before/After。总览图继续保留无框版本，避免远景缩放把节点简化为色块。后续真正修改某一段局部业务逻辑时，必须先保留修改前同画幅截图，再在节点、Pin 默认值或连线发生实际变化后拍摄修改后截图，并只框住该次变化范围。
 
@@ -235,6 +236,14 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 ![单元1修改前：固定首单奖励 Getter](./Images/MultiLogic/Unit1_FirstOrderPercent/Before.png)
 
 ![单元1修改后：小计 5% Divide 数据链](./Images/MultiLogic/Unit1_FirstOrderPercent/After.png)
+
+### 多逻辑回归单元 2：未支持地区转人工复核
+
+原图在 `Set TotalCents` 后始终执行 `Set Decision(1)`。本单元新增 `Get Region`、三个显式 Case 的 `Switch on Int` 和 `Set Decision(2)`；Region `0/1/2` 仍进入原批准节点，Default 进入人工复核，两路再汇入原 Return。测试表新增 Region 2 正向 Case，并将 Region 99 的 Decision 从 1 改为 2；五组业务输出和订单结算 4/4 自动化测试全部通过。
+
+![单元2修改前：所有地区都直接批准](./Images/MultiLogic/Unit2_UnsupportedRegionReview/Before.png)
+
+![单元2修改后：未知地区通过 Switch 进入人工复核](./Images/MultiLogic/Unit2_UnsupportedRegionReview/After.png)
 
 ## 安全与行为边界
 

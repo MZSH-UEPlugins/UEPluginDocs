@@ -5,13 +5,14 @@
 ## 0. 2026-08-24 至 2026-08-25 后续验证
 
 - 新增隔离资产 `/Game/MCPBP_AutoTest/BusinessWorkflow/OrderSettlement/BP_OrderSettlementComplex`，未修改原基线资产。
-- `EvaluateOrderBatchV2` 已扩展为 59 节点、73 条边、单一连通组件的订单策略流；覆盖订单循环、等级与地区 Switch、首单折扣 Branch、Region 1 首单免运费 Branch、折扣、运费、净额、税、总额、积分、风险和决策。
+- `EvaluateOrderBatchV2` 已扩展为 62 节点、79 条边、单一连通组件的订单策略流；覆盖订单循环、等级与地区 Switch、首单折扣 Branch、Region 1 首单免运费 Branch、折扣、运费、净额、税、总额、积分、风险和决策。
 - 用户否决了交叉线仍为 26 的首版截图，因此该结果不再视为通过。布局器随后在不拆函数、不改 ABI/拓扑的前提下加入语义稳定排序、真实几何候选、确定性多起点、有界全局交换和整层 Y 偏移搜索。
 - 对上一版保存布局执行 `FormatGraph(WholeGraph, Straight)` 的最终真实读回为交叉线 `26 → 11`、`OverlapCount=0`、`BackwardEdgeCount=0`、平均 Pin 高差 `236 → 212`；保存、关闭、重开后的截图与再次编译均通过。GUID 重映射同构图保持相同指标，布局自动化 17/17 通过。
-- `MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` 通过四组固定输入的真实 `ProcessEvent` 调用，机器证据为 `bExpectedOutput=true`、`bPackagesCleanBefore=true`、`bPackagesCleanAfter=true`。
+- `MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` 通过五组固定输入的真实 `ProcessEvent` 调用，机器证据为 `bExpectedOutput=true`、`bPackagesCleanBefore=true`、`bPackagesCleanAfter=true`。
 - 已完成真实局部结构逻辑 Before/After：将 `RegionSwitch.Case1 → Set ShippingCents(1000)` 直连改为 `Case1 → bFirstOrder Branch → 0/1000 两条 Set 路径 → Set NetCents`。首单用例的 `ShippingCents 1000 → 0`、`TotalCents 32590 → 31590`、`PointsEarned 325 → 315`；新增非首单镜像用例确认 False 路径仍为 `1000 / 33400 / 334`。两图均为 2560×1440、1:1，并以未移动的 Region Switch 作为共同画幅锚点；After 的红色 Comment Box 只包含本次结构修改子图。
 - 多逻辑回归单元 1 将固定首单奖励 Getter 替换为 `Subtotal / 20`。它验证了删节点、创建整数 Divide、替换数据边和消费端局部布局，并暴露 `ApplyGraphPatch` 先处理 wildcard `PinDefaults`、后通过连线提升类型的顺序限制。当前安全路径为“跳过编译创建/连线 → `SetPinDefaults` → 立即编译”。
-- 本单元证明 58 节点复杂业务示例可运行并可截图验收；它没有通过复制装饰逻辑追求 100+ 节点，因此不把本结果表述成“100+ 节点压力目标已完成”。以下旧失败结论继续作为反例与验收边界保留。
+- 多逻辑回归单元 2 在结果尾部加入 Region Switch：`0/1/2 → Decision 1`，`Default → Decision 2`，再汇入同一 Return。它验证了动态增加 Switch Case、三路 fan-in、双路终止和 Decision 实际运行输出。
+- 本单元证明 62 节点复杂业务示例可运行并可截图验收；它没有通过复制装饰逻辑追求 100+ 节点，因此不把本结果表述成“100+ 节点压力目标已完成”。以下旧失败结论继续作为反例与验收边界保留。
 
 ## 1. 历史失败结论（2026-08-14，已被第 0 节后续验证取代）
 
@@ -125,7 +126,8 @@ Compile 是运行验证的前置条件，不是终点。每个修改阶段都必
 
 - 权威仓库：`E:/GitHub/MZSH-UEPlugins/MCP/MCPBlueprint`。
 - 起始前必须实时核对 `main`、`origin/main` 和工作区；本节不固定会随提交立即过期的 SHA。AIHub 状态同样必须实时读取，不沿用第 1 节的历史 `paused`。
-- 当前复杂业务基线：`/Game/MCPBP_AutoTest/BusinessWorkflow/OrderSettlement/BP_OrderSettlementComplex`，`EvaluateOrderBatchV2` 为 59 节点、73 条边的单一连通长函数，没有拆分辅助函数。
+- 当前复杂业务基线：`/Game/MCPBP_AutoTest/BusinessWorkflow/OrderSettlement/BP_OrderSettlementComplex`，`EvaluateOrderBatchV2` 为 62 节点、79 条边的单一连通长函数，没有拆分辅助函数。
+- 当前决策规则：Region `0/1/2` 输出 `Decision=1`，其他 Region 输出 `Decision=2` 进入人工复核。
 - 当前 Region 1 规则为首单 `ShippingCents=0`、非首单 `ShippingCents=1000`；首单折扣为小计 5%，固定用例输出为 `DiscountCents=2550`、`TotalCents=30726`、`PointsEarned=307`。
 - 不复用 `/Game/MCPBP_AutoTest/LayoutShift/BP_MCPBP_LayoutShift_100Nodes` 作为验收基线；它只属于旧的压力测试方向。
 - 新建隔离测试资产，不修改或保存用户业务项目 `E:/SVN/BenCaoYuan` 及其中任何业务资产。

@@ -180,18 +180,19 @@ For this slice, `UEQuickStart.exe --test` exited with code 0, the targeted `MCPB
 
 ### Complex order-policy validation
 
-`BP_OrderSettlementComplex` is an isolated duplicate of the baseline, so the V1/V2 reference assets remain unchanged. Its `EvaluateOrderBatchV2` graph is now a single connected 59-node, 73-edge long function: accumulate every order line, choose a tier discount, apply the first-order discount, then choose regional shipping. `Region=1` enters a local Branch: first orders receive free shipping, while non-first orders retain 1000. The graph then calculates net, 8% integer tax, total, points, risk score, and decision. The long function remains intact instead of being split into helpers, and its ABI is unchanged.
+`BP_OrderSettlementComplex` is an isolated duplicate of the baseline, so the V1/V2 reference assets remain unchanged. Its `EvaluateOrderBatchV2` graph is now a single connected 62-node, 79-edge long function: accumulate every order line, choose a tier discount, apply the first-order discount, then choose regional shipping. `Region=1` enters a local Branch: first orders receive free shipping, while non-first orders retain 1000. The graph then calculates net, 8% integer tax, total, points, risk score, and decision. The long function remains intact instead of being split into helpers, and its ABI is unchanged.
 
 The long-function layout fix combines cached semantic stable keys, 12 barycentric candidates, real geometric crossing scores, bounded adjacent/global swaps, and whole-layer Y-offset search. Each layout has hard budgets of 4096 global-swap candidate evaluations and 2048 layer-offset metric evaluations. Running `FormatGraph(WholeGraph, Straight)` on the previous saved layout produces crossings `26 → 11`, `OverlapCount=0`, `BackwardEdgeCount=0`, and average pin delta `236 → 212`. A structurally identical copy with every NodeGuid regenerated produces the same metrics; all 17 graph-layout automation tests pass.
 
-The fixed order lines remain `(5000, 2)` and `(7000, 3)`. Real `ProcessEvent` execution covers four paths:
+The fixed order lines remain `(5000, 2)` and `(7000, 3)`. Real `ProcessEvent` execution covers five paths:
 
 | Case | Tier / Region / First order | Discount | Net | Tax | Shipping | Total | Points / Risk / Decision |
 |---|---|---:|---:|---:|---:|---:|---|
 | Regular order | `0 / 0 / false` | 0 | 31000 | 2480 | 800 | 34280 | `342 / 3 / 1` |
 | Tier-2 first order | `2 / 1 / true` | 2550 | 28450 | 2276 | 0 | 30726 | `307 / 3 / 1` |
 | Tier-2 regular order | `2 / 1 / false` | 1000 | 30000 | 2400 | 1000 | 33400 | `334 / 3 / 1` |
-| Default branches | `99 / 99 / false` | 1500 | 29500 | 2360 | 2500 | 34360 | `343 / 3 / 1` |
+| Region 2 regular order | `0 / 2 / false` | 0 | 31000 | 2480 | 2000 | 35480 | `354 / 3 / 1` |
+| Default branches | `99 / 99 / false` | 1500 | 29500 | 2360 | 2500 | 34360 | `343 / 3 / 2` |
 
 `MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` returns `Success` on UE 5.2; every output matches and the related packages remain clean before and after invocation. The four-test order-settlement regression passes. The asset is explicitly saved, closed, reopened, recompiled, and captured; `UEQuickStart.exe --test` also exits with code 0.
 
@@ -235,6 +236,14 @@ This scenario exposed a real ordering limitation: `ApplyGraphPatch` applies `Pin
 ![Unit 1 before: fixed first-order bonus Getter](./Images/MultiLogic/Unit1_FirstOrderPercent/Before.png)
 
 ![Unit 1 after: subtotal 5% Divide data path](./Images/MultiLogic/Unit1_FirstOrderPercent/After.png)
+
+### Multi-logic regression unit 2: unsupported regions require manual review
+
+The previous graph always executed `Set Decision(1)` after `Set TotalCents`. This unit adds `Get Region`, a `Switch on Int` with three explicit cases, and `Set Decision(2)`. Regions `0/1/2` still enter the original approval node, Default enters manual review, and both paths rejoin the original Return. The test table adds a positive Region 2 case and changes Region 99 from Decision 1 to 2; all five business cases and all 4/4 order-settlement automation tests pass.
+
+![Unit 2 before: every region is approved directly](./Images/MultiLogic/Unit2_UnsupportedRegionReview/Before.png)
+
+![Unit 2 after: unknown regions enter manual review through a Switch](./Images/MultiLogic/Unit2_UnsupportedRegionReview/After.png)
 
 ## Safety and behavior boundaries
 
