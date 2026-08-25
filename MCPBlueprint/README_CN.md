@@ -180,7 +180,7 @@ UE 5.2 真实 MCP 验收覆盖了三种调用方式，全部省略 `Position` �
 
 ### 复杂订单策略验证
 
-`BP_OrderSettlementComplex` 是从基线复制出的隔离示例，不修改上述 V1/V2 资产。它的 `EvaluateOrderBatchV2` 现为 62 节点、79 条边的单一连通长函数：遍历订单行累计小计，按 `CustomerTier` 选择折扣，叠加首单折扣，再按 `Region` 选择运费；`Region=1` 还会进入局部 Branch，首单免运费，非首单保持 1000。最后计算净额、8% 整数税费、总额、积分、风险分数与决策。长函数没有被拆成辅助函数，函数 ABI 保持不变。
+`BP_OrderSettlementComplex` 是从基线复制出的隔离示例，不修改上述 V1/V2 资产。它的 `EvaluateOrderBatchV2` 现为 64 节点、81 条边的单一连通长函数：遍历订单行累计小计，按 `CustomerTier` 选择折扣，叠加首单折扣，再按 `Region` 选择运费；`Region=1` 还会进入局部 Branch，首单免运费，非首单保持 1000。最后计算净额、8% 整数税费、总额、积分、风险分数与决策。长函数没有被拆成辅助函数，函数 ABI 保持不变。
 
 长函数布局修复使用语义稳定键缓存、12 轮重心候选、真实几何交叉评分、有界相邻/全局交换与整层 Y 偏移搜索；每次布局的全局交换最多执行 4096 次候选评分，层偏移最多执行 2048 次指标评分。对上一版已保存布局运行 `FormatGraph(WholeGraph, Straight)`，真实读回为交叉线 `26 → 11`、`OverlapCount=0`、`BackwardEdgeCount=0`，平均 Pin 高差 `236 → 212`。重新生成全部 NodeGuid 的同构副本得到相同指标；布局自动化 17/17 通过。
 
@@ -188,11 +188,11 @@ UE 5.2 真实 MCP 验收覆盖了三种调用方式，全部省略 `Position` �
 
 | 用例 | Tier / Region / 首单 | 折扣 | 净额 | 税 | 运费 | 总额 | 积分 / 风险 / 决策 |
 |---|---|---:|---:|---:|---:|---:|---|
-| 普通订单 | `0 / 0 / false` | 0 | 31000 | 2480 | 800 | 34280 | `342 / 3 / 1` |
+| 普通订单 | `0 / 0 / false` | 0 | 31000 | 2480 | 800 | 34280 | `334 / 3 / 1` |
 | 高等级首单 | `2 / 1 / true` | 2550 | 28450 | 2276 | 0 | 30726 | `307 / 3 / 1` |
-| 高等级非首单 | `2 / 1 / false` | 1000 | 30000 | 2400 | 1000 | 33400 | `334 / 3 / 1` |
-| Region 2 普通订单 | `0 / 2 / false` | 0 | 31000 | 2480 | 2000 | 35480 | `354 / 3 / 1` |
-| 默认分支 | `99 / 99 / false` | 1500 | 29500 | 2360 | 2500 | 34360 | `343 / 3 / 2` |
+| 高等级非首单 | `2 / 1 / false` | 1000 | 30000 | 2400 | 1000 | 33400 | `324 / 3 / 1` |
+| Region 2 普通订单 | `0 / 2 / false` | 0 | 31000 | 2480 | 2000 | 35480 | `334 / 3 / 1` |
+| 默认分支 | `99 / 99 / false` | 1500 | 29500 | 2360 | 2500 | 34360 | `318 / 3 / 2` |
 
 `MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` 在 UE 5.2 中返回 `Success`，五组输出均满足预期，相关包在调用前后保持 clean；订单结算前缀 4/4 回归通过。资产先显式保存，再关闭、重开、重新编译并截图；`UEQuickStart.exe --test` 同样退出码为 0。
 
@@ -244,6 +244,14 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 ![单元2修改前：所有地区都直接批准](./Images/MultiLogic/Unit2_UnsupportedRegionReview/Before.png)
 
 ![单元2修改后：未知地区通过 Switch 进入人工复核](./Images/MultiLogic/Unit2_UnsupportedRegionReview/After.png)
+
+### 多逻辑回归单元 3：积分基数排除运费
+
+原积分链为 `TotalCents / 100 → PointsEarned`。本单元在原 Total Getter 与 Divide 之间新增消费端 `Get ShippingCents` 和整数 Subtract，改为 `(TotalCents - ShippingCents) / 100`；原 Points Divide 和 Make Struct 输入继续复用。五组积分依次为 `334 / 307 / 324 / 334 / 318`，金额、风险和决策字段保持不变，完整回归 4/4 通过。
+
+![单元3修改前：总额直接进入积分 Divide](./Images/MultiLogic/Unit3_PointsExcludeShipping/Before.png)
+
+![单元3修改后：总额先减运费再计算积分](./Images/MultiLogic/Unit3_PointsExcludeShipping/After.png)
 
 ## 安全与行为边界
 
