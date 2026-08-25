@@ -180,7 +180,7 @@ For this slice, `UEQuickStart.exe --test` exited with code 0, the targeted `MCPB
 
 ### Complex order-policy validation
 
-`BP_OrderSettlementComplex` is an isolated duplicate of the baseline, so the V1/V2 reference assets remain unchanged. Its `EvaluateOrderBatchV2` graph is now a single connected 58-node, 72-edge long function: accumulate every order line, choose a tier discount, apply the first-order discount, then choose regional shipping. `Region=1` enters a local Branch: first orders receive free shipping, while non-first orders retain 1000. The graph then calculates net, 8% integer tax, total, points, risk score, and decision. The long function remains intact instead of being split into helpers, and its ABI is unchanged.
+`BP_OrderSettlementComplex` is an isolated duplicate of the baseline, so the V1/V2 reference assets remain unchanged. Its `EvaluateOrderBatchV2` graph is now a single connected 59-node, 73-edge long function: accumulate every order line, choose a tier discount, apply the first-order discount, then choose regional shipping. `Region=1` enters a local Branch: first orders receive free shipping, while non-first orders retain 1000. The graph then calculates net, 8% integer tax, total, points, risk score, and decision. The long function remains intact instead of being split into helpers, and its ABI is unchanged.
 
 The long-function layout fix combines cached semantic stable keys, 12 barycentric candidates, real geometric crossing scores, bounded adjacent/global swaps, and whole-layer Y-offset search. Each layout has hard budgets of 4096 global-swap candidate evaluations and 2048 layer-offset metric evaluations. Running `FormatGraph(WholeGraph, Straight)` on the previous saved layout produces crossings `26 → 11`, `OverlapCount=0`, `BackwardEdgeCount=0`, and average pin delta `236 → 212`. A structurally identical copy with every NodeGuid regenerated produces the same metrics; all 17 graph-layout automation tests pass.
 
@@ -189,7 +189,7 @@ The fixed order lines remain `(5000, 2)` and `(7000, 3)`. Real `ProcessEvent` ex
 | Case | Tier / Region / First order | Discount | Net | Tax | Shipping | Total | Points / Risk / Decision |
 |---|---|---:|---:|---:|---:|---:|---|
 | Regular order | `0 / 0 / false` | 0 | 31000 | 2480 | 800 | 34280 | `342 / 3 / 1` |
-| Tier-2 first order | `2 / 1 / true` | 1750 | 29250 | 2340 | 0 | 31590 | `315 / 3 / 1` |
+| Tier-2 first order | `2 / 1 / true` | 2550 | 28450 | 2276 | 0 | 30726 | `307 / 3 / 1` |
 | Tier-2 regular order | `2 / 1 / false` | 1000 | 30000 | 2400 | 1000 | 33400 | `334 / 3 / 1` |
 | Default branches | `99 / 99 / false` | 1500 | 29500 | 2360 | 2500 | 34360 | `343 / 3 / 1` |
 
@@ -225,6 +225,16 @@ Before and After are both 2560×1440 at 1:1 zoom and use the unmoved Region Swit
 ![Before the structural-logic change: Region 1 directly sets shipping to 1000](./Images/OrderSettlementLogicRewire/Region1FirstOrder_Before.png)
 
 ![After the structural-logic change: Region 1 adds a first-order free-shipping Branch and new links](./Images/OrderSettlementLogicRewire/Region1FirstOrder_After.png)
+
+### Multi-logic regression unit 1: first-order discount becomes 5% of subtotal
+
+The previous graph added a fixed 750 through `Get FirstOrderBonusCents`. This unit removes that Getter and adds a consumer-local `Get SubtotalCents` plus integer `Divide(B=20)`, rewiring the data path to `Subtotal / 20 → Add Discount → Set DiscountCents`. The first-order case now returns `Discount=2550, Net=28450, Tax=2276, Shipping=0, Total=30726, Points=307`; the other three cases remain unchanged, and the full regression passes 4/4.
+
+This scenario exposed a real ordering limitation: `ApplyGraphPatch` applies `PinDefaults` before a wildcard Divide is promoted from its connections, so `B=20` in the same patch fails closed; `PromotedType=int` is also explicitly rejected. The safe fallback is to create and connect with `bSkipCompile=true`, set B through `SetPinDefaults` after it resolves to `int`, then immediately compile, read back, save, and reopen.
+
+![Unit 1 before: fixed first-order bonus Getter](./Images/MultiLogic/Unit1_FirstOrderPercent/Before.png)
+
+![Unit 1 after: subtotal 5% Divide data path](./Images/MultiLogic/Unit1_FirstOrderPercent/After.png)
 
 ## Safety and behavior boundaries
 

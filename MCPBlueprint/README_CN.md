@@ -180,7 +180,7 @@ UE 5.2 真实 MCP 验收覆盖了三种调用方式，全部省略 `Position` �
 
 ### 复杂订单策略验证
 
-`BP_OrderSettlementComplex` 是从基线复制出的隔离示例，不修改上述 V1/V2 资产。它的 `EvaluateOrderBatchV2` 现为 58 节点、72 条边的单一连通长函数：遍历订单行累计小计，按 `CustomerTier` 选择折扣，叠加首单折扣，再按 `Region` 选择运费；`Region=1` 还会进入局部 Branch，首单免运费，非首单保持 1000。最后计算净额、8% 整数税费、总额、积分、风险分数与决策。长函数没有被拆成辅助函数，函数 ABI 保持不变。
+`BP_OrderSettlementComplex` 是从基线复制出的隔离示例，不修改上述 V1/V2 资产。它的 `EvaluateOrderBatchV2` 现为 59 节点、73 条边的单一连通长函数：遍历订单行累计小计，按 `CustomerTier` 选择折扣，叠加首单折扣，再按 `Region` 选择运费；`Region=1` 还会进入局部 Branch，首单免运费，非首单保持 1000。最后计算净额、8% 整数税费、总额、积分、风险分数与决策。长函数没有被拆成辅助函数，函数 ABI 保持不变。
 
 长函数布局修复使用语义稳定键缓存、12 轮重心候选、真实几何交叉评分、有界相邻/全局交换与整层 Y 偏移搜索；每次布局的全局交换最多执行 4096 次候选评分，层偏移最多执行 2048 次指标评分。对上一版已保存布局运行 `FormatGraph(WholeGraph, Straight)`，真实读回为交叉线 `26 → 11`、`OverlapCount=0`、`BackwardEdgeCount=0`，平均 Pin 高差 `236 → 212`。重新生成全部 NodeGuid 的同构副本得到相同指标；布局自动化 17/17 通过。
 
@@ -189,7 +189,7 @@ UE 5.2 真实 MCP 验收覆盖了三种调用方式，全部省略 `Position` �
 | 用例 | Tier / Region / 首单 | 折扣 | 净额 | 税 | 运费 | 总额 | 积分 / 风险 / 决策 |
 |---|---|---:|---:|---:|---:|---:|---|
 | 普通订单 | `0 / 0 / false` | 0 | 31000 | 2480 | 800 | 34280 | `342 / 3 / 1` |
-| 高等级首单 | `2 / 1 / true` | 1750 | 29250 | 2340 | 0 | 31590 | `315 / 3 / 1` |
+| 高等级首单 | `2 / 1 / true` | 2550 | 28450 | 2276 | 0 | 30726 | `307 / 3 / 1` |
 | 高等级非首单 | `2 / 1 / false` | 1000 | 30000 | 2400 | 1000 | 33400 | `334 / 3 / 1` |
 | 默认分支 | `99 / 99 / false` | 1500 | 29500 | 2360 | 2500 | 34360 | `343 / 3 / 1` |
 
@@ -225,6 +225,16 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 ![结构逻辑修改前：Region 1 直接设置 1000 运费](./Images/OrderSettlementLogicRewire/Region1FirstOrder_Before.png)
 
 ![结构逻辑修改后：Region 1 增加首单免运费 Branch 与新连线](./Images/OrderSettlementLogicRewire/Region1FirstOrder_After.png)
+
+### 多逻辑回归单元 1：首单折扣改为小计 5%
+
+原图通过 `Get FirstOrderBonusCents` 把固定 750 加到等级折扣。本单元删除该 Getter，新增消费端 `Get SubtotalCents` 和整数 `Divide(B=20)`，将数据链改为 `Subtotal / 20 → Add Discount → Set DiscountCents`。首单用例变为 `Discount=2550, Net=28450, Tax=2276, Shipping=0, Total=30726, Points=307`，其他三组用例保持不变，完整回归 4/4 通过。
+
+该场景暴露了一个真实调用顺序限制：`ApplyGraphPatch` 在通配符 Divide 通过连线提升为 `int` 之前先应用 `PinDefaults`，因此同一 patch 中的 `B=20` 会 fail-closed；`PromotedType=int` 也会被明确拒绝。安全回退是先以 `bSkipCompile=true` 创建并连线，再用 `SetPinDefaults` 写入已解析为 `int` 的 B Pin，随后立即编译、读回、保存和重开。
+
+![单元1修改前：固定首单奖励 Getter](./Images/MultiLogic/Unit1_FirstOrderPercent/Before.png)
+
+![单元1修改后：小计 5% Divide 数据链](./Images/MultiLogic/Unit1_FirstOrderPercent/After.png)
 
 ## 安全与行为边界
 
