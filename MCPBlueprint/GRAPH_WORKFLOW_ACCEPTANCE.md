@@ -67,7 +67,7 @@
 
 1. 用 `GetGraphDetail` 读回目标图的节点 GUID、坐标、Pin 和连接。
 2. 用 `SearchGraphNodes` 获取合法 SpawnerId；不得手工伪造。
-3. 人工审阅完整 Patch JSON 与当前图详情，检查新增块锚点、预期连接和可能平移的有界右侧闭包。`ApplyGraphPatch` 当前没有 patch 级 dry-run 参数；若必须先看精确预览，应把该能力作为独立前置单元实现并验证，不能调用不存在的 `bDryRun`。
+3. 对完全相同的 Patch 先调用 `ApplyGraphPatch(bDryRun=true)`，审阅 `OperationCounts`、规范化操作、`LayoutPlan` 和全部 `Blockers`。该分支必须保持 Graph、Dirty、Undo、Asset Registry 与编译状态不变；节点创建、动态 Pin、自动转换/提升和修改后精确布局等无法只读证明的部分必须显示为 blocker，不能用“执行后 Undo”冒充预览。Blocker 不是写入许可，仍须核对 `SearchGraphNodes` 结果与当前图详情。
 4. 若空间不足，优先整体平移必要的、连通的后续逻辑闭包，为新增块让出空间；不得覆盖旧节点。
 5. 使用邻近 Getter 或有限 Reroute 缩短连线，但不能改变数据来源和执行语义。
 6. 应用后立即读回，核对新增节点、所有连接、旧节点 GUID 和非目标区域坐标。
@@ -142,7 +142,7 @@ Compile 是运行验证的前置条件，不是终点。每个修改阶段都必
 - [ ] 节点规模来自真实业务复杂度，不以 100+ 为硬门槛，也不复制装饰逻辑填充数量。
 - [ ] Exec 可达性、终止路径和 pure-node 贡献检查全部通过。
 - [ ] 修改前基线已编译、实际调用、结果核对、保存重开。
-- [ ] 每个原子修改均先审阅完整 Patch 和当前图详情，再原子应用、读回、编译、实际调用；未伪造 patch 级 dry-run。
+- [ ] 每个原子修改均先对完全相同的 Patch 执行 `bDryRun=true`，审阅完整计划、当前图详情和所有 blocker，再用 `bDryRun=false` 原子应用、读回、编译并实际调用；预览期间权威状态保持不变。
 - [ ] 新增逻辑没有重叠；必要的旧逻辑仅按报告做有界整体平移。
 - [ ] 邻近 Getter/Set-Get/Reroute 使用合理，无可避免之外的跨屏长线。
 - [ ] 目标逻辑结果按设计变化，非目标用例与不变量保持不变。

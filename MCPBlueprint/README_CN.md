@@ -56,7 +56,7 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 
 | 工具 | 用途 |
 |---|---|
-| `ApplyGraphPatch` | 在一个声明式事务中执行有上限的节点创建/删除、连接/断开、默认值和布局修改。 |
+| `ApplyGraphPatch` | 只读预览，或在单个声明式事务中原子执行有上限的节点创建/删除、连接/断开、默认值、移动和布局修改。 |
 | `SetPinDefaults` | 为现有输入 Pin 设置经过校验的字面量默认值。 |
 | `FormatGraph` | 自动排列整张图或指定节点集合。 |
 | `AddCommentBox` | 以可配置颜色、标题和边距把指定节点框入原生 Comment Box。 |
@@ -65,7 +65,9 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 
 `FormatGraph` 使用确定性的弱连通区域分离、SCC 循环压缩、从左到右的分层拓扑、重心法交叉线优化、Slate 节点与 Pin 行尺寸及其有界回退、Pin-aware 纵向对齐，以及多区域装箱。`LayoutScope` 支持 `WholeGraph`、`ConnectedComponent` 和 `Selection`。`LayoutStyle` 支持 `Balanced`（默认通用间距）、`Straight`（更强的连线拉直和更多纵向空间）与 `Compact`（更小占用、较轻的拉直）；项目约定或 AI 技能规范只需选择预设，不必绑定算法内部权重。整图布局会保护注释框及其当前包围的节点。设置 `bDryRun=true` 时不会调用 `Modify()` 或开启编辑器事务，只返回规划位置，以及布局前后的重叠、反向边、交叉线、长连线、占用面积、`FlatEdgeRatio`、`AveragePinDeltaY` 和 `P95PinDeltaY` 指标。可选 Reroute 默认关闭，并受 `MaxRerouteNodes` 限制；其质量指标描述插入 Knot 前的原节点布局方案。
 
-`ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。普通 AI 调用只提交节点逻辑、Pin 默认值和连接关系，省略 `Position` 与 `LayoutScope`，由 MCPBlueprint 默认 `Auto` 负责连接后的标准分层、Pin 顺序、节点间距和少交叉排版；只有用户明确要求固定手工布局时才使用 `Position` 或 `None`。MCP 驱动的节点放置默认必须避免重叠，且不能静默接受仍未解决的碰撞。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；两个工具都会返回实际采用的范围、风格和布局质量指标。
+`ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。应先设置 `bDryRun=true`，取得稳定、纯只读的计划：`OperationCounts`、规范化后的创建/删除/移动/连接/断连条目、`LayoutPlan` 与 `Blockers`。该分支不会调用 `Modify()`、不会开启事务、不会把 Package 标成 Dirty、不会改变 Undo 或 Asset Registry 状态，也不会编译 Blueprint。既有节点操作会直接做只读校验；Action Registry 节点创建、动态或 wildcard Pin、Unreal 原生自动转换/类型提升，以及修改后的精确布局无法在不变更图的前提下证明，因此会明确列为 blocker，绝不采用“先执行再 Undo”冒充预览。Blocker 表示预览刻意保持 fail-closed，并不表示可以跳过 `SearchGraphNodes`、写入时校验、读回、编译或 Undo 测试。
+
+普通 AI 调用只提交节点逻辑、Pin 默认值和连接关系，省略 `Position` 与 `LayoutScope`，由 MCPBlueprint 默认 `Auto` 负责连接后的标准分层、Pin 顺序、节点间距和少交叉排版；只有用户明确要求固定手工布局时才使用 `Position` 或 `None`。MCP 驱动的节点放置默认必须避免重叠，且不能静默接受仍未解决的碰撞。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；写入结果会返回实际采用的范围、风格和布局质量指标。
 
 UE 5.2 真实 MCP 验收覆盖了三种调用方式，全部省略 `Position` 与 `LayoutScope`：一次 Patch 创建并连接节点后，交叉从 1 降为 0、反向边从 2 降为 0；先创建节点、再用纯 `Connections` Patch 接线时，第二笔请求自动识别受影响连通组件并把反向边从 2 降为 0；复用已有 `BeginPlay` 事件再连接 `Print String` 时，反向边从 1 降为 0，Pin 高差从 552 降为 1。`Auto` 同样会处理复用节点、Move-only、断连端点和删除节点的存活邻居；普通数据输入的互斥连接会整笔拒绝，Exec 输入允许多来源，合法自动转换节点会纳入最终连接验证和布局。
 
@@ -103,7 +105,7 @@ UE 5.2 真实 MCP 验收覆盖了三种调用方式，全部省略 `Position` �
 
 *仅为保存/重开后的压力测试局部图；[第 1 阶段局部图](./Images/LayoutShift/02_Insert_Add_Local.png) 仍证明单个 Add 可在不移动旧节点时放入空隙。*
 
-真实工作流的 100+ 节点验收必须具有连通的 Exec 与数据链。Branch、For Loop、For Each Loop、Switch，以及 Add/Subtract/Multiply/Divide 的结果必须进入后续赋值、判断或返回，不能只作为孤立节点存在。成员变量、函数参数或局部变量应在每个消费区域附近创建合法的 Get；不要把 Function Entry Pin 或远端 Getter 向全图星形扇出。临时计算值不能被盲目复制成 Get；应通过局部变量 Set/Get 对或有界 Reroute 保持原有语义。只有没有执行 Pin 的纯变量 Getter 才会按消费者自动拆分并放到使用位置附近；同一消费者旁的多个局部 Getter 会稳定纵向堆叠，并使用与图布局一致的 60 单位间距检查。找不到安全局部位置时，整笔 patch 失败并回滚。Validated Get 等带执行流语义的非纯 Getter 始终保持单节点和原有执行连接，不参与自动拆分。消费者局部重锚只在 `Auto` 与 `ConnectedComponent` 下执行；显式 `CreatedNodes` 保留原有的旧图下方放置方式，`None` 不触发任何隐式布局。`ApplyGraphPatch` 不会静默改写请求 patch 之外的旧逻辑或旧连线；`Auto` 仅允许改变上文明确报告的右侧有界闭包坐标。`ApplyGraphPatch` 当前没有 patch 级 dry-run 参数：写入前应人工审阅完整 Patch 载荷与当前图详情，写入后依靠原子事务、立即读回/编译和编辑器 Undo 验证。若验收要求真正的 Patch 预览，应先把它作为独立前置能力实现并验证，不能调用不存在的安全门。
+真实工作流的 100+ 节点验收必须具有连通的 Exec 与数据链。Branch、For Loop、For Each Loop、Switch，以及 Add/Subtract/Multiply/Divide 的结果必须进入后续赋值、判断或返回，不能只作为孤立节点存在。成员变量、函数参数或局部变量应在每个消费区域附近创建合法的 Get；不要把 Function Entry Pin 或远端 Getter 向全图星形扇出。临时计算值不能被盲目复制成 Get；应通过局部变量 Set/Get 对或有界 Reroute 保持原有语义。只有没有执行 Pin 的纯变量 Getter 才会按消费者自动拆分并放到使用位置附近；同一消费者旁的多个局部 Getter 会稳定纵向堆叠，并使用与图布局一致的 60 单位间距检查。找不到安全局部位置时，整笔 patch 失败并回滚。Validated Get 等带执行流语义的非纯 Getter 始终保持单节点和原有执行连接，不参与自动拆分。消费者局部重锚只在 `Auto` 与 `ConnectedComponent` 下执行；显式 `CreatedNodes` 保留原有的旧图下方放置方式，`None` 不触发任何隐式布局。`ApplyGraphPatch` 不会静默改写请求 patch 之外的旧逻辑或旧连线；`Auto` 仅允许改变上文明确报告的右侧有界闭包坐标。修改前先对完全相同的 Patch 执行 `bDryRun=true` 并逐项审阅 blocker；解决可审阅问题后再用 `bDryRun=false` 写入，随后仍必须完成原子事务、立即读回/编译和编辑器 Undo 验证，不能把 dry-run 当成写路径验收的替代品。
 
 创建标准算术节点时，先用 Unreal 英文动作名 `Add`、`Subtract`、`Multiply` 或 `Divide` 调用 `SearchGraphNodes`，再把其返回的精确 `Operator:<Name>` 交给 `ApplyGraphPatch`，不要手工拼接 SpawnerId。在同一个 patch 中，把 Real/Double 来源 Pin 连接到 `A` 或 `B`，并为节点可选传入 `PromotedType: "double"` 或 `"real"`。Unreal Schema 会执行原生的连接驱动类型提升；全部连接完成后，工具再验证目标运算函数与 `A`、`B`、`ReturnValue` 均为 Real/Double，否则整笔 patch 回滚。不同引擎版本和 Pin 上下文可能在界面或序列化文本中显示为 **Float**、**Double** 或 **Real**；当前流程明确保证 Real/Double 形式，不承诺强制独立的单精度 Float 形式。
 
