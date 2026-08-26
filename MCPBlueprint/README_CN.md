@@ -312,13 +312,13 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 
 ## 当前测试重点
 
-当前源码的 UE 5.2–5.8 Win64 BuildPlugin 矩阵均已通过，七个引擎版本都已部署对应兼容包且 DLL 哈希与包一致。UE 5.2、5.3、5.5–5.8 的 initialize、`tools/list`（53）和 ping 均通过；UE 5.4 已确认 EnginePlugin 加载、注册 53 个工具并启动 endpoint。这些兼容包不是最终 Fab 提交产物：描述符仍保持 Beta，正式发布元数据与产品图标需要取得真实 listing UUID 后重新打包。
+当前源码的 UE 5.2–5.8 Win64 BuildPlugin 矩阵均已通过，七个版本都已部署对应兼容包，且安装 DLL 与包内 DLL 哈希一致。每个已部署 EnginePlugin 都在禁用其他 MCP 插件的隔离 content-only 项目中完成真实 `initialize`、`tools/list`（55）和 `ping` 调用。这些仍是发布准备包而不是已提交的 Fab 产品：`MarketplaceURL`、退出 Beta 与正式发布仍需真实 listing 和显式授权。
 
 ## 已验证截图
 
 [`Images/Fab`](./Images/Fab/) 中的 PNG 均由真实 Unreal Blueprint Graph 控件直接捕获，未合成伪 UI，也不含本机文件路径。各图说明与对应工作流见 [FAB_LISTING.md](./FAB_LISTING.md)。这些图片不会被描述为 HTTP 响应或变量 Details 面板截图。算术节点使用两张真实画面共同证明持久化后的 Real/Double `Add → Subtract → Multiply → Divide → Result` 链：全图缩放图覆盖左侧与中段，节点聚焦图覆盖 `Subtract → Multiply → Divide → Result`；原因是 UE 5.2 的离屏 Graph Widget 全图捕获有时不绘制最右侧节点本体。
 
-当前 55 工具源码已通过 UE 5.2 编译。`MCPBlueprint.Function.ModifySignatureSafety` 已在 NullRHI 与真实非 NullRHI 编辑器中通过，使用已落盘声明 Blueprint 与外部 Caller，覆盖 dry-run 零修改、显式批准、AddInput/AddOutput、保持 PinId/连线的重命名、数据风险门禁删除/改类型、一次 Undo、注入失败回滚，以及通过 UE 官方同批重载声明/Caller Package、按对象路径重新取得资产并验证引用修复后的持久化状态。`MCPBlueprint.Asset.ReloadBlueprintFromDiskSafety` 仍保留其独立的非 NullRHI 安全覆盖。此前 `RenameFunction`、Struct/Enum、图表与 HTTP 回归对其测试提交仍然有效。当前文档中的 UE 5.2–5.8 打包/部署矩阵是 53 工具的历史结果；刷新矩阵前不会宣称 55 工具已完成跨版本等价验证。
+当前 55 工具源码已通过 UE 5.2 编译，最终非 NullRHI 编辑器回归为 36/36。`MCPBlueprint.Function.ModifySignatureSafety` 使用已落盘声明 Blueprint 与外部 Caller，覆盖 dry-run 零修改、显式批准、AddInput/AddOutput、保持 PinId/连线的重命名、数据风险门禁删除/改类型、一次 Undo、注入失败回滚，以及 UE 官方同批重载后的对象重取与引用修复验证。`DeleteAsset`、`ReloadBlueprintFromDisk`、Struct/Enum、图表、HTTP 与 55 工具 Schema Matrix 也均通过。同一份最终源码已完成 UE 5.2–5.8 的打包、部署、EnginePlugin 加载及 `initialize` / `tools/list`（55）/ `ping` 运行验证。
 
 打包验证证明各目标引擎可以编译插件并获得预期目录结构，但不能替代每个引擎版本内对全部 MCP 操作的运行时验证。其余工具的跨版本真实编辑器回归、保存/重启持久化与清理行为仍会继续推进。
 

@@ -1,6 +1,6 @@
 # MCPBlueprint — Fab listing draft
 
-> Release-preparation draft only. The product icon, 1920×1080 thumbnail, technical details, public documentation URL, and support URL are prepared locally. It is not ready for Fab submission until the 55-tool UE 5.2–5.8 package matrix is refreshed and a real listing UUID supplies `MarketplaceURL`; final release metadata and publication still require explicit approval.
+> Release-preparation draft only. The product icon, 1920×1080 thumbnail, technical details, public URLs, and refreshed 55-tool UE 5.2–5.8 package/runtime matrix are complete. It is not ready for Fab submission until a real listing UUID supplies `MarketplaceURL`; the transition out of beta, final release metadata, and publication still require explicit approval.
 
 ## One-line pitch
 
@@ -30,21 +30,21 @@ The plugin is designed for editor automation rather than runtime gameplay. Mutat
 
 | Engine | Package | Deployment | EnginePlugin load | MCP health |
 |---|---|---|---|---|
-| UE 5.2 | Passed | Passed | Passed | initialize / 53 tools / ping passed |
-| UE 5.3 | Passed | Passed | Passed | initialize / 53 tools / ping passed |
-| UE 5.4 | Passed | Passed | Passed | 53 tools registered; endpoint started |
-| UE 5.5 | Passed | Passed | Passed | initialize / 53 tools / ping passed |
-| UE 5.6 | Passed | Passed | Passed | initialize / 53 tools / ping passed |
-| UE 5.7 | Passed | Passed | Passed | initialize / 53 tools / ping passed |
-| UE 5.8 | Passed | Passed | Passed | initialize / 53 tools / ping passed |
+| UE 5.2 | Passed | Passed | Passed | initialize / 55 tools / ping passed |
+| UE 5.3 | Passed | Passed | Passed | initialize / 55 tools / ping passed |
+| UE 5.4 | Passed | Passed | Passed | initialize / 55 tools / ping passed |
+| UE 5.5 | Passed | Passed | Passed | initialize / 55 tools / ping passed |
+| UE 5.6 | Passed | Passed | Passed | initialize / 55 tools / ping passed |
+| UE 5.7 | Passed | Passed | Passed | initialize / 55 tools / ping passed |
+| UE 5.8 | Passed | Passed | Passed | initialize / 55 tools / ping passed |
 
-These results cover installed Windows editor builds. They do not claim macOS/Linux support or exhaustive execution of all 53 tools on every engine version.
+These results cover installed Windows editor builds produced from the same current source. Each version was launched through an isolated content-only project with the other MCP plugins disabled, then verified through the deployed EnginePlugin endpoint: `initialize` negotiated protocol `2025-03-26`, `tools/list` returned exactly 55 tools, and `ping` succeeded. They do not claim macOS/Linux support or exhaustive execution of every write tool on every engine version.
 
-The current source registers 55 tools. The table above is retained as the last measured 53-tool compatibility/deployment result; it must be rerun before the Fab draft claims 55-tool cross-version package parity.
+The current source registers 55 tools, and the table above is the refreshed 55-tool package/deployment/runtime matrix.
 
-The current 55-tool source also has editor automation coverage for the complete registered tool-definition matrix: serializable closed input schemas, unique names and non-empty descriptions, registry-boundary unknown/missing-field rejection, safe zero-required calls, and incomplete operation-specific `oneOf`/`const` rejection. `ModifyFunctionSignature` additionally passed persisted declaration/external-caller automation in both NullRHI and non-NullRHI editor paths. This source-level coverage does not replace the pending 55-tool cross-version package/deployment rerun.
+The current 55-tool source also has editor automation coverage for the complete registered tool-definition matrix: serializable closed input schemas, unique names and non-empty descriptions, registry-boundary unknown/missing-field rejection, safe zero-required calls, and incomplete operation-specific `oneOf`/`const` rejection. `ModifyFunctionSignature` additionally passed persisted declaration/external-caller automation in both NullRHI and non-NullRHI editor paths. The final UE 5.2 non-NullRHI suite completed 36/36 after the cross-version fixes.
 
-All seven version-matched compatibility packages are deployed with matching DLL hashes. They are historical 53-tool packages rather than final Fab artifacts. The source descriptor now contains the verified public documentation, support, author, and Win64-platform metadata plus `Resources/Icon128.png`; `MarketplaceURL` and the transition out of beta still wait for a real listing and explicit release approval.
+All seven version-matched compatibility packages are deployed with package/install DLL hash parity, no `Failed.log`, `EnabledByDefault=true`, and no fixed `EngineVersion`. The source descriptor contains the verified public documentation, support, author, and Win64-platform metadata plus `Resources/Icon128.png`; `MarketplaceURL`, the transition out of beta, and publication still wait for a real listing and explicit release approval.
 
 ## Technical details
 
@@ -100,7 +100,7 @@ All seven version-matched compatibility packages are deployed with matching DLL 
 ## Troubleshooting
 
 - **Cannot connect:** confirm the toolbar endpoint, Auto Start, firewall policy, and whether the initial port moved because it was occupied.
-- **Tool count is not 55:** confirm the matching plugin version is loaded, restart the editor, and inspect the Unreal log for module registration. The previous compatibility packages expose 53 tools.
+- **Tool count is not 55:** confirm the current version-matched plugin is loaded, disable unrelated MCP plugins while diagnosing, restart the editor, and inspect the Unreal log for module registration.
 - **Plugin asks to rebuild:** install the package matching the exact UE minor version; never mix Binaries or `.modules` files between versions.
 - **Safety rejection:** read the blocker list, load reported dependents, remove unsafe bindings, and repeat the dry run.
 - **Asset is dirty but unchanged on disk:** expected; compile, review, then call `SaveAsset` explicitly.
