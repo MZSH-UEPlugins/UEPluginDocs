@@ -13,6 +13,7 @@
 - 多逻辑回归单元 1 将固定首单奖励 Getter 替换为 `Subtotal / 20`。它曾暴露 wildcard `PinDefaults` 早于连线类型提升执行的顺序限制；现已修复为在同一 `ApplyGraphPatch` 事务中延迟这类默认值，待 Connections 解析类型后再校验应用，任何失败整笔回滚。
 - 多逻辑回归单元 2 在结果尾部加入 Region Switch：`0/1/2 → Decision 1`，`Default → Decision 2`，再汇入同一 Return。它验证了动态增加 Switch Case、三路 fan-in、双路终止和 Decision 实际运行输出。
 - 多逻辑回归单元 3 将积分链从 `Total / 100` 改为 `(Total - Shipping) / 100`，复用原 Divide 与 Make Struct Pin。它验证了密集结果装配区内的 consumer-local Getter、整数 Subtract、数据边替换和五组累积输出。
+- `FormatGraph(Selection|ConnectedComponent)` 已能在 Comment Box 内安全重排：承载目标节点的 Comment 只从本次局部障碍集中排除，规划必须保持每个节点原有的全部 Comment 包围关系、Slate 实测换行标题高度加 8 单位安全边距，以及无关 Comment 外部关系；未选同框节点仍作为固定障碍。嵌套 Comment 可同时约束；跨边界、容器不兼容、空间不足，或图中存在任何 Comment 时启用局部 Reroute，整笔 fail-closed 且不改变 Undo。dry-run 与 apply 的计划一致，应用后单次 Undo 恢复节点坐标，Comment 尺寸和位置不变。
 - 本单元证明 64 节点复杂业务示例可运行并可截图验收；它没有通过复制装饰逻辑追求 100+ 节点，因此不把本结果表述成“100+ 节点压力目标已完成”。以下旧失败结论继续作为反例与验收边界保留。
 
 ## 1. 历史失败结论（2026-08-14，已被第 0 节后续验证取代）

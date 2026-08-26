@@ -65,6 +65,8 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 
 `FormatGraph` 使用确定性的弱连通区域分离、SCC 循环压缩、从左到右的分层拓扑、重心法交叉线优化、Slate 节点与 Pin 行尺寸及其有界回退、Pin-aware 纵向对齐，以及多区域装箱。`LayoutScope` 支持 `WholeGraph`、`ConnectedComponent` 和 `Selection`。`LayoutStyle` 支持 `Balanced`（默认通用间距）、`Straight`（更强的连线拉直和更多纵向空间）与 `Compact`（更小占用、较轻的拉直）；项目约定或 AI 技能规范只需选择预设，不必绑定算法内部权重。整图布局会保护注释框及其当前包围的节点。设置 `bDryRun=true` 时不会调用 `Modify()` 或开启编辑器事务，只返回规划位置，以及布局前后的重叠、反向边、交叉线、长连线、占用面积、`FlatEdgeRatio`、`AveragePinDeltaY` 和 `P95PinDeltaY` 指标。可选 Reroute 默认关闭，并受 `MaxRerouteNodes` 限制；其质量指标描述插入 Knot 前的原节点布局方案。
 
+对 `Selection` 和 `ConnectedComponent`，已经包围目标节点的 Comment Box 只在本次局部规划中不再作为外部障碍；规划完成前会逐节点核对完整的原包围关系。节点必须留在每个原 Comment 的内容区域内、保持在无关 Comment 之外，并避开由 Slate 在无窗口条件下真实测得的换行标题高度及额外 8 Graph Units 安全边距；同框内未选中的节点仍是固定障碍，嵌套 Comment 也会同时约束。若原状态已经跨边界、多个容器不兼容、框内空间不足，或图中存在任何 Comment Box 时请求 `bInsertReroutes=true`，工具会 fail-closed，不改变图拓扑和 Undo 状态，因为新增 Knot 不在写入前 containment 计划中。结果返回 `PreservedCommentRelationshipCount`，dry-run 与 apply 使用同一套确定性约束计划。
+
 `ApplyGraphPatch` 支持 `LayoutScope=Auto|CreatedNodes|ConnectedComponent|None`，并接受相同的 `LayoutStyle` 预设。应先设置 `bDryRun=true`，取得稳定、纯只读的计划：`OperationCounts`、规范化后的创建/删除/移动/连接/断连条目、`LayoutPlan` 与 `Blockers`。该分支不会调用 `Modify()`、不会开启事务、不会把 Package 标成 Dirty、不会改变 Undo 或 Asset Registry 状态，也不会编译 Blueprint。既有节点操作会直接做只读校验；Action Registry 节点创建、动态或 wildcard Pin、Unreal 原生自动转换/类型提升，以及修改后的精确布局无法在不变更图的前提下证明，因此会明确列为 blocker，绝不采用“先执行再 Undo”冒充预览。Blocker 表示预览刻意保持 fail-closed，并不表示可以跳过 `SearchGraphNodes`、写入时校验、读回、编译或 Undo 测试。
 
 普通 AI 调用只提交节点逻辑、Pin 默认值和连接关系，省略 `Position` 与 `LayoutScope`，由 MCPBlueprint 默认 `Auto` 负责连接后的标准分层、Pin 顺序、节点间距和少交叉排版；只有用户明确要求固定手工布局时才使用 `Position` 或 `None`。MCP 驱动的节点放置默认必须避免重叠，且不能静默接受仍未解决的碰撞。显式提供 `Position` 的节点保持固定。布局、Reroute 或编译失败都会进入同一个图补丁事务回滚；写入结果会返回实际采用的范围、风格和布局质量指标。
@@ -316,7 +318,6 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 ## 已知限制
 
 - `Auto` 局部让位被刻意限制为最多 128 个既有节点、128 轮闭包扩展和 100000 Graph Units。触及 Function Entry 或 Comment 包围边界时会 fail-closed，而不会扩张成不安全的整图重排；此时应缩小插入块或显式整理受保护区域。
-- 对已经位于 Comment Box 内的节点执行 `LayoutScope=Selection` 或 `ConnectedComponent` 时，当前布局器仍会把 Comment Box 当作外部障碍，规划结果可能把节点整体移到框外。先使用 `bDryRun=true` 检查位置与指标；当前可靠流程是先布局、后创建 Comment Box。
 - 同一会话中经过大量事务修改的资产可能仍被 Undo/Redo 历史持有，导致非强制删除失败；处理方式见上方 `DeleteAsset` 安全边界。后续计划提供不清空无关 Undo 历史的定向处理与更明确诊断。
 
 ## 后期路线图
@@ -327,7 +328,7 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 - **剩余变量元数据：** 扩展变量编辑，覆盖访问控制、Expose on Spawn、SaveGame、复制和 RepNotify 等设置。
 - **图表生命周期与影响分析：** 创建、重命名和删除受支持的图表类型；移除已实现接口；重构前查询引用与受影响资产。
 - **蓝图类型：** 创建 Blueprint Interface、Function Library、Macro Library 等其他蓝图资产类型。
-- **编辑体验与诊断：** 改进 Comment 容器内的选择布局、成员文档和面向调试的状态检查能力。
+- **编辑体验与诊断：** 改进成员文档和面向调试的状态检查能力。
 
 以上内容是候选方向，不承诺具体版本或完成时间；后续将根据本轮测试与真实使用证据继续调整。
 
