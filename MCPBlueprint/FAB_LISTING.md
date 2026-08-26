@@ -1,6 +1,6 @@
 # MCPBlueprint — Fab listing draft
 
-> Release-preparation draft only. It is not ready for Fab submission: `MarketplaceURL`, final release metadata, the packaged product icon, technical details, and the 1920×1080 thumbnail remain pending a real listing UUID and final rebuild.
+> Release-preparation draft only. The product icon, 1920×1080 thumbnail, technical details, public documentation URL, and support URL are prepared locally. It is not ready for Fab submission until the 55-tool UE 5.2–5.8 package matrix is refreshed and a real listing UUID supplies `MarketplaceURL`; final release metadata and publication still require explicit approval.
 
 ## One-line pitch
 
@@ -44,7 +44,26 @@ The current source registers 55 tools. The table above is retained as the last m
 
 The current 55-tool source also has editor automation coverage for the complete registered tool-definition matrix: serializable closed input schemas, unique names and non-empty descriptions, registry-boundary unknown/missing-field rejection, safe zero-required calls, and incomplete operation-specific `oneOf`/`const` rejection. `ModifyFunctionSignature` additionally passed persisted declaration/external-caller automation in both NullRHI and non-NullRHI editor paths. This source-level coverage does not replace the pending 55-tool cross-version package/deployment rerun.
 
-All seven version-matched compatibility packages are deployed with matching DLL hashes. They are not final Fab packages: their descriptors remain beta, `DocsURL`/`MarketplaceURL` are not populated for release, and the product icon is not packaged yet.
+All seven version-matched compatibility packages are deployed with matching DLL hashes. They are historical 53-tool packages rather than final Fab artifacts. The source descriptor now contains the verified public documentation, support, author, and Win64-platform metadata plus `Resources/Icon128.png`; `MarketplaceURL` and the transition out of beta still wait for a real listing and explicit release approval.
+
+## Technical details
+
+- Product type: Unreal Engine code plugin; Editor-only, not a runtime gameplay module.
+- Supported target platform: Win64.
+- Supported engine matrix: separate version-matched packages for Unreal Engine 5.2–5.8.
+- Modules: `MCPBlueprintServer` and `MCPBlueprint`, both loaded as Editor modules.
+- Protocol and network: local HTTP MCP endpoint bound to loopback; default port `8766` with bounded fallback to subsequent ports.
+- Dependencies: Unreal Engine modules only; no required third-party user plugin, vendor cloud, analytics, or telemetry.
+- Content: no gameplay content; `CanContainContent=false`.
+- Current source surface: 55 registered tools with closed-schema registry automation.
+
+## Product artwork
+
+- Packaged plugin icon: `Plugins/MCPBlueprint/Resources/Icon128.png`; public preview: [`MCPBlueprint-Icon128.png`](Images/Fab/MCPBlueprint-Icon128.png) (128×128 PNG with alpha).
+- Fab thumbnail: [`MCPBlueprint-Fab-Thumbnail-1920x1080.png`](Images/Fab/MCPBlueprint-Fab-Thumbnail-1920x1080.png).
+- Editable/generated sources are retained beside the thumbnail for reproducible release preparation.
+
+![MCP Blueprint Fab thumbnail](Images/Fab/MCPBlueprint-Fab-Thumbnail-1920x1080.png)
 
 ## Installation and first connection
 
