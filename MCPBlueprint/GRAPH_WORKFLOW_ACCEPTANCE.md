@@ -10,7 +10,7 @@
 - 对上一版保存布局执行 `FormatGraph(WholeGraph, Straight)` 的最终真实读回为交叉线 `26 → 11`、`OverlapCount=0`、`BackwardEdgeCount=0`、平均 Pin 高差 `236 → 212`；保存、关闭、重开后的截图与再次编译均通过。GUID 重映射同构图保持相同指标，布局自动化 17/17 通过。
 - `MCPBlueprint.BusinessWorkflow.OrderSettlementComplexPolicy` 通过五组固定输入的真实 `ProcessEvent` 调用，机器证据为 `bExpectedOutput=true`、`bPackagesCleanBefore=true`、`bPackagesCleanAfter=true`。
 - 已完成真实局部结构逻辑 Before/After：将 `RegionSwitch.Case1 → Set ShippingCents(1000)` 直连改为 `Case1 → bFirstOrder Branch → 0/1000 两条 Set 路径 → Set NetCents`。首单用例的 `ShippingCents 1000 → 0`、`TotalCents 32590 → 31590`、`PointsEarned 325 → 315`；新增非首单镜像用例确认 False 路径仍为 `1000 / 33400 / 334`。两图均为 2560×1440、1:1，并以未移动的 Region Switch 作为共同画幅锚点；After 的红色 Comment Box 只包含本次结构修改子图。
-- 多逻辑回归单元 1 将固定首单奖励 Getter 替换为 `Subtotal / 20`。它验证了删节点、创建整数 Divide、替换数据边和消费端局部布局，并暴露 `ApplyGraphPatch` 先处理 wildcard `PinDefaults`、后通过连线提升类型的顺序限制。当前安全路径为“跳过编译创建/连线 → `SetPinDefaults` → 立即编译”。
+- 多逻辑回归单元 1 将固定首单奖励 Getter 替换为 `Subtotal / 20`。它曾暴露 wildcard `PinDefaults` 早于连线类型提升执行的顺序限制；现已修复为在同一 `ApplyGraphPatch` 事务中延迟这类默认值，待 Connections 解析类型后再校验应用，任何失败整笔回滚。
 - 多逻辑回归单元 2 在结果尾部加入 Region Switch：`0/1/2 → Decision 1`，`Default → Decision 2`，再汇入同一 Return。它验证了动态增加 Switch Case、三路 fan-in、双路终止和 Decision 实际运行输出。
 - 多逻辑回归单元 3 将积分链从 `Total / 100` 改为 `(Total - Shipping) / 100`，复用原 Divide 与 Make Struct Pin。它验证了密集结果装配区内的 consumer-local Getter、整数 Subtract、数据边替换和五组累积输出。
 - 本单元证明 64 节点复杂业务示例可运行并可截图验收；它没有通过复制装饰逻辑追求 100+ 节点，因此不把本结果表述成“100+ 节点压力目标已完成”。以下旧失败结论继续作为反例与验收边界保留。

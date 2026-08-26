@@ -231,7 +231,7 @@ Before and After are both 2560×1440 at 1:1 zoom and use the unmoved Region Swit
 
 The previous graph added a fixed 750 through `Get FirstOrderBonusCents`. This unit removes that Getter and adds a consumer-local `Get SubtotalCents` plus integer `Divide(B=20)`, rewiring the data path to `Subtotal / 20 → Add Discount → Set DiscountCents`. The first-order case now returns `Discount=2550, Net=28450, Tax=2276, Shipping=0, Total=30726, Points=307`; the other three cases remain unchanged, and the full regression passes 4/4.
 
-This scenario exposed a real ordering limitation: `ApplyGraphPatch` applies `PinDefaults` before a wildcard Divide is promoted from its connections, so `B=20` in the same patch fails closed; `PromotedType=int` is also explicitly rejected. The safe fallback is to create and connect with `bSkipCompile=true`, set B through `SetPinDefaults` after it resolves to `int`, then immediately compile, read back, save, and reopen.
+This scenario originally exposed an ordering limitation: a newly created wildcard Divide received `PinDefaults` before its connections could resolve the pin type, so `B=20` failed in the same patch. This is now fixed: non-wildcard defaults keep their original order, while defaults on still-wildcard pins of newly created nodes are validated and applied after all Connections and Unreal's native promotion, but before layout and compile, inside the same transaction. Unresolved wildcards, invalid defaults, and failed connections roll back the whole patch. `PromotedType` remains a Real/Double assertion and is not extended into fake `int` pre-promotion.
 
 ![Unit 1 before: fixed first-order bonus Getter](./Images/MultiLogic/Unit1_FirstOrderPercent/Before.png)
 

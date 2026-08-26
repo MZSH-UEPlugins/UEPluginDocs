@@ -231,7 +231,7 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 
 原图通过 `Get FirstOrderBonusCents` 把固定 750 加到等级折扣。本单元删除该 Getter，新增消费端 `Get SubtotalCents` 和整数 `Divide(B=20)`，将数据链改为 `Subtotal / 20 → Add Discount → Set DiscountCents`。首单用例变为 `Discount=2550, Net=28450, Tax=2276, Shipping=0, Total=30726, Points=307`，其他三组用例保持不变，完整回归 4/4 通过。
 
-该场景暴露了一个真实调用顺序限制：`ApplyGraphPatch` 在通配符 Divide 通过连线提升为 `int` 之前先应用 `PinDefaults`，因此同一 patch 中的 `B=20` 会 fail-closed；`PromotedType=int` 也会被明确拒绝。安全回退是先以 `bSkipCompile=true` 创建并连线，再用 `SetPinDefaults` 写入已解析为 `int` 的 B Pin，随后立即编译、读回、保存和重开。
+该场景曾暴露一个真实调用顺序限制：新建通配符 Divide 的 `PinDefaults` 早于连线类型提升执行，导致同一 patch 中的 `B=20` 被拒绝。当前已修复为：非 wildcard 默认值保持原顺序；新建节点上仍为 wildcard 的默认值会在全部 Connections 和 Unreal 原生类型提升后、布局与编译前，在同一事务内校验并应用。未解析 wildcard、非法默认值或连线失败都会整笔回滚；`PromotedType` 仍只用于 Real/Double 断言，不伪造 `int` 预提升。
 
 ![单元1修改前：固定首单奖励 Getter](./Images/MultiLogic/Unit1_FirstOrderPercent/Before.png)
 
