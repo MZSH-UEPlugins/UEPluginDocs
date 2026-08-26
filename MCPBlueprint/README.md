@@ -290,7 +290,10 @@ The original points path was `TotalCents / 100 → PointsEarned`. This unit inse
 - Request timeout settings bound dispatcher waiting, but synchronous Blueprint/UObject work already running on the game thread cannot be preempted. Avoid immediate retries after a client-side timeout until editor state is known.
 - Blueprint listing and deletion are refused while Asset Registry discovery is running, so pagination and reference checks are not based on incomplete data.
 - Destructive asset deletion is not undoable. Without `bForce`, referenced assets are refused and normal editor deletion preserves live references; forced deletion may clear references and break dependents.
-- `DeleteAsset` can return `locked or in use` while the current session's Undo/Redo transaction history still retains the target. Do not mask this state with `bForce`; save work that must be kept, restart the editor, and retry with `bForce=false`.
+- Normal `DeleteAsset` uses Unreal's deletion-reference model to detect whether Undo/Redo history retains the target Blueprint or one of its generated instances. That state returns the stable structured failure `FailureCode=UndoHistoryReference`, `bDeletionAttempted=false`, and `bDeleted=false`, while unrelated transactions may remain and are verified unchanged after a successful normal delete.
+- Forced deletion is accepted only when the entire editor transaction queue, including Undo and Redo entries, is empty. Otherwise it returns `FailureCode=ForceRequiresEmptyUndoHistory` without attempting deletion. The production tool does not call `ResetTransaction`; this contract promises that force deletion will not sacrifice history that existed before the call, not that Unreal's internal force-delete implementation never resets a transaction buffer created during the call.
+- A persisted target must be the only registered top-level asset in its package. Missing Registry identity fails closed, and a package with a second asset returns `FailureCode=MultiAssetPackageUnsupported` without deletion; move each asset to its own package first.
+- A successful response sets `bDeleted=true` only after the target UObject and Asset Registry entry are gone and the single-asset package file is removed or reported deleted by the active source-control provider. The response includes object, Registry, file/source-control, and transaction-history verification fields; a partial or unverifiable engine deletion is returned as an error instead of a false success.
 - Screenshot file output is restricted to `Saved/MCPBlueprint/Screenshots`; absolute paths, traversal, and existing link/reparse-point paths are rejected. Existing PNG files are not replaced unless `bOverwrite=true`; these checks reduce link-path and accidental-overwrite risks but do not claim to eliminate external filesystem races.
 - Source-only compatibility review is not a substitute for compiling and testing inside each target engine version.
 
@@ -321,7 +324,7 @@ Packaging verification proves that every target engine can compile the plugin an
 ## Known limitations
 
 - `Auto` local displacement is deliberately bounded to 128 existing nodes, 128 closure iterations, and 100000 graph units. It fails closed at Function Entry or Comment containment boundaries instead of expanding into an unsafe whole-graph rewrite; use a smaller insertion or explicitly reorganize the protected region.
-- An asset modified by many transactions in the same session may remain retained by Undo/Redo history and fail non-forced deletion. Follow the `DeleteAsset` safety guidance above. A future improvement will target this state without clearing unrelated undo history and will return more specific diagnostics.
+- An asset retained by Undo/Redo history cannot be deleted normally until that retaining history is released. Force deletion has the stricter whole-editor requirement that the complete Undo/Redo queue be empty before the call.
 
 ## Later Roadmap
 

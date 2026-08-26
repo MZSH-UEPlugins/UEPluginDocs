@@ -286,7 +286,10 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 - `GetGraphDetail` 单次最多请求 25 个稳定排序的节点，并受序列化页预算限制；每个节点的可见 Pin 独立分页（最多 64 个）且受单节点 Pin 预算限制，每个 Pin 最多返回 8 个有界连接，并提供明确的截断与续页元数据。
 - Asset Registry 仍在扫描时会拒绝列举和删除蓝图，避免分页与引用检查建立在不完整数据上。
 - 删除资产不可 Undo。未传 `bForce` 时会拒绝删除被引用资产，并使用编辑器常规删除流程保留实时引用；强制删除可能清空引用并破坏依赖资产。
-- 若目标资产仍被当前会话的 Undo/Redo 事务历史持有，`DeleteAsset` 可能返回 `locked or in use`。不要改用 `bForce` 掩盖状态；先保存需要保留的工作并重启编辑器，再以 `bForce=false` 重试。
+- 普通 `DeleteAsset` 会使用 UE 的删除引用模型检查 Undo/Redo 历史是否仍持有目标 Blueprint 或其生成实例。命中时返回稳定的结构化失败：`FailureCode=UndoHistoryReference`、`bDeletionAttempted=false`、`bDeleted=false`；与目标无关的事务允许保留，普通删除成功后会验证其队列、游标与内存占用完全不变。
+- 强制删除只有在整个编辑器事务队列（包括 Undo 与 Redo）为空时才允许；否则稳定返回 `FailureCode=ForceRequiresEmptyUndoHistory`，且不尝试删除。生产工具本身不调用 `ResetTransaction`；这里承诺的是不会牺牲调用前已经存在的历史，不宣称 UE 内部强制删除流程绝不会重置调用期间新建的事务缓冲。
+- 已落盘目标必须是所属包中唯一已登记的顶层资产。Registry 中缺少目标会 fail-closed；同包存在第二个资产时稳定返回 `FailureCode=MultiAssetPackageUnsupported`，且不尝试删除，请先把各资产拆到独立包。
+- 只有在目标 UObject 与 Asset Registry 条目均已消失，且这个单资产包的文件已删除或由当前源码控制提供程序标记删除后，成功响应才会设置 `bDeleted=true`。响应会返回对象、Registry、文件/源码控制和事务历史验证字段；引擎只完成部分删除或结果无法验证时会返回错误，不会伪报成功。
 - 截图文件输出限定在 `Saved/MCPBlueprint/Screenshots`；绝对路径、路径穿越和已存在的链接/重解析点路径会被拒绝。除非显式传入 `bOverwrite=true`，否则不会覆盖已有 PNG；这些检查用于降低链接路径与误覆盖风险，但不宣称消除外部文件系统竞争。
 - 仅源码静态兼容审查不能代替在各目标引擎版本中的真实编译与测试。
 
@@ -322,7 +325,7 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 ## 已知限制
 
 - `Auto` 局部让位被刻意限制为最多 128 个既有节点、128 轮闭包扩展和 100000 Graph Units。触及 Function Entry 或 Comment 包围边界时会 fail-closed，而不会扩张成不安全的整图重排；此时应缩小插入块或显式整理受保护区域。
-- 同一会话中经过大量事务修改的资产可能仍被 Undo/Redo 历史持有，导致非强制删除失败；处理方式见上方 `DeleteAsset` 安全边界。后续计划提供不清空无关 Undo 历史的定向处理与更明确诊断。
+- 被 Undo/Redo 历史持有的资产在相关历史释放前不能普通删除；强制删除采用更严格的全编辑器门禁，调用前完整 Undo/Redo 队列必须为空。
 
 ## 后期路线图
 

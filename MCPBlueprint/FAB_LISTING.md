@@ -72,7 +72,7 @@ All seven version-matched compatibility packages are deployed with matching DLL 
 ## Safety boundaries
 
 - Dry-run first for risk-sensitive changes; approval flags are separate from preview flags.
-- Supported mutations participate in Unreal transactions, but destructive asset deletion is not Undoable.
+- Supported mutations participate in Unreal transactions, but destructive asset deletion is not Undoable. Normal `DeleteAsset` refuses target-retaining Undo history while preserving unrelated transactions. Force deletion requires the complete pre-call Undo/Redo queue to be empty and otherwise returns a structured rejection without attempting deletion. Persisted multi-asset packages are unsupported. The production tool does not call `ResetTransaction`, and success is reported only after UObject, Asset Registry, and single-package disk/source-control checks pass.
 - `ReloadBlueprintFromDisk` defaults to dry-run, rejects packages with any second top-level standalone asset, and requires separate approval to discard memory state and acknowledge Unreal's full editor Undo/Redo history reset. It never saves before reload, and post-reload verification errors do not suppress the requested editor-reopen attempt.
 - The plugin marks assets dirty and never saves automatically. Use `SaveAsset` only after read-back and compile verification.
 - Function rename fails closed on incomplete reference scans, unloaded derived Blueprints, protected/override and RepNotify functions, `CreateDelegate` bindings, and opaque AnimBlueprint/AnimGraph state.
