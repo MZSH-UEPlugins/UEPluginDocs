@@ -42,6 +42,8 @@ These results cover installed Windows editor builds. They do not claim macOS/Lin
 
 The current source registers 54 tools. The table above is retained as the last measured 53-tool compatibility/deployment result; it must be rerun before the Fab draft claims 54-tool cross-version package parity.
 
+The current 54-tool source also has editor automation coverage for the complete registered tool-definition matrix: serializable closed input schemas, unique names and non-empty descriptions, registry-boundary unknown/missing-field rejection, safe zero-required calls, and incomplete operation-specific `oneOf`/`const` rejection. This source-level coverage does not replace the pending 54-tool cross-version package/deployment rerun.
+
 All seven version-matched compatibility packages are deployed with matching DLL hashes. They are not final Fab packages: their descriptors remain beta, `DocsURL`/`MarketplaceURL` are not populated for release, and the product icon is not packaged yet.
 
 ## Installation and first connection

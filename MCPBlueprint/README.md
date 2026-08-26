@@ -12,6 +12,8 @@ The default endpoint is `http://127.0.0.1:8766/mcp`. If that port is occupied, t
 
 The server implements `initialize`, `tools/list`, `tools/call`, and `ping`. Write operations run on the game thread, participate in editor transactions where Unreal supports Undo, mark assets dirty, and do not save automatically.
 
+The 54 registered tools are covered by an editor automation schema/call matrix: every `tools/list`-equivalent definition is checked for a serializable closed input schema, names and descriptions, unknown-field rejection, and missing-required-field rejection at the registry boundary. Zero-required tools must be explicitly classified as safe reads before their empty-object call is allowed; operation-specific `oneOf`/`const` branches are also rejected before tool execution when incomplete.
+
 Requests must use JSON-RPC `2.0` with object-valued `params` and tool `arguments`. Browser-style `Origin` headers are accepted only for `localhost`, `127.0.0.1`, or `[::1]`; non-browser clients may omit `Origin`.
 
 ## Tools (54)
