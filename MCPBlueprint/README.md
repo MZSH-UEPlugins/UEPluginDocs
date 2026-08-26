@@ -135,7 +135,9 @@ For standard flow control, search with the exact English Unreal names `Branch`, 
 | `OpenAsset` / `CloseAsset` | Open or close a standalone Blueprint in the Blueprint Editor. |
 | `DeleteAsset` / `RenameAsset` / `DuplicateAsset` | Manage standalone Blueprint assets. |
 | `ReparentBlueprint` | Dry-run or apply a safe parent-class change with cycle and data-loss checks. |
-| `CaptureGraphScreenshot` | Return a PNG and optionally save it below `Saved/MCPBlueprint/Screenshots`. |
+| `CaptureGraphScreenshot` | Return a PNG and optionally save it below `Saved/MCPBlueprint/Screenshots`. It clears selection by default and supports `NodeGuid`, `bZoomToFit`, explicit `ViewLocation` + `Zoom`, or `GraphRect` navigation. For compatibility, `NodeGuid` with omitted/true `bZoomToFit` jumps then fits the graph; explicit false gives a 1:1 node view. The response includes the applied transform, `ViewMode`, and a stable `ViewportToken`. |
+
+`ViewportToken` is stable for the same graph, view mode, applied transform, and output size. It proves viewport framing, not byte-identical pixels: Slate hover, animation, fonts, theme, DPI, and GPU state remain rendering transients. For before/after comparisons, reuse the returned `AppliedViewLocation`, `AppliedZoom`, `Width`, and `Height`; keep `bClearSelection=true`. `GraphRect` fits the requested graph-space rectangle without distorting aspect ratio, so the longer axis is exact and the other axis may include deterministic extra margin. Requests that would need zoom below `0.05` are rejected instead of silently cropping the region.
 
 ## Fixed Order Settlement Baseline Example
 

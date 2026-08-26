@@ -108,6 +108,8 @@ Compile 是运行验证的前置条件，不是终点。每个修改阶段都必
 
 截图必须来自真实 Blueprint Graph 控件，能看见节点本体、Pin 和连线；禁止 wires-only、拼接伪 UI、孤立节点阵列或只展示节点数量。应清理无关窗口和敏感路径，确保标题、Pin 名称和关键数值可读。原始截图可先归档到 AIHub 项目产出，确认合格后再选择适合公开的版本进入仓库文档。
 
+同画幅验证必须使用 `CaptureGraphScreenshot` 的显式视口协议：首次截图记录响应中的 `AppliedViewLocation`、`AppliedZoom`、`Width`、`Height` 和 `ViewportToken`，后续截图用相同 `ViewLocation` + `Zoom` 与尺寸重放，并保持默认 `bClearSelection=true`。需要指定局部图坐标范围时使用互斥的 `GraphRect` 模式；不要同时传 `NodeGuid` 或 `bZoomToFit=true`，且所需 Zoom 低于 `0.05` 时应调整尺寸或缩小区域。兼容旧调用时，`NodeGuid` 搭配省略/true 的 `bZoomToFit` 仍执行“先跳转节点、再适配全图”，只有显式 false 才固定节点 1:1 画幅。两次响应的 transform 与 token 相同，可证明 Graph、视图模式、画幅和尺寸一致；它不证明 PNG 像素哈希一致，因为 hover、Slate 动画、字体、主题、DPI 与 GPU 状态不属于视口确定性协议。工具不会为消除 hover 移动操作系统鼠标，也不会后处理或伪造截图。
+
 ## 8. 直接否决条件
 
 出现任一项即不得宣称验收完成：

@@ -135,7 +135,9 @@ UE 5.2 真实 MCP 验收覆盖了三种调用方式，全部省略 `Position` �
 | `OpenAsset` / `CloseAsset` | 在蓝图编辑器中打开或关闭独立 Blueprint。 |
 | `DeleteAsset` / `RenameAsset` / `DuplicateAsset` | 管理独立蓝图资产。 |
 | `ReparentBlueprint` | 预演或执行安全父类修改，拒绝继承循环并报告潜在数据丢失。 |
-| `CaptureGraphScreenshot` | 返回 PNG，也可保存到 `Saved/MCPBlueprint/Screenshots` 下。 |
+| `CaptureGraphScreenshot` | 返回 PNG，也可保存到 `Saved/MCPBlueprint/Screenshots` 下。默认清空选择，支持 `NodeGuid`、`bZoomToFit`、显式 `ViewLocation` + `Zoom` 或 `GraphRect` 导航。为兼容旧调用，`NodeGuid` 搭配省略/true 的 `bZoomToFit` 会先跳转节点再适配全图；显式 false 才使用节点 1:1 视图。响应返回实际变换、`ViewMode` 和稳定 `ViewportToken`。 |
+
+`ViewportToken` 对相同 Graph、视图模式、实际视口变换和输出尺寸保持稳定，用于证明画幅一致，不承诺 PNG 字节完全相同：Slate hover、动画、字体、主题、DPI 与 GPU 状态仍是渲染瞬态。制作 Before/After 时应复用响应中的 `AppliedViewLocation`、`AppliedZoom`、`Width` 和 `Height`，并保持 `bClearSelection=true`。`GraphRect` 在不拉伸画面的前提下适配指定图坐标矩形，因此长轴精确，另一轴可能保留确定性的额外边距；若所需 Zoom 低于 `0.05`，工具会明确拒绝，不会静默裁切区域。
 
 ## 固定订单结算基线用例
 
