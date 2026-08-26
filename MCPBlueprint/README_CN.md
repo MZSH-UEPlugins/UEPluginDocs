@@ -14,7 +14,7 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 
 请求必须使用 JSON-RPC `2.0`，且 `params` 与工具 `arguments` 必须是对象。浏览器风格的 `Origin` 仅允许 `localhost`、`127.0.0.1` 或 `[::1]`；非浏览器客户端可以不发送 `Origin`。
 
-## 工具（53 个）
+## 工具（54 个）
 
 ### 发现与读取
 
@@ -133,6 +133,7 @@ UE 5.2 真实 MCP 验收覆盖了三种调用方式，全部省略 `Position` �
 | `CompileBlueprint` | 编译并返回权威状态与诊断。 |
 | `SaveAsset` | 显式保存独立 Blueprint、User Defined Struct 或 User Defined Enum 包；关卡蓝图和其他资产类型会被拒绝。 |
 | `OpenAsset` / `CloseAsset` | 在蓝图编辑器中打开或关闭独立 Blueprint。 |
+| `ReloadBlueprintFromDisk` | 先 dry-run，或在明确批准丢弃内存状态后，通过 Unreal 官方包重载 API 从已有磁盘文件重载一个已加载的独立 Blueprint。 |
 | `DeleteAsset` / `RenameAsset` / `DuplicateAsset` | 管理独立蓝图资产。 |
 | `ReparentBlueprint` | 预演或执行安全父类修改，拒绝继承循环并报告潜在数据丢失。 |
 | `CaptureGraphScreenshot` | 返回 PNG，也可保存到 `Saved/MCPBlueprint/Screenshots` 下。默认清空选择，支持 `NodeGuid`、`bZoomToFit`、显式 `ViewLocation` + `Zoom` 或 `GraphRect` 导航。为兼容旧调用，`NodeGuid` 搭配省略/true 的 `bZoomToFit` 会先跳转节点再适配全图；显式 false 才使用节点 1:1 视图。响应返回实际变换、`ViewMode` 和稳定 `ViewportToken`。 |
@@ -262,6 +263,7 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 - 新建、移动或复制蓝图时，目标必须是 `/Game` 下合法的独立包路径；若内存或磁盘已有同名包会拒绝操作。
 - 关卡蓝图可以通过对象路径读取和编辑图表，但 `SaveAsset`、`DeleteAsset`、`RenameAsset` 与 `DuplicateAsset` 不处理关卡蓝图，因为这些操作会影响所属关卡包；请通过 World Editor 工作流处理关卡本身。
 - `CloseAsset` 会返回之前是否打开，并核验蓝图及其子对象的所有编辑器是否真正关闭；用户取消关闭时返回错误。
+- `ReloadBlueprintFromDisk` 默认只做只读 dry-run，返回 Package Dirty、编辑器打开状态，以及有界的磁盘路径、大小、时间和 MD5 元数据。由于 Unreal 会重载整个 Package，工具会稳定枚举顶层 `RF_Public|RF_Standalone` 资产；若除目标 Blueprint 外还有任何资产，dry-run 与正式执行都会 fail-closed，并用有界冲突列表和 `bCanApply=false` 结构化报告。正式执行必须同时传入 `bDryRun=false`、`bDiscardUnsavedChanges=true` 与 `bAcknowledgeUndoHistoryReset=true`。工具会关闭并核验所有顶层 Package 资产的编辑器，调用 Unreal 官方包重载 API，按原对象路径重新取得替换后的 Blueprint，验证新 Package 为 clean，并可选择重开编辑器。一旦 Unreal 已报告真实重载，所有后验验证错误只会在完成请求的重开尝试后统一汇总，`bReloadedFromDisk` 仍保持 true。为防止事务历史保留已被替换的对象引用，Unreal 在包重载时必然重置整个编辑器的 Undo/Redo 历史；工具会在执行前后明确报告该影响。工具不会保存资产、执行 Save All、绕过包重载回调或手工清理引用。
 - 成员变量和局部变量的默认值会在修改前按 Unreal K2 Pin 规则校验；不合法的 UE 文本值会被拒绝。
 - `ModifyVariable` 可选接收成员变量的 `Category` 与 `Tooltip`。空 `Category` 恢复 Unreal 默认类别；空 `Tooltip` 删除该元数据。该工具会在事务中更新变量声明，只把蓝图标记为已修改而不强制结构重建，支持 Undo，编译失败会回滚，且绝不自动保存；`GetBlueprintOverview` 会在存在时返回 `Tooltip`。
 - 存在未加载派生蓝图时，变量类型变更、重命名和删除会被拒绝。请先加载派生蓝图以检查继承引用；删除声明前必须先移除子蓝图引用。
@@ -307,7 +309,7 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 
 [`Images/Fab`](./Images/Fab/) 中的 PNG 均由真实 Unreal Blueprint Graph 控件直接捕获，未合成伪 UI，也不含本机文件路径。各图说明与对应工作流见 [FAB_LISTING.md](./FAB_LISTING.md)。这些图片不会被描述为 HTTP 响应或变量 Details 面板截图。算术节点使用两张真实画面共同证明持久化后的 Real/Double `Add → Subtract → Multiply → Divide → Result` 链：全图缩放图覆盖左侧与中段，节点聚焦图覆盖 `Subtract → Multiply → Divide → Result`；原因是 UE 5.2 的离屏 Graph Widget 全图捕获有时不绘制最右侧节点本体。
 
-当前 53 工具源码已通过 UE 5.2 编译与 `RenameFunction` 自动化安全回归，覆盖真实落盘的 Asset Registry 外部引用、GUID 冲突、`CreateDelegate`、AnimBlueprint/AnimGraph、override、RepNotify、显式批准、Undo 恢复和注入失败回滚。真实编辑器 HTTP 回归还验证了 initialize、`tools/list`（53）、ping、默认 dry-run、带真实外部 Caller 的批准写入、稳定 Graph GUID、写后读回、Blueprint 编译、保存、关闭重开持久化和截图。6 个 User Defined Struct/Enum 工具也已完成真实编辑器 HTTP 回归，覆盖创建、读取、修改、稳定 GUID 保留、dry-run、显式授权门禁、拒绝路径、分页和 Map value 直接循环检测。当前 UE 5.2–5.8 完整 Win64 BuildPlugin 矩阵均已成功，七个引擎版本均完成部署与 DLL 哈希验证。
+当前 54 工具源码已通过 UE 5.2 编译。`MCPBlueprint.Asset.ReloadBlueprintFromDiskSafety` 在真实非 NullRHI 编辑器中通过，覆盖已落盘 Blueprint 的未保存内存状态、dry-run 对对象身份/Dirty/编辑器/Undo 的零改变、两道批准分别拒绝、编译/保存忙状态、无磁盘文件和错误类型拒绝、真实关闭编辑器、官方包替换、对象重新取得、恢复磁盘序列化状态、新 Package clean、引擎重置 Undo/Redo 历史以及可选重开编辑器。此前 `RenameFunction`、Struct/Enum、图表与 HTTP 回归对其测试提交仍然有效。当前文档中的 UE 5.2–5.8 打包/部署矩阵是 53 工具的历史结果；刷新矩阵前不会宣称 54 工具已完成跨版本等价验证。
 
 打包验证证明各目标引擎可以编译插件并获得预期目录结构，但不能替代每个引擎版本内对全部 MCP 操作的运行时验证。其余工具的跨版本真实编辑器回归、保存/重启持久化与清理行为仍会继续推进。
 

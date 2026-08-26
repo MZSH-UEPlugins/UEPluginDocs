@@ -4,7 +4,7 @@
 
 ## One-line pitch
 
-Connect AI assistants to Unreal Editor and inspect, create, refactor, compile, and visually verify Blueprint graphs through 53 safety-aware MCP tools.
+Connect AI assistants to Unreal Editor and inspect, create, refactor, compile, and visually verify Blueprint graphs through 54 safety-aware MCP tools.
 
 ## Short description
 
@@ -23,7 +23,7 @@ The plugin is designed for editor automation rather than runtime gameplay. Mutat
 - Graph construction: exact action-spawner search, declarative patches, pin defaults, deterministic formatting, and native Comment Boxes.
 - Actor Blueprint components: create, duplicate, rename, remove, reparent, choose roots, and edit template properties.
 - Data definitions: create, inspect, and safety-gated edit of User Defined Structs and Enums.
-- Asset lifecycle: create, duplicate, rename, reparent, compile, open, close, explicitly save, or delete supported Blueprint assets.
+- Asset lifecycle: create, duplicate, rename, reparent, compile, open, close, explicitly save, delete, or safety-gated reload supported standalone Blueprint assets from disk.
 - Visual verification: capture the actual Unreal Blueprint graph as PNG.
 
 ## Compatibility
@@ -40,6 +40,8 @@ The plugin is designed for editor automation rather than runtime gameplay. Mutat
 
 These results cover installed Windows editor builds. They do not claim macOS/Linux support or exhaustive execution of all 53 tools on every engine version.
 
+The current source registers 54 tools. The table above is retained as the last measured 53-tool compatibility/deployment result; it must be rerun before the Fab draft claims 54-tool cross-version package parity.
+
 All seven version-matched compatibility packages are deployed with matching DLL hashes. They are not final Fab packages: their descriptors remain beta, `DocsURL`/`MarketplaceURL` are not populated for release, and the product icon is not packaged yet.
 
 ## Installation and first connection
@@ -49,7 +51,7 @@ All seven version-matched compatibility packages are deployed with matching DLL 
 3. Open **Project Settings > Plugins > MCP Blueprint**. Auto Start is enabled by default and the first port is `8766`.
 4. Read the actual endpoint from the MCP Blueprint toolbar. If `8766` is occupied, the plugin tries subsequent ports.
 5. Configure that URL as an HTTP MCP server in the AI client, for example `http://127.0.0.1:8766/mcp`.
-6. Verify `initialize`, `tools/list` (53 tools), and `ping` before any write operation.
+6. Verify `initialize`, `tools/list` (54 tools), and `ping` before any write operation. A 53-tool response identifies an older compatibility package.
 
 ```json
 {"jsonrpc":"2.0","id":1,"method":"ping","params":{}}
@@ -69,6 +71,7 @@ All seven version-matched compatibility packages are deployed with matching DLL 
 
 - Dry-run first for risk-sensitive changes; approval flags are separate from preview flags.
 - Supported mutations participate in Unreal transactions, but destructive asset deletion is not Undoable.
+- `ReloadBlueprintFromDisk` defaults to dry-run, rejects packages with any second top-level standalone asset, and requires separate approval to discard memory state and acknowledge Unreal's full editor Undo/Redo history reset. It never saves before reload, and post-reload verification errors do not suppress the requested editor-reopen attempt.
 - The plugin marks assets dirty and never saves automatically. Use `SaveAsset` only after read-back and compile verification.
 - Function rename fails closed on incomplete reference scans, unloaded derived Blueprints, protected/override and RepNotify functions, `CreateDelegate` bindings, and opaque AnimBlueprint/AnimGraph state.
 - Requests are local by default. The server binds to loopback; browser origins are restricted to loopback hosts.
@@ -76,7 +79,7 @@ All seven version-matched compatibility packages are deployed with matching DLL 
 ## Troubleshooting
 
 - **Cannot connect:** confirm the toolbar endpoint, Auto Start, firewall policy, and whether the initial port moved because it was occupied.
-- **Tool count is not 53:** confirm the matching plugin version is loaded, restart the editor, and inspect the Unreal log for module registration.
+- **Tool count is not 54:** confirm the matching plugin version is loaded, restart the editor, and inspect the Unreal log for module registration. The previous compatibility packages expose 53 tools.
 - **Plugin asks to rebuild:** install the package matching the exact UE minor version; never mix Binaries or `.modules` files between versions.
 - **Safety rejection:** read the blocker list, load reported dependents, remove unsafe bindings, and repeat the dry run.
 - **Asset is dirty but unchanged on disk:** expected; compile, review, then call `SaveAsset` explicitly.
@@ -131,4 +134,4 @@ MCPBlueprint does not require a vendor cloud service and does not include analyt
 
 *Node-focused capture of the same persisted function, showing Subtract → Multiply → Divide → Result. Two views are used because UE 5.2's off-screen graph-widget full-frame capture can omit far-right node bodies; the graph read-back, compile, save, close, and reopen checks cover the complete chain.*
 
-The first seven newly added files and the final two arithmetic images are real graph captures. Some draft frames contain localized Chinese editor guidance or development-only node banners, so they are internal evidence rather than the final English Fab gallery. The set does not yet include separate captures of the toolbar endpoint, the 53-tool protocol response, variable Category/Tooltip Details, the dry-run impact report, save/reopen state, or a safety rejection/Undo result.
+The first seven newly added files and the final two arithmetic images are real graph captures. Some draft frames contain localized Chinese editor guidance or development-only node banners, so they are internal evidence rather than the final English Fab gallery. The set does not yet include separate captures of the toolbar endpoint, the current 54-tool protocol response, variable Category/Tooltip Details, the reload dry-run/approval result, save/reopen state, or a safety rejection/Undo result.
