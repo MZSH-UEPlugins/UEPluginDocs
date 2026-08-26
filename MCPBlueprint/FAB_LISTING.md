@@ -4,7 +4,7 @@
 
 ## One-line pitch
 
-Connect AI assistants to Unreal Editor and inspect, create, refactor, compile, and visually verify Blueprint graphs through 54 safety-aware MCP tools.
+Connect AI assistants to Unreal Editor and inspect, create, refactor, compile, and visually verify Blueprint graphs through 55 safety-aware MCP tools.
 
 ## Short description
 
@@ -40,9 +40,9 @@ The plugin is designed for editor automation rather than runtime gameplay. Mutat
 
 These results cover installed Windows editor builds. They do not claim macOS/Linux support or exhaustive execution of all 53 tools on every engine version.
 
-The current source registers 54 tools. The table above is retained as the last measured 53-tool compatibility/deployment result; it must be rerun before the Fab draft claims 54-tool cross-version package parity.
+The current source registers 55 tools. The table above is retained as the last measured 53-tool compatibility/deployment result; it must be rerun before the Fab draft claims 55-tool cross-version package parity.
 
-The current 54-tool source also has editor automation coverage for the complete registered tool-definition matrix: serializable closed input schemas, unique names and non-empty descriptions, registry-boundary unknown/missing-field rejection, safe zero-required calls, and incomplete operation-specific `oneOf`/`const` rejection. This source-level coverage does not replace the pending 54-tool cross-version package/deployment rerun.
+The current 55-tool source also has editor automation coverage for the complete registered tool-definition matrix: serializable closed input schemas, unique names and non-empty descriptions, registry-boundary unknown/missing-field rejection, safe zero-required calls, and incomplete operation-specific `oneOf`/`const` rejection. `ModifyFunctionSignature` additionally passed persisted declaration/external-caller automation in both NullRHI and non-NullRHI editor paths. This source-level coverage does not replace the pending 55-tool cross-version package/deployment rerun.
 
 All seven version-matched compatibility packages are deployed with matching DLL hashes. They are not final Fab packages: their descriptors remain beta, `DocsURL`/`MarketplaceURL` are not populated for release, and the product icon is not packaged yet.
 
@@ -53,7 +53,7 @@ All seven version-matched compatibility packages are deployed with matching DLL 
 3. Open **Project Settings > Plugins > MCP Blueprint**. Auto Start is enabled by default and the first port is `8766`.
 4. Read the actual endpoint from the MCP Blueprint toolbar. If `8766` is occupied, the plugin tries subsequent ports.
 5. Configure that URL as an HTTP MCP server in the AI client, for example `http://127.0.0.1:8766/mcp`.
-6. Verify `initialize`, `tools/list` (54 tools), and `ping` before any write operation. A 53-tool response identifies an older compatibility package.
+6. Verify `initialize`, `tools/list` (55 tools), and `ping` before any write operation. A 53-tool response identifies an older compatibility package.
 
 ```json
 {"jsonrpc":"2.0","id":1,"method":"ping","params":{}}
@@ -64,7 +64,7 @@ All seven version-matched compatibility packages are deployed with matching DLL 
 1. **Understand a Blueprint:** `ListBlueprints` → `GetBlueprintOverview` → paged `GetGraphDetail`.
 2. **Build a function:** `SearchGraphNodes` → `CreateFunction` → `ApplyGraphPatch` → `FormatGraph` → `CompileBlueprint`.
 3. **Document variables:** `ModifyVariable` with `Category` and `Tooltip` → `GetBlueprintOverview` read-back → compile → explicit save.
-4. **Refactor safely:** `RenameFunction` dry run → review GUID/referencers/blockers → explicit approval → read callers → compile → save.
+4. **Refactor safely:** `RenameFunction` or `ModifyFunctionSignature` dry run → review GUID/PinId/referencers/blockers → explicit approval (plus data-loss approval for remove/type change) → read callers → compile → save.
 5. **Edit components:** `GetComponents` → `AddComponent`/`SetComponentProperties` → read-back → compile.
 6. **Evolve data definitions:** inspect a User Defined Struct/Enum → dry run → approve the reported data-risk gate → compile affected Blueprints.
 7. **Review graph quality:** `FormatGraph` dry run → inspect layout metrics → apply → `CaptureGraphScreenshot`.
@@ -81,7 +81,7 @@ All seven version-matched compatibility packages are deployed with matching DLL 
 ## Troubleshooting
 
 - **Cannot connect:** confirm the toolbar endpoint, Auto Start, firewall policy, and whether the initial port moved because it was occupied.
-- **Tool count is not 54:** confirm the matching plugin version is loaded, restart the editor, and inspect the Unreal log for module registration. The previous compatibility packages expose 53 tools.
+- **Tool count is not 55:** confirm the matching plugin version is loaded, restart the editor, and inspect the Unreal log for module registration. The previous compatibility packages expose 53 tools.
 - **Plugin asks to rebuild:** install the package matching the exact UE minor version; never mix Binaries or `.modules` files between versions.
 - **Safety rejection:** read the blocker list, load reported dependents, remove unsafe bindings, and repeat the dry run.
 - **Asset is dirty but unchanged on disk:** expected; compile, review, then call `SaveAsset` explicitly.
@@ -136,4 +136,4 @@ MCPBlueprint does not require a vendor cloud service and does not include analyt
 
 *Node-focused capture of the same persisted function, showing Subtract → Multiply → Divide → Result. Two views are used because UE 5.2's off-screen graph-widget full-frame capture can omit far-right node bodies; the graph read-back, compile, save, close, and reopen checks cover the complete chain.*
 
-The first seven newly added files and the final two arithmetic images are real graph captures. Some draft frames contain localized Chinese editor guidance or development-only node banners, so they are internal evidence rather than the final English Fab gallery. The set does not yet include separate captures of the toolbar endpoint, the current 54-tool protocol response, variable Category/Tooltip Details, the reload dry-run/approval result, save/reopen state, or a safety rejection/Undo result.
+The first seven newly added files and the final two arithmetic images are real graph captures. Some draft frames contain localized Chinese editor guidance or development-only node banners, so they are internal evidence rather than the final English Fab gallery. The set does not yet include separate captures of the toolbar endpoint, the current 55-tool protocol response, variable Category/Tooltip Details, signature/reload dry-run and approval results, save/reopen state, or a safety rejection/Undo result.

@@ -91,7 +91,7 @@ Compile 是运行验证的前置条件，不是终点。每个修改阶段都必
 
 结果证据应包含可机器读取的调用输出或属性读回；仅看图、日志中的 Compile Success 或节点计数均不算运行时证明。
 
-当前 54 个 MCPBlueprint 工具没有通用的“调用任意 Blueprint 函数”工具。`ReloadBlueprintFromDisk` 只解决独立 Blueprint 的磁盘状态重载与对象重取，不提供运行时函数调用。下一任务必须在搭建 100+ 节点前先选定并验证一个隔离运行入口，例如：自动化测试直接调用生成类、专用 Caller Blueprint 通过可控事件执行，或隔离测试地图中的 PIE harness。运行入口、触发方式和结果读回方式必须写入场景设计；如果入口本身尚不可用，应先把它作为独立前置能力完成，不能用 Compile Success 代替执行。
+当前 55 个 MCPBlueprint 工具没有通用的“调用任意 Blueprint 函数”工具。`ReloadBlueprintFromDisk` 只解决独立 Blueprint 的磁盘状态重载与对象重取，不提供运行时函数调用；`ModifyFunctionSignature` 只负责安全修改可编辑用户函数签名并更新普通 Caller，也不执行函数。下一任务必须在搭建 100+ 节点前先选定并验证一个隔离运行入口，例如：自动化测试直接调用生成类、专用 Caller Blueprint 通过可控事件执行，或隔离测试地图中的 PIE harness。运行入口、触发方式和结果读回方式必须写入场景设计；如果入口本身尚不可用，应先把它作为独立前置能力完成，不能用 Compile Success 代替执行。
 
 ## 7. 截图交付规范
 

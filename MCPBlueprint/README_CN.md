@@ -12,11 +12,11 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 
 服务器实现 `initialize`、`tools/list`、`tools/call` 和 `ping`。写操作在游戏线程执行；引擎支持时会纳入编辑器事务以便 Undo；修改只把资产标记为 Dirty，不会自动保存到磁盘。
 
-当前注册的 54 个工具均由编辑器自动化 Schema/调用矩阵覆盖：逐一检查等价于 `tools/list` 的定义是否拥有可序列化且边界闭合的输入 Schema、非空且唯一的名称和非空描述，并在注册表边界验证未知字段与缺失必填字段均被拒绝。零必填工具必须先显式归类为安全只读，才允许以空对象调用；不完整的操作专用 `oneOf`/`const` 分支同样会在真正执行前被拒绝。
+当前注册的 55 个工具均由编辑器自动化 Schema/调用矩阵覆盖：逐一检查等价于 `tools/list` 的定义是否拥有可序列化且边界闭合的输入 Schema、非空且唯一的名称和非空描述，并在注册表边界验证未知字段与缺失必填字段均被拒绝。零必填工具必须先显式归类为安全只读，才允许以空对象调用；不完整的操作专用 `oneOf`/`const` 分支同样会在真正执行前被拒绝。
 
 请求必须使用 JSON-RPC `2.0`，且 `params` 与工具 `arguments` 必须是对象。浏览器风格的 `Origin` 仅允许 `localhost`、`127.0.0.1` 或 `[::1]`；非浏览器客户端可以不发送 `Origin`。
 
-## 工具（54 个）
+## 工具（55 个）
 
 ### 发现与读取
 
@@ -43,7 +43,7 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 | 工具 | 用途 |
 |---|---|
 | `AddVariable` / `ModifyVariable` / `RemoveVariable` | 管理蓝图成员变量；`ModifyVariable` 还可事务化更新 `Category` 与 `Tooltip`。 |
-| `CreateFunction` / `RenameFunction` / `RemoveFunction` | 创建、安全门禁重命名或安全删除函数图。重命名默认只做 dry-run 影响分析，更新引用前必须显式批准。 |
+| `CreateFunction` / `RenameFunction` / `ModifyFunctionSignature` / `RemoveFunction` | 创建、安全门禁重命名、安全修改可编辑用户函数签名或安全删除函数图。重命名与签名修改默认只做 dry-run 影响分析，更新引用前必须显式批准。 |
 | `CreateCustomEvent` / `AddEventNode` / `AddBoundEvent` | 添加自定义事件、引擎事件、组件事件或关卡 Actor 事件。 |
 | `AddLocalVariable` / `RemoveLocalVariable` | 添加或安全删除函数局部变量；添加后，在该变量所属的精确函数图中按名称搜索，以取得 Action Registry 支持的 `LocalGet` 与 `LocalSet` 动作。 |
 | `AddNodePin` / `RemoveNodePin` | 为 Sequence、容器和 Switch 等节点添加或删除受支持的动态 Pin。 |
@@ -51,6 +51,8 @@ Fab 英文商品文案草稿、当前逐版本兼容矩阵、安装步骤、7 �
 | `AddEventDispatcher` / `RemoveEventDispatcher` | 创建或安全删除多播事件分发器及其签名。 |
 
 调用 `RenameFunction` 时，省略 `bDryRun`（或设为 `true`）只会返回稳定 Graph GUID、有界的本地/外部引用计数、受影响 Blueprint、未加载派生类与阻断项，不产生修改。正式执行必须同时传入 `bDryRun=false` 与 `bApproveReferenceUpdates=true`。首版会主动拒绝 override/受保护函数、RepNotify 函数、不完整引用扫描、未加载派生 Blueprint、`CreateDelegate` 绑定，以及在声明 Blueprint、已加载依赖或 Asset Registry 外部引用项中发现 AnimBlueprint/AnimGraph 状态的情况，即使普通节点引用计数为 0 也会阻断。该门禁采用 fail-closed，因为 UE 5.4+ 可能改写目前无法完整扫描或事务恢复的嵌套函数属性绑定。成功执行会保留 `FunctionGraphGuid`、确认旧名称引用归零、编译全部受影响 Blueprint、纳入 Undo、只标记 Dirty，绝不自动保存。
+
+`ModifyFunctionSignature` 每次只接受 `AddInput`、`AddOutput`、`RenamePin`、`RemovePin` 或 `ChangePinType` 之一。声明必须同时用精确 `FunctionName` 与稳定 `FunctionGraphGuid` 定位；既有参数只能使用 `GetGraphDetail` 返回的 `PinId` 选择，名字仅供显示，不作为身份。省略 `bDryRun` 时只扫描普通本地/外部 Caller、Asset Registry 引用、派生类、Delegate/不透明绑定、编译基线、不兼容类型连接和阻断项，不修改资产。正式执行必须传入 `bDryRun=false` 与 `bApproveReferenceUpdates=true`；`RemovePin`、`ChangePinType` 还必须额外传入 `bAllowPotentialDataLoss=true`。成功执行会核验完整声明/Caller Pin 契约：重命名只允许名字变化，目标 PinId、完整 `FEdGraphPinType` 语义、默认值和连线必须保留；兼容的类型/默认值变化必须保留目标 PinId 与连线；新增必须在声明和 Caller 生成匹配 Pin 与 Caller 输入默认值；删除只允许移除已批准目标及其连线。任何非目标 PinId、方向、完整类型限定（category/subcategory/object/container/reference/const/weak）、字符串默认值、稳定 DefaultObject 路径、文本默认值、相对顺序或连接端点发生变化都会整笔回滚；输出 Pin 不承担 Caller 输入默认值契约。不兼容的已连接类型变化会被阻断，不会静默断线。之后重建普通调用节点、编译全部受影响 Blueprint、支持一次 Undo、只标记 Dirty，绝不自动保存。override/interface/RepNotify 函数、缺少 Generated/Skeleton Class、不可验证编译状态、已加载或未加载的派生 Blueprint、不完整扫描、非普通调用引用、`CreateDelegate` 以及 AnimBlueprint/AnimGraph 候选均按 fail-closed 拒绝。首个安全单元有意不包含 Pin 重排。
 
 函数局部变量动作同时受函数图 GUID 和局部变量声明 GUID 约束。`SearchGraphNodes` 只会在声明图中返回 `LocalGet:<GraphGuidDigits>:<LocalVarGuidDigits>` 与 `LocalSet:<GraphGuidDigits>:<LocalVarGuidDigits>`；Setter 提供 `execute`、`then`、同名变量值输入和 `Output_Get`。必须把搜索返回的精确 ID 交给 `ApplyGraphPatch`；跨图、过期或伪造的 GUID 组合会 fail-closed，节点放置则复用原始 Action Registry Spawner，以保留 Unreal 原生局部作用域。
 
@@ -313,7 +315,7 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 
 [`Images/Fab`](./Images/Fab/) 中的 PNG 均由真实 Unreal Blueprint Graph 控件直接捕获，未合成伪 UI，也不含本机文件路径。各图说明与对应工作流见 [FAB_LISTING.md](./FAB_LISTING.md)。这些图片不会被描述为 HTTP 响应或变量 Details 面板截图。算术节点使用两张真实画面共同证明持久化后的 Real/Double `Add → Subtract → Multiply → Divide → Result` 链：全图缩放图覆盖左侧与中段，节点聚焦图覆盖 `Subtract → Multiply → Divide → Result`；原因是 UE 5.2 的离屏 Graph Widget 全图捕获有时不绘制最右侧节点本体。
 
-当前 54 工具源码已通过 UE 5.2 编译。`MCPBlueprint.Asset.ReloadBlueprintFromDiskSafety` 在真实非 NullRHI 编辑器中通过，覆盖已落盘 Blueprint 的未保存内存状态、dry-run 对对象身份/Dirty/编辑器/Undo 的零改变、两道批准分别拒绝、编译/保存忙状态、无磁盘文件和错误类型拒绝、真实关闭编辑器、官方包替换、对象重新取得、恢复磁盘序列化状态、新 Package clean、引擎重置 Undo/Redo 历史以及可选重开编辑器。此前 `RenameFunction`、Struct/Enum、图表与 HTTP 回归对其测试提交仍然有效。当前文档中的 UE 5.2–5.8 打包/部署矩阵是 53 工具的历史结果；刷新矩阵前不会宣称 54 工具已完成跨版本等价验证。
+当前 55 工具源码已通过 UE 5.2 编译。`MCPBlueprint.Function.ModifySignatureSafety` 已在 NullRHI 与真实非 NullRHI 编辑器中通过，使用已落盘声明 Blueprint 与外部 Caller，覆盖 dry-run 零修改、显式批准、AddInput/AddOutput、保持 PinId/连线的重命名、数据风险门禁删除/改类型、一次 Undo、注入失败回滚，以及通过 UE 官方同批重载声明/Caller Package、按对象路径重新取得资产并验证引用修复后的持久化状态。`MCPBlueprint.Asset.ReloadBlueprintFromDiskSafety` 仍保留其独立的非 NullRHI 安全覆盖。此前 `RenameFunction`、Struct/Enum、图表与 HTTP 回归对其测试提交仍然有效。当前文档中的 UE 5.2–5.8 打包/部署矩阵是 53 工具的历史结果；刷新矩阵前不会宣称 55 工具已完成跨版本等价验证。
 
 打包验证证明各目标引擎可以编译插件并获得预期目录结构，但不能替代每个引擎版本内对全部 MCP 操作的运行时验证。其余工具的跨版本真实编辑器回归、保存/重启持久化与清理行为仍会继续推进。
 
@@ -326,7 +328,7 @@ Before 与 After 均为 2560×1440、1:1 缩放，并以未移动的 Region Swit
 
 开发已恢复，并继续按可独立验证的有界单元推进。当前描述性变量元数据单元覆盖 `Category` 与 `Tooltip`；以下条目是剩余方向，不代表具体版本或日期承诺。
 
-- **成员签名与重构：** 安全修改函数签名与标志，并把同一安全模型扩展到 Custom Event 和 Event Dispatcher 签名。
+- **事件签名与重构：** 把已验证的函数签名安全模型扩展到 Custom Event 和 Event Dispatcher 签名与标志。
 - **剩余变量元数据：** 扩展变量编辑，覆盖访问控制、Expose on Spawn、SaveGame、复制和 RepNotify 等设置。
 - **图表生命周期与影响分析：** 创建、重命名和删除受支持的图表类型；移除已实现接口；重构前查询引用与受影响资产。
 - **蓝图类型：** 创建 Blueprint Interface、Function Library、Macro Library 等其他蓝图资产类型。
