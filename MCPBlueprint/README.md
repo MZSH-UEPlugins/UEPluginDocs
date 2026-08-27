@@ -85,9 +85,37 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 The resulting graph should be one connected left-to-right component with zero overlap, zero backward edges, and no invented node IDs.
 
-![CalculateScore created and laid out by MCPBlueprint](./Images/Tutorial/calculate-score.png)
+## Real editor screenshots and business-rule comparisons
 
-The screenshot is a real UE 5.2 Blueprint Graph captured from the persisted tutorial asset after registry-backed node creation, connection read-back, successful compilation, and automatic layout.
+These images were captured from the actual UE 5.2 Blueprint Editor window. They do not use the off-screen graph PNG path that caused missing Slate brushes and black/white square artifacts.
+
+### Normal graph example
+
+The persisted `CalculateScore` tutorial function contains registry-backed Add and Multiply nodes, complete data/exec connections, successful compilation, and automatic layout.
+
+![CalculateScore in the normal Blueprint Editor](./Images/Tutorial/calculate-score.png)
+
+### Change 1: points exclude shipping
+
+Before: `PointsEarned = TotalCents / 100`.
+
+![Before excluding shipping from points](./Images/Tutorial/points-before.png)
+
+After: `PointsEarned = (TotalCents - ShippingCents) / 100`. The same viewport shows the newly inserted Subtract node and the preserved Divide and Result nodes.
+
+![After excluding shipping from points](./Images/Tutorial/points-after.png)
+
+### Change 2: first-order discount changes from fixed value to 5% of subtotal
+
+Before: the function passes the fixed discount through a typed Add-with-zero baseline.
+
+![Before changing the first-order discount rule](./Images/Tutorial/discount-before.png)
+
+After: the fixed-value path is replaced by `SubtotalCents / 20`, producing a 5% discount while keeping the same function output and graph frame.
+
+![After changing the first-order discount rule](./Images/Tutorial/discount-after.png)
+
+Both comparisons are real structural node/connection changes applied through dry-run, Action Registry search, one transactional patch, graph read-back, successful compilation, and explicit save. They are controlled production-style business examples, not customer project data and not layout-only Before/After claims.
 
 ## Discover assets and graphs
 

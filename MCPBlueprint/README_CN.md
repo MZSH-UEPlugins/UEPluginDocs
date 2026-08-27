@@ -85,9 +85,37 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 最终图应形成一个从左到右的单一连通组件：无节点重叠、无反向边、没有任何编造的节点 ID。
 
-![MCPBlueprint 创建并自动布局的 CalculateScore](./Images/Tutorial/calculate-score.png)
+## 正常编辑器截图与业务规则修改对比
 
-该截图来自真实 UE 5.2 Blueprint Graph：节点通过 Action Registry 创建，连线已读回，编译成功，并由 MCPBlueprint 自动布局后保存。
+以下图片直接截取自真实 UE 5.2 Blueprint Editor 窗口，没有使用会导致 Slate Brush 缺失和黑白方块伪影的离屏 Graph PNG 路径。
+
+### 正常图表示例
+
+已保存的 `CalculateScore` 教程函数包含 Action Registry 创建的 Add 与 Multiply 节点、完整数据/执行连线、成功编译和自动布局。
+
+![正常 Blueprint Editor 中的 CalculateScore](./Images/Tutorial/calculate-score.png)
+
+### 修改 1：积分基数排除运费
+
+修改前：`PointsEarned = TotalCents / 100`。
+
+![积分排除运费之前](./Images/Tutorial/points-before.png)
+
+修改后：`PointsEarned = (TotalCents - ShippingCents) / 100`。同一视口可直接看到新增 Subtract 节点，以及保留的 Divide 和 Result 节点。
+
+![积分排除运费之后](./Images/Tutorial/points-after.png)
+
+### 修改 2：首单折扣由固定值改为小计 5%
+
+修改前：函数通过带零默认值的同类型 Add 节点传递固定折扣。
+
+![修改首单折扣规则之前](./Images/Tutorial/discount-before.png)
+
+修改后：固定值路径替换为 `SubtotalCents / 20`，得到小计 5% 折扣，同时保持相同函数输出和图表画幅。
+
+![修改首单折扣规则之后](./Images/Tutorial/discount-after.png)
+
+两组对比都是实际节点/连线修改：均执行 dry-run、Action Registry 搜索、单事务 Patch、图表读回、成功编译和显式保存。它们是受控的正式项目风格业务示例，不含客户项目数据，也不是只移动节点或调整布局的 Before/After。
 
 ## 查找资产与图表
 
