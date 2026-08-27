@@ -95,7 +95,23 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 ![正常 Blueprint Editor 中的 CalculateScore](./Images/Tutorial/calculate-score.png)
 
-### 修改 1：积分基数排除运费
+### 复杂正式业务流程全图
+
+`EvaluateOrderBatchV2` 是一个包含 71 个节点的订单结算函数。同一张连通图中完成订单行累计、客户等级与首单折扣、地区运费、税费、人工复核决策、积分与风险分数，以及最终结算结果装配。
+
+![正常 Blueprint Editor 中的完整订单结算流程](./Images/Tutorial/order-settlement-complex.png)
+
+### 修改 1：Region 1 增加首单免运费
+
+修改前：Region 1 直接执行 `ShippingCents = 1000`，首单判断分支不在执行路径中。
+
+![Region 1 增加首单免运费之前](./Images/Tutorial/order-region1-before.png)
+
+修改后：Region 1 先进入 `FirstOrder` 分支；首单执行 `ShippingCents = 0`，非首单保留原来的 `ShippingCents = 1000` 规则。
+
+![Region 1 增加首单免运费之后](./Images/Tutorial/order-region1-after.png)
+
+### 修改 2：积分基数排除运费
 
 修改前：`PointsEarned = TotalCents / 100`。
 
@@ -105,7 +121,7 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 ![积分排除运费之后](./Images/Tutorial/points-after.png)
 
-### 修改 2：首单折扣由固定值改为小计 5%
+### 修改 3：首单折扣由固定值改为小计 5%
 
 修改前：函数通过带零默认值的同类型 Add 节点传递固定折扣。
 
@@ -115,7 +131,7 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 ![修改首单折扣规则之后](./Images/Tutorial/discount-after.png)
 
-两组对比都是实际节点/连线修改：均执行 dry-run、Action Registry 搜索、单事务 Patch、图表读回、成功编译和显式保存。它们是受控的正式项目风格业务示例，不含客户项目数据，也不是只移动节点或调整布局的 Before/After。
+三组对比展示的都是真实节点、默认值或连线变化，不是只移动节点或调整布局。对比图使用固定视口与稳定节点身份，并完成图表读回、成功编译和显式保存。若 dry-run 无法在不写入时证明生成 Pin 状态，则先核对现有 GUID 与连线，再执行单事务修改并在修改后再次验证。这些示例是受控的正式项目风格业务流程，不含客户项目数据。
 
 ## 查找资产与图表
 

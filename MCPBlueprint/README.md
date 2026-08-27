@@ -95,7 +95,23 @@ The persisted `CalculateScore` tutorial function contains registry-backed Add an
 
 ![CalculateScore in the normal Blueprint Editor](./Images/Tutorial/calculate-score.png)
 
-### Change 1: points exclude shipping
+### Complex production-style workflow
+
+`EvaluateOrderBatchV2` is a 71-node order-settlement function. One connected graph accumulates order lines, applies customer-tier and first-order discounts, selects regional shipping, calculates tax, assigns a review decision, computes points and risk, and assembles the final settlement result.
+
+![Complete order-settlement workflow in the normal Blueprint Editor](./Images/Tutorial/order-settlement-complex.png)
+
+### Change 1: Region 1 adds first-order free shipping
+
+Before: Region 1 goes directly to `ShippingCents = 1000`; the first-order branch is not part of the execution path.
+
+![Before adding first-order free shipping to Region 1](./Images/Tutorial/order-region1-before.png)
+
+After: Region 1 enters the `FirstOrder` branch. First orders set `ShippingCents = 0`; other orders keep the original `ShippingCents = 1000` rule.
+
+![After adding first-order free shipping to Region 1](./Images/Tutorial/order-region1-after.png)
+
+### Change 2: points exclude shipping
 
 Before: `PointsEarned = TotalCents / 100`.
 
@@ -105,7 +121,7 @@ After: `PointsEarned = (TotalCents - ShippingCents) / 100`. The same viewport sh
 
 ![After excluding shipping from points](./Images/Tutorial/points-after.png)
 
-### Change 2: first-order discount changes from fixed value to 5% of subtotal
+### Change 3: first-order discount changes from fixed value to 5% of subtotal
 
 Before: the function passes the fixed discount through a typed Add-with-zero baseline.
 
@@ -115,7 +131,7 @@ After: the fixed-value path is replaced by `SubtotalCents / 20`, producing a 5% 
 
 ![After changing the first-order discount rule](./Images/Tutorial/discount-after.png)
 
-Both comparisons are real structural node/connection changes applied through dry-run, Action Registry search, one transactional patch, graph read-back, successful compilation, and explicit save. They are controlled production-style business examples, not customer project data and not layout-only Before/After claims.
+All three comparisons show real node, default-value, or connection changes rather than layout-only edits. The compared states use fixed viewports, stable node identities, graph read-back, successful compilation, and explicit save. When dry-run cannot prove generated-pin state without mutation, the existing GUIDs and links are inspected before the single transaction and verified again afterward. These are controlled production-style business examples, not customer project data.
 
 ## Discover assets and graphs
 
