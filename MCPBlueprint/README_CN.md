@@ -6,7 +6,7 @@ MCPBlueprint 通过 MCP 向 AI 客户端提供蓝图发现、图表编辑、成�
 
 ## 要求与安装
 
-- Unreal Engine 5.2–5.8，Win64 Editor。
+- Unreal Engine 5.2+ Editor，支持 Windows、macOS 和 Linux。
 - 支持本机 HTTP 服务的 MCP 客户端。
 - 插件包必须与 Unreal Engine 的小版本完全一致。
 
@@ -198,7 +198,7 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 ## 当前限制
 
-- 仅支持 Win64 Editor，不提供 Runtime/Shipping 模块。
+- 目标平台为 Windows、macOS 和 Linux Editor；不提供 Runtime/Shipping 模块。各平台二进制以 Fab 官方构建结果作为发布门禁。
 - 暂无“调用任意 Blueprint 函数并返回运行结果”的通用工具。
 - Custom Event 和 Event Dispatcher 的签名修改能力尚未达到普通函数签名修改的完整程度。
 - 某些 Blueprint Action 类型存在无法完整扫描或事务恢复的状态，此时会 fail-closed。

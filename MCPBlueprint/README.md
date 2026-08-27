@@ -6,7 +6,7 @@ MCPBlueprint exposes Blueprint discovery, graph editing, members, components, as
 
 ## Requirements and installation
 
-- Unreal Engine 5.2–5.8, Win64 Editor.
+- Unreal Engine 5.2+ Editor on Windows, macOS, or Linux.
 - An MCP client that supports local HTTP servers.
 - The package must match the exact Unreal Engine minor version.
 
@@ -198,7 +198,7 @@ Open **Project Settings → Plugins → MCP Blueprint**:
 
 ## Known limits
 
-- Win64 Editor only; no runtime/shipping module.
+- Windows, macOS, and Linux Editor targets; no runtime/shipping module. Fab's official build pipeline is the release gate for platform binaries.
 - No generic tool for invoking an arbitrary Blueprint function and returning its runtime result.
 - Custom Event and Event Dispatcher signature mutation is not yet as complete as ordinary function-signature mutation.
 - Some Blueprint action types expose state that cannot yet be scanned or restored transactionally and therefore fail closed.
