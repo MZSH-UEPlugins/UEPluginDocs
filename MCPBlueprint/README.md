@@ -18,13 +18,13 @@ Install MCPBlueprint once for each engine:
 
 MCPBlueprint is an engine-level optional editor tool. Its descriptor uses `Installed=true` and `EnabledByDefault=true`. Do not copy it into every project and do not add it to a user project's `.uproject`. After replacing an installed package, restart that engine's editor.
 
-## Connect
+## Connect your AI client
 
-1. Open any project with an engine where MCPBlueprint is installed.
-2. Confirm **Project Settings → Plugins → MCP Blueprint**.
-3. Keep **Auto Start** enabled, or start the server from the plugin toolbar.
-4. Add `http://127.0.0.1:8766/mcp` to the MCP client. If the configured port is occupied, MCPBlueprint tries up to nine higher ports and the toolbar shows the actual endpoint.
-5. Call `initialize`, `tools/list`, and `ping` before editing assets.
+MCPBlueprint is enabled automatically and starts its local MCP server when the editor starts. Users do not need to enable it in each project or add it to a project's `.uproject`.
+
+Ask your AI client to configure MCPBlueprint through that client's own MCP setup flow. Give it the endpoint shown by the plugin toolbar; the default is `http://127.0.0.1:8766/mcp`, and MCPBlueprint tries up to nine higher ports when the configured port is occupied. Configuration formats differ between AI clients, so this guide does not prescribe a client-specific JSON file or manual port procedure.
+
+The MCP client normally performs `initialize` and `tools/list` automatically. `ping` is useful for troubleshooting, not a routine manual step for users.
 
 The server binds to the local machine. Browser-style `Origin` headers are accepted only for `localhost`, `127.0.0.1`, and `[::1]`; ordinary non-browser MCP clients may omit `Origin`.
 

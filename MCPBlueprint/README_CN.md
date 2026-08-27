@@ -18,13 +18,13 @@ MCPBlueprint 通过 MCP 向 AI 客户端提供蓝图发现、图表编辑、成�
 
 MCPBlueprint 是跟随引擎安装的可选编辑器工具。`.uplugin` 使用 `Installed=true` 和 `EnabledByDefault=true`。不要把它重复复制进每个项目，也不要向用户项目的 `.uproject` 添加 MCPBlueprint。替换引擎中的插件包后，应重启对应版本的编辑器。
 
-## 连接
+## 连接 AI 客户端
 
-1. 使用已安装 MCPBlueprint 的引擎打开任意项目。
-2. 确认 **项目设置 → 插件 → MCP Blueprint**。
-3. 保持 **Auto Start** 开启，或通过插件工具栏启动服务器。
-4. 在 MCP 客户端中添加 `http://127.0.0.1:8766/mcp`。配置端口被占用时，MCPBlueprint 最多尝试后续九个端口，工具栏会显示实际端点。
-5. 修改资产前，先调用 `initialize`、`tools/list` 和 `ping`。
+MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP 服务。用户不需要在每个项目中手动启用插件，也不需要向项目 `.uproject` 添加插件声明。
+
+让你使用的 AI 客户端按照自身的 MCP 配置流程接入 MCPBlueprint，并把插件工具栏显示的端点交给它即可。默认端点为 `http://127.0.0.1:8766/mcp`；配置端口被占用时，MCPBlueprint 最多尝试后续九个端口。不同 AI 客户端的配置格式不同，因此本文不规定某个客户端专用的 JSON 文件或手动端口配置步骤。
+
+`initialize` 和 `tools/list` 通常由 MCP 客户端自动完成；`ping` 只用于排障，不是普通用户每次都要手动执行的步骤。
 
 服务器只绑定本机。浏览器风格的 `Origin` 只允许 `localhost`、`127.0.0.1` 和 `[::1]`；普通非浏览器 MCP 客户端可以省略 `Origin`。
 
