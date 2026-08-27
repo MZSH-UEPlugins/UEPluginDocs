@@ -2,83 +2,145 @@
 
 # MCPBlueprint 用户教程
 
-MCPBlueprint 通过 MCP 向 AI 客户端提供蓝图发现、图表编辑、成员、组件、资产生命周期、编译反馈和图表截图能力。本教程只说明用户操作流程；当前编辑器会话中真实可用的工具名和参数以 `tools/list` 返回结果为准。
+MCPBlueprint 通过 MCP 向 AI 客户端提供蓝图发现、图表编辑、成员、组件、资产生命周期、编译反馈和图表截图能力。当前编辑器会话中真实可用的工具名和参数始终以 `tools/list` 返回结果为准。
+
+## 要求与安装
+
+- Unreal Engine 5.2–5.8，Win64 Editor。
+- 支持本机 HTTP 服务的 MCP 客户端。
+- 插件包必须与 Unreal Engine 的小版本完全一致。
+
+每个引擎只安装一次 MCPBlueprint：
+
+```text
+<UE_5.x>/Engine/Plugins/Marketplace/MCPBlueprint/
+```
+
+MCPBlueprint 是跟随引擎安装的可选编辑器工具。`.uplugin` 使用 `Installed=true` 和 `EnabledByDefault=true`。不要把它重复复制进每个项目，也不要向用户项目的 `.uproject` 添加 MCPBlueprint。替换引擎中的插件包后，应重启对应版本的编辑器。
 
 ## 连接
 
-1. 将 MCPBlueprint 安装并启用为引擎插件。
-2. 打开 **项目设置 → 插件 → MCP Blueprint**。
+1. 使用已安装 MCPBlueprint 的引擎打开任意项目。
+2. 确认 **项目设置 → 插件 → MCP Blueprint**。
 3. 保持 **Auto Start** 开启，或通过插件工具栏启动服务器。
-4. 在 MCP 客户端中添加 `http://127.0.0.1:8766/mcp`。配置端口被占用时，MCPBlueprint 会尝试后续端口，工具栏会显示实际端点。
-5. 修改资产前，先让客户端调用 `initialize`、`tools/list` 和 `ping`。
+4. 在 MCP 客户端中添加 `http://127.0.0.1:8766/mcp`。配置端口被占用时，MCPBlueprint 最多尝试后续九个端口，工具栏会显示实际端点。
+5. 修改资产前，先调用 `initialize`、`tools/list` 和 `ping`。
 
-服务器只接受本机 HTTP MCP 请求。浏览器风格的 `Origin` 只允许 `localhost`、`127.0.0.1` 和 `[::1]`；普通非浏览器 MCP 客户端可以省略 `Origin`。
+服务器只绑定本机。浏览器风格的 `Origin` 只允许 `localhost`、`127.0.0.1` 和 `[::1]`；普通非浏览器 MCP 客户端可以省略 `Origin`。
 
-## 推荐流程
+## 当前已完成功能
 
-每次写操作都使用同一顺序：
+当前版本注册 55 个工具：
 
-1. **检查** — 用读取工具确定精确的资产、图、节点 GUID、Pin、成员或组件。
-2. **预览** — 工具支持 `bDryRun` 时，对完全相同的目标操作先执行 dry-run，检查 blocker、受影响资产和规范化操作。
-3. **应用** — 只发送一次已批准写入，不伪造节点 SpawnerId 或稳定 GUID。
-4. **读回** — 再次查询目标图或资产，核对值、节点、Pin、连线或名称。
-5. **编译** — 获取权威编译状态和诊断。
-6. **显式保存** — 写工具会把支持的资产标脏，但不会静默保存。
+| 能力 | 数量 | 工具 |
+|---|---:|---|
+| 发现与读取 | 6 | `ListBlueprints`、`GetBlueprintOverview`、`ListBlueprintMembers`、`GetGraphDetail`、`SearchGraphNodes`、`GetCompileErrors` |
+| User Defined Struct 与 Enum | 6 | `CreateUserDefinedStruct`、`GetUserDefinedStruct`、`ModifyUserDefinedStruct`、`CreateUserDefinedEnum`、`GetUserDefinedEnum`、`ModifyUserDefinedEnum` |
+| 变量、函数、事件与 Pin | 17 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`RenameFunction`、`ModifyFunctionSignature`、`RemoveFunction`、`CreateCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`AddEventDispatcher`、`RemoveEventDispatcher` |
+| 图表编辑与布局 | 4 | `ApplyGraphPatch`、`SetPinDefaults`、`FormatGraph`、`AddCommentBox` |
+| 组件与默认值 | 11 | `GetComponents`、`AddComponent`、`SetComponentProperties`、`RenameComponent`、`RemoveComponent`、`ReparentComponent`、`SetRootComponent`、`DuplicateComponent`、`GetComponentProperties`、`GetClassDefaults`、`SetClassDefaults` |
+| 资产生命周期与截图 | 11 | `CreateBlueprint`、`ReparentBlueprint`、`CompileBlueprint`、`SaveAsset`、`OpenAsset`、`CloseAsset`、`ReloadBlueprintFromDisk`、`DeleteAsset`、`RenameAsset`、`DuplicateAsset`、`CaptureGraphScreenshot` |
 
-函数重命名、函数签名修改、可能破坏数据的 Struct/Enum 编辑和磁盘重载等高风险操作使用显式批准参数。工具返回 blocker 代表拒绝，不代表可以绕过门禁。
+已完成的行为包括：
+
+- 大型资产、成员、图表和 Pin 读取的稳定有界分页。
+- 使用 Action Registry 返回的节点 ID，而不是编造节点类型。
+- 原子图表 Patch：创建、连接、断开、删除、移动、默认值和布局。
+- `Balanced`、`Straight`、`Compact` 三种确定性布局风格。
+- 局部和全图布局中的原生 Comment Box 包围关系保护。
+- 高风险修改的 dry-run 影响分析和显式批准门禁。
+- 编译/读回验证、事务回滚，以及 Unreal 支持范围内的单步 Undo。
+- 显式保存：写工具只把资产标脏，不会静默保存。
+- 无需项目声明即可从引擎目录自动发现并加载。
+
+## 推荐操作流程
+
+所有写操作都使用同一顺序：
+
+1. **检查** — 确定精确资产、图、稳定 GUID、Pin、成员或组件。
+2. **搜索** — 通过 `SearchGraphNodes` 获取合法 `SpawnerId`。
+3. **预览** — 工具支持时使用 `bDryRun=true`，检查受影响资产、规范化操作、限制和 blocker。
+4. **应用** — 只发送一次已审阅操作，不编造 GUID 或 `SpawnerId`。
+5. **读回** — 再次查询目标图或资产并比较预期状态。
+6. **编译** — 获取权威状态、错误和警告。
+7. **显式保存** — 只有用户需要持久化时才调用 `SaveAsset`。
+
+Dry-run 可能报告 Action Registry 节点、生成 Pin、类型提升或精确修改后布局无法在不写入时证明。这是预览能力的真实限制，不是自动写入许可；应用前仍须核对当前图和精确的 `SearchGraphNodes` 返回结果。
+
+## 教程：创建计算函数
+
+下面的示例创建：
+
+```text
+FinalScore = (BaseScore + Bonus) × Multiplier
+```
+
+1. 用 `CreateBlueprint` 创建 Actor 蓝图。
+2. 用 `CreateFunction` 创建 `CalculateScore`，包含三个 `double` 输入和一个 `double` 输出。
+3. 用 `GetGraphDetail` 读取新函数并记录 Entry/Result 节点 GUID。
+4. 在这个函数图中搜索 `Add` 和 `Multiply`，使用返回的 `Operator:Add` 和 `Operator:Multiply`。
+5. 预览一个同时包含两个节点和五条数据连接的 `ApplyGraphPatch`。
+6. 对完全相同的 Patch 执行写入，使用原生 `double` 类型提升和自动 `Balanced` 布局。
+7. 读回四个节点和六条连线，编译并显式保存。
+
+最终图应形成一个从左到右的单一连通组件：无节点重叠、无反向边、没有任何编造的节点 ID。
+
+![MCPBlueprint 创建并自动布局的 CalculateScore](./Images/Tutorial/calculate-score.png)
+
+该截图来自真实 UE 5.2 Blueprint Graph：节点通过 Action Registry 创建，连线已读回，编译成功，并由 MCPBlueprint 自动布局后保存。
 
 ## 查找资产与图表
 
-- 用 `ListBlueprints` 分页查找蓝图资产。
-- 用 `GetBlueprintOverview` 查看图表、变量、函数、组件、接口和父类。
+- 用 `ListBlueprints` 分页查找资产。
+- 用 `GetBlueprintOverview` 查看图、变量、函数、组件、接口和父类。
 - 用 `ListBlueprintMembers` 查看函数、自定义事件、事件分发器和局部变量。
-- 修改图表前，用 `GetGraphDetail` 获取当前节点 GUID、Pin、默认值、连线和坐标。
-- 写入后用 `GetCompileErrors` 获取编译状态和诊断。
+- 图表修改前后都用 `GetGraphDetail` 获取 GUID、Pin、默认值、连线和坐标。
+- 用 `GetCompileErrors` 或 `CompileBlueprint` 获取权威诊断。
 
-始终使用插件返回的精确资产路径。大型图应按有界详情读取，不要根据截图猜测结构。
+始终使用插件返回的精确资产路径。大型图应分页读取，不要根据截图推断结构。
 
 ## 安全添加图表逻辑
 
-1. 用 `GetGraphDetail` 读取目标图。
-2. 用 Unreal 英文动作名调用 `SearchGraphNodes`，例如 `Branch`、`For Loop`、`For Each Loop`、`Switch on Int`、`Add`、`Subtract`、`Multiply` 或 `Divide`。
-3. 把返回的 Action Registry `SpawnerId` 传给 `ApplyGraphPatch`，不得自行编造。
-4. 用 `bDryRun=true` 预览完整 Patch。
-5. 审阅全部 blocker 和规范化操作后，才对同一个 Patch 使用 `bDryRun=false`。
-6. 读回图表、编译并显式保存。
+使用 Unreal 英文动作名搜索，例如 `Branch`、`For Loop`、`For Each Loop`、`Switch on Int`、`Switch on Name`、`Switch on String`、`Add`、`Subtract`、`Multiply` 或 `Divide`。
 
-标准流程控制节点来自 Unreal 的真实 Action Registry。应通过 `GetGraphDetail` 核对返回节点的类型和 Pin，不要把截图当作结构证据。
+`ApplyGraphPatch` 支持：
 
-`ApplyGraphPatch` 可以在同一事务中有界地创建、删除、连接、断开、设置默认值、移动和布局节点。`FormatGraph` 用于整理现有图或选择集，`AddCommentBox` 用于为选中节点创建原生 Comment Box。用 `LayoutScope` 和 `LayoutStyle` 表达布局范围与风格，不要手动搬动无关节点。
+- 带临时 ID 和 Action Registry `SpawnerId` 的 `Nodes`。
+- `Connections` 与 `Disconnections`。
+- 通过稳定 Node GUID 定位的 `RemoveNodes`。
+- 通过稳定 Node GUID 和绝对图坐标定位的 `MoveNodes`。
+- 可选的 `PinDefaults`、`PromotedType`、布局范围和布局风格。
 
-### 一次调用或多次调用
+整个 Patch 只使用一个事务。任一步失败都会回滚目标图修改，不留下半成品。
 
-可以在一次 Patch 中完成节点创建与连接。
+## 成员、函数、Struct 与 Enum
 
-也可以先创建节点，再用下一次 Patch 建立连接；自动布局会根据真实连接重新组织图表。
+- 变量工具管理类型、默认值、Category、Tooltip 和安全删除。
+- 函数工具创建、重命名、执行受支持的签名修改，或安全删除用户函数。
+- 局部变量动作同时绑定函数图和声明 GUID。
+- Struct/Enum 修改使用稳定字段或条目标识，并报告引用影响。
+- 可能丢失数据或改变 Enum 序列化值语义的操作需要独立显式批准。
 
-目标图已经存在兼容事件时，应复用已有事件，不要创建重复事件。
+函数重命名和签名修改默认先分析影响。遇到不支持的 Override、不完整引用扫描、不透明 Delegate 绑定、未加载派生类或无法安全恢复的状态时会 fail-closed。
 
-## 成员、Struct 与 Enum
+## 组件与类默认值
 
-- 变量：`AddVariable`、`ModifyVariable`、`RemoveVariable`。
-- 函数：`CreateFunction`、`RenameFunction`、`ModifyFunctionSignature`、`RemoveFunction`。
-- 事件与分发器：`CreateCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddEventDispatcher`、`RemoveEventDispatcher`。
-- 局部变量：先添加或删除声明，再使用 `SearchGraphNodes` 返回的函数作用域 Local Get/Set 动作。
-- User Defined Struct 与 Enum：通过稳定字段或条目标识创建、读取和修改。
+添加、重命名、复制、重设父级、设置根组件、修改模板属性或删除组件前，先读取当前组件层级。类默认值工具读取或修改支持的 Blueprint 默认值，不会把实例值冒充为类默认值。
 
-先预览引用影响，再按工具响应要求提供批准参数；当操作可能丢弃序列化数据、改变 Enum 值语义或更新外部调用者时尤其如此。
+## 资产生命周期
 
-## 组件与资产生命周期
+资产工具可以创建、复制、重命名、重设父类、编译、打开、关闭、重载、删除和保存支持的蓝图资产。
 
-组件工具用于管理 Actor 蓝图的 SCS 组件及其模板属性。添加、重命名、重设父级、复制、设置根组件或删除组件前，先读取当前组件树。
-
-资产生命周期工具可以创建、复制、重命名、重设父类、删除、打开、关闭、重载、编译和保存支持的蓝图资产。从磁盘重载前使用 dry-run 或显式批准丢弃内存改动；编译成功不代表内存修改已经保存。
+- 编译成功不代表资产已经持久化。
+- 磁盘重载默认 dry-run，丢弃内存状态前必须显式批准。
+- 破坏性删除比普通图修改具有更严格的 Undo/Redo 和 Package 安全要求。
+- 只有 UObject、Asset Registry 和磁盘检查一致时才能报告成功。
 
 ## 截取图表
 
-只有在图表已经读回并编译后，才使用 `CaptureGraphScreenshot`。优先选择文字、Pin 和连线可读的全图或节点聚焦画面，不要为追求全景把缩放降到不可读。需要对比画幅时，复用响应中的视图位置、缩放、宽高和 Viewport Token。
+先调用 `OpenAsset`，再使用 `CaptureGraphScreenshot`。优先选择文字、Pin 和连线可读的全图或节点聚焦画面。需要可比较画幅时，复用返回的视图位置、缩放、尺寸和 Viewport Token。
 
-本教程中的截图只用于说明最终用户操作。开发验收、历史对比、发布准备和被否决的截图不保存在插件仓库。
+截图工具要求真正初始化的蓝图图表编辑器控件。完全无界面或尺寸为零的 Graph Widget 会被拒绝，不会生成误导性的空白图。
 
 ## 设置
 
@@ -88,15 +150,38 @@ MCPBlueprint 通过 MCP 向 AI 客户端提供蓝图发现、图表编辑、成�
 - **Auto Start** — 随编辑器启动服务器。
 - **Auto Compile After Modify** — 支持的写操作完成后自动编译。
 - **Request Timeout Seconds** — 普通工具超时。
-- **Compile Timeout Seconds** — 编译工具独立超时。
+- **Compile Timeout Seconds** — 编译类工具独立超时。
+
+## 当前限制
+
+- 仅支持 Win64 Editor，不提供 Runtime/Shipping 模块。
+- 暂无“调用任意 Blueprint 函数并返回运行结果”的通用工具。
+- Custom Event 和 Event Dispatcher 的签名修改能力尚未达到普通函数签名修改的完整程度。
+- 某些 Blueprint Action 类型存在无法完整扫描或事务恢复的状态，此时会 fail-closed。
+- 截图需要真实初始化的 Blueprint Graph Editor 控件。
+
+## 后续开发与完善方向
+
+后续准备推进：
+
+1. 有界、隔离的通用 Blueprint 运行调用与结果读回能力。
+2. 带引用影响分析和回滚的 Custom Event / Event Dispatcher 安全签名编辑。
+3. 更深入的图生命周期、调用者/引用、继承和未加载资产影响检查。
+4. 支持更多 Blueprint 资产类型和更复杂的原生 Action Registry 节点。
+5. 补充连接、dry-run、批准、持久化、Undo 和拒绝场景的完整图文教程。
+
+详细优先级和验收证据以 AIHub 为准。以上是开发方向，不承诺具体发布日期。
 
 ## 故障排查
 
-- **无法连接：** 核对工具栏显示的端点，配置端口可能已被占用。
-- **找不到工具：** 刷新 `tools/list`，不要依赖旧缓存的工具列表。
-- **写入被拒绝：** 阅读返回的 blocker 或批准参数要求，重试前重新读取目标状态。
-- **编译失败：** 调用编译诊断工具，根据真实蓝图错误修复后再保存。
-- **图表结果异常：** 对比修改前后的 `GetGraphDetail`；适用时执行 Undo，然后重新读回。
+- **无法连接：** 使用工具栏显示的实际端点，配置端口可能已被占用。
+- **找不到工具：** 刷新 `tools/list`，不要依赖旧缓存。
+- **写入被拒绝：** 阅读所有 blocker 和批准参数要求，重试前重新读取目标。
+- **编译失败：** 获取编译诊断，根据真实蓝图错误修复后再保存。
+- **图表结果异常：** 对比前后的 `GetGraphDetail`，适用时执行 Undo。
+- **插件提示重建：** 安装与引擎小版本完全匹配的包。
+- **项目中找不到插件：** 核对插件是否安装在该引擎的 `Engine/Plugins/Marketplace`；不要用添加项目依赖的方式绕过。
+- **UE 5.5 提示项目文件过期，原因是已安装的 MCPBlueprint 不在项目描述符中：** 选择 **Not Now（暂不）**。引擎插件仍会自动加载；选择 **Update（更新）** 会把 MCPBlueprint 写入项目 `.uproject`，形成当前安装模式明确要避免的项目侧依赖。
 
 ## 支持
 
