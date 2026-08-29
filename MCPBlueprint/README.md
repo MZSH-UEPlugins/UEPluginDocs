@@ -2,230 +2,220 @@
 
 # MCPBlueprint User Guide
 
-MCPBlueprint exposes Blueprint discovery, graph editing, members, components, asset lifecycle operations, compile feedback, and graph capture to MCP-compatible AI clients. The live `tools/list` response is always authoritative for the exact tool and parameter surface in the current editor session.
+MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **55 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
 
 ## Requirements and installation
 
 - Unreal Engine 5.2+ Editor on Windows, macOS, or Linux.
-- An MCP client that supports local HTTP servers.
-- The package must match the exact Unreal Engine minor version.
+- An MCP client that supports a local HTTP server.
+- A package matching the exact Unreal Engine minor version.
 
-Install MCPBlueprint once for each engine:
+Install once per engine:
 
 ```text
 <UE_5.x>/Engine/Plugins/Marketplace/MCPBlueprint/
 ```
 
-MCPBlueprint is an engine-level optional editor tool. Its descriptor uses `Installed=true` and `EnabledByDefault=true`. Do not copy it into every project and do not add it to a user project's `.uproject`. After replacing an installed package, restart that engine's editor.
+MCPBlueprint is an optional engine plugin (Installed=true, EnabledByDefault=true). Do not copy it into every project or add it to a project's .uproject; restart the editor after replacing the package. The toolbar shows the local endpoint (normally http://127.0.0.1:8766/mcp; occupied ports advance up to nine times). Use your MCP client's own setup flow.
 
-## Connect your AI client
+## Connect an MCP client
 
-MCPBlueprint is enabled automatically and starts its local MCP server when the editor starts. Users do not need to enable it in each project or add it to a project's `.uproject`.
+MCPBlueprint starts its local HTTP server with the editor when **Auto Start** is enabled. Give the client the endpoint shown by the plugin toolbar; do not hard-code the default when another process may already occupy that port. The server binds only to the local machine.
 
-Ask your AI client to configure MCPBlueprint through that client's own MCP setup flow. Give it the endpoint shown by the plugin toolbar; the default is `http://127.0.0.1:8766/mcp`, and MCPBlueprint tries up to nine higher ports when the configured port is occupied. Configuration formats differ between AI clients, so this guide does not prescribe a client-specific JSON file or manual port procedure.
+`initialize` and `tools/list` are normal client handshake calls. `ping` is a troubleshooting check, not a required manual step for every session. Browser-style requests may use only `localhost`, `127.0.0.1`, or `[::1]` as `Origin`; ordinary non-browser MCP clients can omit `Origin`.
 
-The MCP client normally performs `initialize` and `tools/list` automatically. `ping` is useful for troubleshooting, not a routine manual step for users.
+The live `tools/list` response is the schema authority. Refresh it after replacing the plugin package or reconnecting the editor instead of relying on a cached tool list.
 
-The server binds to the local machine. Browser-style `Origin` headers are accepted only for `localhost`, `127.0.0.1`, and `[::1]`; ordinary non-browser MCP clients may omit `Origin`.
-
-## What is complete today
-
-The current release registers 55 tools:
-
-| Capability | Count | Tools |
-|---|---:|---|
-| Discovery and reading | 6 | `ListBlueprints`, `GetBlueprintOverview`, `ListBlueprintMembers`, `GetGraphDetail`, `SearchGraphNodes`, `GetCompileErrors` |
-| User Defined Struct and Enum | 6 | `CreateUserDefinedStruct`, `GetUserDefinedStruct`, `ModifyUserDefinedStruct`, `CreateUserDefinedEnum`, `GetUserDefinedEnum`, `ModifyUserDefinedEnum` |
-| Variables, functions, events, and pins | 17 | `AddVariable`, `ModifyVariable`, `RemoveVariable`, `CreateFunction`, `RenameFunction`, `ModifyFunctionSignature`, `RemoveFunction`, `CreateCustomEvent`, `AddEventNode`, `AddBoundEvent`, `AddLocalVariable`, `RemoveLocalVariable`, `AddNodePin`, `RemoveNodePin`, `AddInterface`, `AddEventDispatcher`, `RemoveEventDispatcher` |
-| Graph editing and layout | 4 | `ApplyGraphPatch`, `SetPinDefaults`, `FormatGraph`, `AddCommentBox` |
-| Components and defaults | 11 | `GetComponents`, `AddComponent`, `SetComponentProperties`, `RenameComponent`, `RemoveComponent`, `ReparentComponent`, `SetRootComponent`, `DuplicateComponent`, `GetComponentProperties`, `GetClassDefaults`, `SetClassDefaults` |
-| Asset lifecycle and capture | 11 | `CreateBlueprint`, `ReparentBlueprint`, `CompileBlueprint`, `SaveAsset`, `OpenAsset`, `CloseAsset`, `ReloadBlueprintFromDisk`, `DeleteAsset`, `RenameAsset`, `DuplicateAsset`, `CaptureGraphScreenshot` |
-
-Completed behavior includes:
-
-- Stable bounded pagination for large asset, member, graph, and pin reads.
-- Registry-backed node IDs instead of invented node types.
-- Atomic graph patches covering create, connect, disconnect, remove, move, defaults, and layout.
-- `Balanced`, `Straight`, and `Compact` deterministic layout styles.
-- Native Comment Box containment protection for local and whole-graph layout.
-- Dry-run impact analysis and explicit approval gates for high-risk edits.
-- Compile/read-back verification, transaction rollback, and single-step Undo where Unreal supports it.
-- Explicit save semantics: write tools mark assets dirty but do not silently save.
-- Engine-level automatic loading without a project-side MCPBlueprint declaration.
-
-## Recommended workflow
-
-Use the same sequence for every write:
-
-1. **Inspect** — identify the exact asset, graph, stable GUID, pin, member, or component.
-2. **Search** — obtain legal node `SpawnerId` values from `SearchGraphNodes`.
-3. **Preview** — use `bDryRun=true` when supported and review every affected asset, normalized operation, limitation, and blocker.
-4. **Apply** — send the reviewed operation once; never invent GUIDs or `SpawnerId` values.
-5. **Read back** — query the graph or asset again and compare the intended state.
-6. **Compile** — inspect authoritative status, errors, and warnings.
-7. **Save explicitly** — call `SaveAsset` only when the user wants the change persisted.
-
-A dry-run may report that Action Registry nodes, generated pins, type promotion, or exact post-patch layout cannot be proven without mutation. That is an expected limitation, not automatic write approval: verify the current graph and the exact `SearchGraphNodes` result before applying.
-
-## Tutorial: build a calculation function
-
-The following example creates:
+## Concept map: choose the right state
 
 ```text
-FinalScore = (BaseScore + Bonus) × Multiplier
+Blueprint asset
+├─ parent class (inheritance) ─────────── ReparentBlueprint
+├─ Class Default Object (class defaults) ─ Get/SetClassDefaults
+├─ member variable declaration
+│  └─ variable default ────────────────── AddVariable / ModifyVariable
+├─ function declaration
+│  └─ signature pins ──────────────────── CreateFunction / ModifyFunctionSignature
+├─ graph node
+│  └─ graph-pin defaults ──────────────── SetPinDefaults / ApplyGraphPatch
+└─ Actor Blueprint construction script (SCS)
+   └─ component template properties ────── Get/SetComponentProperties
+      └─ attachment parent ─────────────── AddComponent / ReparentComponent / SetRootComponent
 ```
 
-1. Create an Actor Blueprint with `CreateBlueprint`.
-2. Create `CalculateScore` with three `double` inputs and one `double` output using `CreateFunction`.
-3. Read the new function with `GetGraphDetail` and record the entry/result node GUIDs.
-4. Search `Add` and `Multiply` in that exact graph. Use the returned `Operator:Add` and `Operator:Multiply` IDs.
-5. Preview one `ApplyGraphPatch` containing both nodes and all five data connections.
-6. Apply the same patch with native `double` promotion and automatic `Balanced` layout.
-7. Read back all four nodes and six links, compile, and save.
+- A variable default is a member declaration's initial value—not a node pin or CDO property.
+- Function signature pins declare the function contract and affect callers. Graph-pin defaults are literals on one node instance.
+- Component template properties are values on a local SCS component template. Its attachment parent is a hierarchy relationship, not the Blueprint parent class.
+- Class defaults are editable CDO properties, not level-instance overrides.
 
-The resulting graph should be one connected left-to-right component with zero overlap, zero backward edges, and no invented node IDs.
+## Recommended safe workflow
 
-## Real editor screenshots and business-rule comparisons
+1. Discover paths and identities with ListBlueprints, GetBlueprintOverview, GetGraphDetail, or GetComponents.
+2. Use bDryRun=true whenever supported and read every impact, blocker, and approval requirement.
+3. Apply only returned paths, GUIDs, pin IDs, component names, and SpawnerId values—never guesses.
+4. Read the changed state back, compile where relevant, then call SaveAsset only when persistence is desired.
 
-These images were captured from the actual UE 5.2 Blueprint Editor window. They do not use the off-screen graph PNG path that caused missing Slate brushes and black/white square artifacts.
+Ordinary edit tools mark assets dirty but do not silently save; `SaveAsset` is the explicit persistence tool, while `DeleteAsset` intentionally removes the asset from disk after its stricter safety checks. ApplyGraphPatch uses one transaction and attempts automatic rollback on failure; an unproven recovery is reported explicitly. Safety-sensitive tools fail closed when references, generated state, inheritance, or transaction recovery cannot be safely established.
 
-### Normal graph example
+## Complete feature matrix (55 tools)
 
-The persisted `CalculateScore` tutorial function contains registry-backed Add and Multiply nodes, complete data/exec connections, successful compilation, and automatic layout.
+The table summarizes important inputs and gates; it is not a replacement for the required fields and constraints returned by live `tools/list`. “Response/readback” is intentional evidence for nonvisual tools, not a claim that a screenshot exists.
 
-![CalculateScore in the normal Blueprint Editor](./Images/Tutorial/calculate-score.png)
+| Tool | Purpose | Key inputs / gates | Verify; screenshot/evidence |
+|---|---|---|---|
+| ListBlueprints | Page Blueprint assets. | Filters; use bounded pages. | Returned paths/classes; response/readback. |
+| GetBlueprintOverview | Read parent, graphs, members, components, interfaces. | BlueprintPath. | Overview response. |
+| ListBlueprintMembers | Page functions, events, dispatchers, locals. | BlueprintPath. | Members response. |
+| GetGraphDetail | Read node GUIDs, pins, defaults, links, positions. | BlueprintPath; optional GraphName. | Before/after response; capture separately if visual proof is needed. |
+| SearchGraphNodes | Find legal action SpawnerId values. | Blueprint/graph/query; never invent IDs. | Returned actions/IDs. |
+| GetCompileErrors | Compile and return bounded diagnostics. | Blueprint; optional warnings-as-errors. | Compile response. |
+| CreateUserDefinedStruct | Create a User Defined Struct under /Game. | AssetPath; dirty, not auto-saved. | Create + struct readback; no screenshot supplied. |
+| GetUserDefinedStruct | Read struct fields and stable field GUIDs. | StructPath. | Detail response; no screenshot supplied. |
+| ModifyUserDefinedStruct | Make one field operation. | Struct/op data; existing field by GUID; dry-run; remove/type needs data-loss approval. | Impact + readback; no screenshot supplied. |
+| CreateUserDefinedEnum | Create a User Defined Enum under /Game. | AssetPath; dirty, not auto-saved. | Create + enum readback; no screenshot supplied. |
+| GetUserDefinedEnum | Read bounded enum entries/serialized values. | EnumPath. | Detail response; no screenshot supplied. |
+| ModifyUserDefinedEnum | Make one enum operation. | Enum/op data; dry-run; remove/move needs semantic-change approval. | Impact/readback; no screenshot supplied. |
+| AddVariable | Declare a member variable. | Blueprint, name, type; optional default/category/editable. | Overview + compile response. |
+| ModifyVariable | Alter declaration type/default/name/editability/category/tooltip. | Blueprint/variable; type change rejects references; RepNotify must be removed before rename. | Overview + compile response. |
+| RemoveVariable | Remove a member variable. | Blueprint/variable; references reject; bForce only removes local references. | Overview/graph + compile. |
+| CreateFunction | Create a function graph/signature. | Blueprint/name; inputs/outputs; optional pure/override. | Entry/result GUIDs, graph + compile. |
+| RenameFunction | Rename declared function and safe loaded references. | Dry-run default; apply needs bDryRun=false + reference approval; unsafe scans/bindings reject. | Caller/readback, compile, save/reopen; **real screenshots below**. |
+| ModifyFunctionSignature | Add/rename/remove/change one parameter. | Function graph GUID; existing pin ID; dry-run default; approval; remove/type needs data-loss approval. | Callers/readback + compile; current signature target shown below, but mutation still requires readback. |
+| RemoveFunction | Remove a declared function graph. | Blueprint/function; referenced or unsafe/unloaded cases reject. | Members/graph + compile. |
+| CreateCustomEvent | Create a custom event node. | Blueprint/event; optional graph/inputs. | Returned node GUID + graph response. |
+| AddEventNode | Add native overridable event. | Blueprint/event; idempotent. | Returned GUID + graph response. |
+| AddBoundEvent | Bind Actor component/Level Blueprint actor delegate. | Blueprint/event + target; Actor SCS only, not UMG WidgetTree events. | GUID/graph response. |
+| AddLocalVariable | Add a function local. | Blueprint/function/name/type. | Member/graph response. |
+| RemoveLocalVariable | Remove an unused function local. | Blueprint/function/name; references reject. | Member/graph response. |
+| AddNodePin | Add optional Sequence/container/Switch pins. | Blueprint/node GUID; variable-pin nodes only. | Returned pins + graph response. |
+| RemoveNodePin | Remove one optional node pin. | Blueprint/node GUID/pin name; required pins reject. | Graph response. |
+| AddInterface | Implement a Blueprint Interface. | Blueprint/interface path; idempotent. | Overview + members response. |
+| AddEventDispatcher | Declare a multicast dispatcher. | Blueprint/name; optional inputs; idempotent. | Members + node-search response. |
+| RemoveEventDispatcher | Remove dispatcher/signature graph. | Blueprint/name; references/unloaded descendants reject. | Members/graph response. |
+| ApplyGraphPatch | Atomically create/connect/disconnect/remove/move graph nodes. | Blueprint; legal SpawnerId; max 60 ops; dry-run; optional skip compile. | GUID map, graph readback, compile; graph captures below. |
+| SetPinDefaults | Set literal defaults on existing graph-node pins. | Blueprint/node GUID/nonempty UE-text map; connected pins keep their connection and ignore the literal at runtime. | GetGraphDetail + compile. |
+| FormatGraph | Plan/apply deterministic graph layout. | Blueprint; scope/style; dry-run; whole graph cap 1000 nodes. | Returned metrics/positions + graph response. |
+| AddCommentBox | Add native comment around explicit nodes. | Blueprint/title/node GUIDs; dry-run previews bounds. | Comment GUID/style + graph response. |
+| GetComponents | Read Actor Blueprint SCS hierarchy. | Blueprint; Actor/SCS scope. | Tree/list response; no component screenshot supplied. |
+| AddComponent | Add an Actor Blueprint SCS component. | Blueprint/class/name; scene parent; non-Actor rejects. | Components/properties + compile. |
+| SetComponentProperties | Set local component-template values. | Blueprint/component/nonempty UE-text Properties; editable non-array only; transaction required. | Property readback + compile; no screenshot supplied. |
+| RenameComponent | Rename local SCS component/member references. | Blueprint/component/new name. | Components/overview + compile. |
+| RemoveComponent | Remove local SCS component, promote children. | Blueprint/component; references/unloaded derived classes reject. | Components/graph + compile. |
+| ReparentComponent | Change a local SceneComponent attachment parent. | Blueprint/component/new parent; no self/descendant; actual roots use SetRootComponent. | Hierarchy + compile; no screenshot supplied. |
+| SetRootComponent | Make local SceneComponent the SCS root. | Blueprint/component; inherited/native roots cannot be replaced. | Hierarchy + compile response. |
+| DuplicateComponent | Copy local component/template under its parent. | Blueprint/source/new name; actual local root excluded. | Components/properties + compile. |
+| GetComponentProperties | Page editable component-template properties in UE text. | Blueprint/component. | Properties response; no screenshot supplied. |
+| GetClassDefaults | Page editable CDO properties in UE text. | Blueprint. | Properties response; no screenshot supplied. |
+| SetClassDefaults | Set supported CDO properties. | Blueprint/nonempty UE-text Properties; editable non-array; transaction required. | CDO readback + compile; no screenshot supplied. |
+| CreateBlueprint | Create Blueprint asset in memory. | Asset path/parent class; dirty until saved. | Create/overview response. |
+| ReparentBlueprint | Change Blueprint parent class. | Blueprint/new parent; dry-run; hierarchy/recovery needs data-loss approval; compile rollback. | Dry-run + overview parent + compile; no screenshot supplied. |
+| CompileBlueprint | Explicitly compile Blueprint. | Blueprint; optional warnings-as-errors. | Diagnostic response. |
+| SaveAsset | Persist a dirty Blueprint, User Defined Struct, or User Defined Enum. | Asset path; after verification/user approval. | Save + disk/Asset Registry state. |
+| OpenAsset | Open Blueprint Editor. | Blueprint. | Editor/response; prerequisite for capture. |
+| CloseAsset | Close Blueprint Editor. | Blueprint; no-op if closed. | Editor/response. |
+| ReloadBlueprintFromDisk | Reload loaded standalone Blueprint. | Dry-run default; apply needs discard-unsaved + Undo-reset acknowledgements. | State response then reopen/readback. |
+| DeleteAsset | Delete Blueprint asset. | Blueprint; references reject unless force; non-undoable; force needs empty transaction queue. | Registry/disk absence; no screenshot supplied. |
+| RenameAsset | Rename/move Blueprint asset. | Blueprint/new path; redirectors; save new path. | Asset Registry new-path readback. |
+| DuplicateAsset | Duplicate asset in memory. | Blueprint/new path; save explicitly. | New asset/overview response. |
+| CaptureGraphScreenshot | Capture an open graph PNG/viewport metadata. | Open asset first; graph/node/viewport mode; initialized widget required. | PNG + transform/token; real graph images below. |
 
-### Complex production-style workflow
+## Focused write guides
 
-`EvaluateOrderBatchV2` is a 71-node order-settlement function. One connected graph accumulates order lines, applies customer-tier and first-order discounts, selects regional shipping, calculates tax, assigns a review decision, computes points and risk, and assembles the final settlement result.
+### ApplyGraphPatch: one transactional graph change
 
-![Complete order-settlement workflow in the normal Blueprint Editor](./Images/Tutorial/order-settlement-complex.png)
+Call SearchGraphNodes first and use only returned `SpawnerId` values. A patch can create nodes with temporary IDs, connect or disconnect pins, remove or move existing nodes by stable GUID, set pin defaults, and apply layout. Pin references use a patch temporary ID for new nodes or `@<NodeGuid>` for existing nodes. The combined operation limit is 60 across node creation, connections, disconnections, removals, and moves.
 
-### Change 1: Region 1 adds first-order free shipping
+Start with `bDryRun=true`. Review normalized operations and every blocker; dry-run may explicitly say that Action Registry nodes, generated pins, type promotion, or exact post-layout state cannot be proven without mutation. Apply the same reviewed patch once. The real write executes in one transaction and attempts automatic rollback on failure. If recovery cannot be proven, the response reports that explicitly; stop and read the graph back before any retry. Then call GetGraphDetail, compile, and explicitly save only when persistence is wanted. Use the default Auto layout for normal authored logic; use explicit positions or `LayoutScope=None` only for a real fixed-layout requirement.
 
-Before: Region 1 goes directly to `ShippingCents = 1000`; the first-order branch is not part of the execution path.
+### ModifyVariable: variable defaults
 
-![Before adding first-order free shipping to Region 1](./Images/Tutorial/order-region1-before.png)
+Change only the supplied declaration fields: TypeName, DefaultValue, NewName, bInstanceEditable, Category, and Tooltip. Empty Category restores Unreal's default category; empty Tooltip removes metadata. Read the variable table with GetBlueprintOverview, compile, then save deliberately. This is neither SetPinDefaults nor a class-default write.
 
-After: Region 1 enters the `FirstOrder` branch. First orders set `ShippingCents = 0`; other orders keep the original `ShippingCents = 1000` rule.
+### ModifyFunctionSignature: function signature pins
 
-![After adding first-order free shipping to Region 1](./Images/Tutorial/order-region1-after.png)
+Address the declaration with FunctionName plus stable FunctionGraphGuid, and an existing parameter only by stable PinId. Submit exactly one operation. Dry-run is default; apply requires reference approval, and remove/type change also requires potential-data-loss approval. The tool scans callers, rejects unsafe override/interface/RepNotify/delegate/AnimGraph cases, updates ordinary calls transactionally, compiles affected Blueprints, and never saves automatically.
 
-### Change 2: points exclude shipping
+### SetPinDefaults: graph pin defaults
 
-Before: `PointsEarned = TotalCents / 100`.
+Use a returned NodeGuid and a nonempty PinDefaults object mapping pin names to UE text literals. This changes one node's input literal—not the function signature, variable default, or CDO. Read back that graph and compile. Invalid, non-input, or read-only pins reject. A connected input keeps its connection, so the stored literal is ignored at runtime.
 
-![Before excluding shipping from points](./Images/Tutorial/points-before.png)
+### SetComponentProperties and ReparentComponent
 
-After: `PointsEarned = (TotalCents - ShippingCents) / 100`. The same viewport shows the newly inserted Subtract node and the preserved Divide and Result nodes.
+SetComponentProperties writes editable non-array **local SCS component-template** values from a nonempty UE-text Properties map. Read with GetComponentProperties first, then reread and compile. ReparentComponent changes the **attachment parent**; both sides must be local SceneComponents and cycles reject. An actual local root must use SetRootComponent. Neither changes the Blueprint parent class.
 
-![After excluding shipping from points](./Images/Tutorial/points-after.png)
+### SetClassDefaults: CDO defaults
 
-### Change 3: first-order discount changes from fixed value to 5% of subtotal
+Read GetClassDefaults, review the returned UE-text property map, apply supported editable non-array Properties, reread, compile, then save. These are class defaults—not instance overrides, graph literals, variable declarations, or component templates.
 
-Before: the function passes the fixed discount through a typed Add-with-zero baseline.
+### ReparentBlueprint: parent class
 
-![Before changing the first-order discount rule](./Images/Tutorial/discount-before.png)
+NewParentClassPath accepts a full native path, unique loaded short name, or generated Blueprint class. Dry-run reports old/new classes, hierarchy risk, and duplicate inherited interfaces. By default the new parent must derive from the old; hierarchy changes or missing-parent recovery require bAllowPotentialDataLoss=true. Graph nodes refresh, compilation runs, and failed compilation rolls back the transaction.
 
-After: the fixed-value path is replaced by `SubtotalCents / 20`, producing a 5% discount while keeping the same function output and graph frame.
+## Real UE 5.2 function-rename evidence
 
-![After changing the first-order discount rule](./Images/Tutorial/discount-after.png)
+RenameFunction defaults to impact analysis. Apply requires bDryRun=false and bApproveReferenceUpdates=true; it rejects unsafe scans, RepNotify, protected graphs, unloaded derived Blueprints, CreateDelegate, and opaque AnimGraph bindings. The operation preserves the graph GUID, does not auto-save, and should be checked by caller readback, compile, explicit save, close, and reopen.
 
-All three comparisons show real node, default-value, or connection changes rather than layout-only edits. The compared states use fixed viewports, stable node identities, graph read-back, successful compilation, and explicit save. When dry-run cannot prove generated-pin state without mutation, the existing GUIDs and links are inspected before the single transaction and verified again afterward. These are controlled production-style business examples, not customer project data.
+These are real UE 5.2 captures from the saved-and-reopened workflow:
 
-## Discover assets and graphs
+![Renamed function after save and reopen](./Images/Tutorial/function-rename-base.png)
 
-- Use `ListBlueprints` to find assets with bounded pagination.
-- Use `GetBlueprintOverview` for graphs, variables, functions, components, interfaces, and parent class.
-- Use `ListBlueprintMembers` for functions, Custom Events, dispatchers, and local variables.
-- Use `GetGraphDetail` before and after graph edits to obtain GUIDs, pins, defaults, links, and positions.
-- Use `GetCompileErrors` or `CompileBlueprint` for authoritative diagnostics.
+![Updated caller after save and reopen](./Images/Tutorial/function-rename-caller.png)
 
-Always pass exact asset paths returned by the plugin. Read large graphs in pages instead of inferring structure from screenshots.
+## Current runtime graph evidence
 
-## Add graph logic safely
+The following three captures were produced from the current UE 5.2 editor session after `initialize`, runtime `tools/list=55`, `OpenAsset`, and `CaptureGraphScreenshot`. They show the visual targets for a rich function signature, a component-event function, and the main event graph. They do not by themselves prove mutation safety; the matching tool response, readback, compile result, explicit save, and reopen remain authoritative.
 
-Search Unreal's English action name, for example `Branch`, `For Loop`, `For Each Loop`, `Switch on Int`, `Switch on Name`, `Switch on String`, `Add`, `Subtract`, `Multiply`, or `Divide`.
+![Function signature and connected implementation](./Images/Tutorial/function-signature-overview.png)
 
-`ApplyGraphPatch` accepts:
+![Component-event helper graph](./Images/Tutorial/component-event-graph.png)
 
-- `Nodes` with temporary IDs and registry-backed `SpawnerId` values.
-- `Connections` and `Disconnections`.
-- `RemoveNodes` by stable node GUID.
-- `MoveNodes` by stable node GUID and absolute graph position.
-- Optional `PinDefaults`, `PromotedType`, layout scope, and layout style.
+![Actor lifecycle, bound component event, and variable-pin flow](./Images/Tutorial/event-graph-overview.png)
 
-The entire patch is one transaction. Failure rolls back the requested graph mutation instead of leaving a partial graph.
+## Existing graph-editing evidence
 
-## Members, functions, Structs, and Enums
+These eight existing captures demonstrate graph edits and business-rule comparisons. They do **not** prove component templates, class defaults, parent-class reparenting, Structs, or Enums.
 
-- Variable tools manage type, default, category, tooltip, and safe removal.
-- Function tools create, rename, change supported signature operations, or safely remove user functions.
-- Local-variable actions are scoped to both the function graph and declaration GUID.
-- Struct and Enum modifications address stable fields/entries and report reference impact.
-- Potential data loss or Enum value-semantic changes require separate explicit approval.
+![CalculateScore graph](./Images/Tutorial/calculate-score.png)
 
-Function rename and signature mutation default to impact analysis. They reject unsupported overrides, incomplete reference scans, opaque delegate bindings, unloaded derived classes, and other states that cannot be restored safely.
+![Order settlement graph](./Images/Tutorial/order-settlement-complex.png)
 
-## Components and class defaults
+![Region 1 before](./Images/Tutorial/order-region1-before.png)
 
-Read the current component hierarchy before adding, renaming, duplicating, reparenting, setting the root, changing template properties, or removing a component. Class-default tools read or update supported Blueprint defaults without pretending they are instance values.
+![Region 1 after](./Images/Tutorial/order-region1-after.png)
 
-## Asset lifecycle
+![Points before](./Images/Tutorial/points-before.png)
 
-Asset tools create, duplicate, rename, reparent, compile, open, close, reload, delete, and save supported Blueprint assets.
+![Points after](./Images/Tutorial/points-after.png)
 
-- Compilation does not imply persistence.
-- Disk reload defaults to dry-run and requires explicit approval before discarding in-memory state.
-- Destructive deletion has stricter Undo/Redo and package-safety requirements than ordinary graph edits.
-- Never report success until read-back and disk/Asset Registry checks agree.
+![Discount before](./Images/Tutorial/discount-before.png)
 
-## Capture a graph screenshot
+![Discount after](./Images/Tutorial/discount-after.png)
 
-Call `OpenAsset` first, then use `CaptureGraphScreenshot`. Prefer readable full-graph or node-focused frames where titles, pins, and connections remain visible. For comparable frames, reuse the returned view location, zoom, dimensions, and viewport token.
+## Screenshot coverage: honest status
 
-The screenshot tool needs an initialized graph editor widget. A fully headless or zero-size editor widget is rejected instead of producing a misleading blank image.
+| Area | Evidence currently present | Until a capture is added |
+|---|---|---|
+| Function rename | Two real UE 5.2 save/reopen screenshots above. | Impact, caller readback, compile, save/reopen. |
+| Function signatures and events | Three current UE 5.2 runtime captures above. | Signature/member readback, caller impact, and compile result. |
+| Graph patch, pin defaults, layout | Eight existing graph captures above. | GetGraphDetail before/after and diagnostics. |
+| Component properties / attachment parent | **No screenshot supplied.** | GetComponents / GetComponentProperties before/after + compile. |
+| Class defaults | **No screenshot supplied.** | GetClassDefaults before/after + compile. |
+| Blueprint parent class | **No screenshot supplied.** | Reparent dry-run, overview parent, compile. |
+| User Defined Struct / Enum | **No screenshot supplied.** | Detail/impact/readback responses. |
+| Asset lifecycle, members, discovery | **No screenshot supplied.** | Tool response + Asset Registry/disk/member readback. |
 
-## Settings
+## Capture, settings, limits, and troubleshooting
 
-Open **Project Settings → Plugins → MCP Blueprint**:
+Call OpenAsset before CaptureGraphScreenshot. Select a full-graph, node, explicit viewport, or graph-rectangle frame; modes are mutually exclusive. The capture response contains PNG content, applied transform, and a viewport token, and rejects an uninitialized/zero-size editor widget rather than returning a misleading image.
 
-- **Port** — default `8766`; up to nine higher ports are tried when occupied.
-- **Auto Start** — starts the server with the editor.
-- **Auto Compile After Modify** — compiles after supported writes.
-- **Request Timeout Seconds** — ordinary tool timeout.
-- **Compile Timeout Seconds** — separate timeout for compile-heavy work.
+In **Project Settings → Plugins → MCP Blueprint**, configure Port, Auto Start, Auto Compile After Modify, request timeout, and compile timeout.
 
-## Known limits
-
-- Windows, macOS, and Linux Editor targets; no runtime/shipping module. Fab's official build pipeline is the release gate for platform binaries.
-- No generic tool for invoking an arbitrary Blueprint function and returning its runtime result.
-- Custom Event and Event Dispatcher signature mutation is not yet as complete as ordinary function-signature mutation.
-- Some Blueprint action types expose state that cannot yet be scanned or restored transactionally and therefore fail closed.
-- Screenshot capture requires a real initialized Blueprint graph editor widget.
-
-## Planned improvements
-
-The next development directions are:
-
-1. A bounded generic runtime execution and result-readback path for isolated Blueprint verification.
-2. Safety-gated Custom Event and Event Dispatcher signature editing with reference impact and rollback.
-3. Deeper graph lifecycle, caller/reference, inheritance, and unloaded-asset impact inspection.
-4. Support for additional Blueprint asset types and more complex native Action Registry nodes.
-5. Richer end-to-end tutorials covering connection, dry-run, approval, persistence, Undo, and rejection cases.
-
-Detailed priorities and acceptance evidence are maintained in AIHub. This list is directional and does not promise a release date.
-
-## Troubleshooting
-
-- **Cannot connect:** use the endpoint displayed by the toolbar; the configured port may be occupied.
-- **Tool not found:** refresh `tools/list`; do not rely on an old cached tool surface.
-- **Write rejected:** read every blocker and required approval flag, then re-read the target before retrying.
-- **Compile failed:** fetch compiler diagnostics and fix the real Blueprint error before saving.
-- **Unexpected graph result:** compare `GetGraphDetail` before/after and use Undo when appropriate.
-- **Plugin asks to rebuild:** install the package matching the exact engine minor version.
-- **Plugin missing from a project:** confirm it is installed under that engine's `Engine/Plugins/Marketplace`; do not add a project dependency as a workaround.
-- **UE 5.5 says the project file is out of date because the installed MCPBlueprint plugin is not in the project descriptor:** choose **Not Now**. The engine plugin still loads automatically; choosing **Update** would write MCPBlueprint into the project's `.uproject` and create the project-side dependency this installation model deliberately avoids.
+- The plugin is editor-only; there is no generic arbitrary Blueprint runtime-invocation tool.
+- Custom Event and Event Dispatcher signature mutation is less complete than ordinary function signatures.
+- Some actions cannot be scanned/restored transactionally and fail closed.
+- Compilation is not persistence: save explicitly.
+- If a tool is missing, refresh tools/list; if a write rejects, read blockers then reread the target.
+- If UE asks to add this installed engine plugin to a project descriptor, choose **Not Now**; updating creates the project dependency this installation model avoids.
 
 ## Support
 
