@@ -28,7 +28,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 服务器只绑定本机。浏览器风格的 `Origin` 只允许 `localhost`、`127.0.0.1` 和 `[::1]`；普通非浏览器 MCP 客户端可以省略 `Origin`。
 
-## 当前已完成功能
+## 功能概览
 
 当前版本注册 55 个工具：
 
@@ -41,7 +41,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | 组件与默认值 | 11 | `GetComponents`、`AddComponent`、`SetComponentProperties`、`RenameComponent`、`RemoveComponent`、`ReparentComponent`、`SetRootComponent`、`DuplicateComponent`、`GetComponentProperties`、`GetClassDefaults`、`SetClassDefaults` |
 | 资产生命周期与截图 | 11 | `CreateBlueprint`、`ReparentBlueprint`、`CompileBlueprint`、`SaveAsset`、`OpenAsset`、`CloseAsset`、`ReloadBlueprintFromDisk`、`DeleteAsset`、`RenameAsset`、`DuplicateAsset`、`CaptureGraphScreenshot` |
 
-已完成的行为包括：
+主要能力包括：
 
 - 大型资产、成员、图表和 Pin 读取的稳定有界分页。
 - 使用 Action Registry 返回的节点 ID，而不是编造节点类型。
@@ -49,7 +49,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 - `Balanced`、`Straight`、`Compact` 三种确定性布局风格。
 - 局部和全图布局中的原生 Comment Box 包围关系保护。
 - 高风险修改的 dry-run 影响分析和显式批准门禁。
-- 编译/读回验证、事务回滚，以及 Unreal 支持范围内的单步 Undo。
+- 事务回滚，以及 Unreal 支持范围内的单步 Undo。
 - 显式持久化：普通编辑工具只把资产标脏；`SaveAsset` 明确写盘，`DeleteAsset` 在更严格门禁后明确删除磁盘资产。
 - 无需项目声明即可从引擎目录自动发现并加载。
 
@@ -68,107 +68,105 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ## 55 个工具逐项功能总表
 
-普通编辑工具只标脏，不会静默保存；`SaveAsset` 与 `DeleteAsset` 是明确的持久化例外。下表按用户完成操作所需的输入、门禁和确认步骤组织。
+普通编辑工具只标脏，不会静默保存；需要保留改动时使用 `SaveAsset`。下表说明每个工具的用途和用户需要注意的边界。
 
-| 工具 | 能做什么 | 关键输入与门禁 | 如何确认结果 |
-|---|---|---|---|
-| `ListBlueprints` | 分页列出蓝图资产 | `PathFilter`、分页参数 | 用返回的精确路径执行 `GetBlueprintOverview` 或 `OpenAsset`。 |
-| `GetBlueprintOverview` | 读取父类、图、变量、组件、接口概览 | `BlueprintPath` | 将返回的父类、图和成员与目标资产当前状态逐项比对。 |
-| `ListBlueprintMembers` | 分页列函数、事件、分发器、局部变量 | `BlueprintPath`、分页参数 | 用返回的成员名或图 GUID 调用 `GetGraphDetail`。 |
-| `GetGraphDetail` | 读取图节点、GUID、Pin、连线与坐标 | `BlueprintPath`、可选 `GraphName`、分页参数 | 比较修改前后的节点 GUID、Pin 默认值与连线。 |
-| `SearchGraphNodes` | 搜索合法 Action Registry `SpawnerId` | 查询文本、分页参数 | 仅将返回的 `SpawnerId` 用于后续 `ApplyGraphPatch`，并读回创建的节点。 |
-| `GetCompileErrors` | 编译蓝图并返回有界诊断 | `BlueprintPath` | 核对返回的编译状态、错误和警告。 |
-| `CreateUserDefinedStruct` | 在 `/Game` 创建用户定义 Struct | `AssetPath`；创建后未自动保存 | `GetUserDefinedStruct` 读回字段后调用 `SaveAsset`，再从磁盘重载确认。 |
-| `GetUserDefinedStruct` | 读取 Struct 字段和稳定字段 GUID | `StructPath`、分页参数 | 保存前后分别读取，核对字段名、类型和 GUID。 |
-| `ModifyUserDefinedStruct` | 安全修改 Struct 字段 | `bDryRun`；可能数据损失须显式批准 | 读回字段 GUID 和引用影响，并编译相关蓝图。 |
-| `CreateUserDefinedEnum` | 在 `/Game` 创建用户定义 Enum | `AssetPath`；创建后未自动保存 | `GetUserDefinedEnum` 读回条目后保存，再从磁盘重载确认。 |
-| `GetUserDefinedEnum` | 读取 Enum 条目、整数值与显示名 | `EnumPath`、分页参数 | 保存前后读取并核对条目值和显示名。 |
-| `ModifyUserDefinedEnum` | 安全修改 Enum 条目 | 先 `bDryRun`；序列化语义变化须批准 | 读回条目整数值与引用影响，并编译使用它的蓝图。 |
-| `AddVariable` | 增加成员变量 | `BlueprintPath`、名称、`TypeName` | 用概览读回变量声明并编译蓝图。 |
-| `ModifyVariable` | 改成员变量类型、默认值、名、可编辑性、分类、提示 | `VariableName`；改类型有引用时拒绝，RepNotify 不能非交互改名 | 用概览读回字段并编译；需持久化时保存并重载。 |
-| `RemoveVariable` | 安全删除成员变量 | 受引用与恢复能力检查 | 读回概览和受影响调用点，再编译蓝图。 |
-| `CreateFunction` | 创建蓝图函数 | `BlueprintPath`、函数名、参数定义 | 用 `GetGraphDetail` 读取函数图和稳定 GUID，并编译。 |
-| `RenameFunction` | 安全重命名用户函数并更新可安全更新的引用 | 先 dry-run；引用更新须显式批准 | 读回新图名和调用点，编译、保存、关闭重开后再次读取。 |
-| `ModifyFunctionSignature` | 增加、改名、删除或改类型函数参数 | `FunctionGraphGuid`、稳定 `PinId`；默认 dry-run，写入/数据损失分别批准 | 读回函数签名与调用点，并编译所有受影响蓝图。 |
-| `RemoveFunction` | 安全删除用户函数 | 引用/恢复检查 | 读回概览和调用点，再编译蓝图。 |
-| `CreateCustomEvent` | 在 Event Graph 创建自定义事件 | 目标必须是真实 Event Graph | 用图详情读回事件节点和 Pin，并编译。 |
-| `AddEventNode` | 添加受支持的事件节点 | 蓝图、事件类型 | 用图详情读回节点和连线，并编译。 |
-| `AddBoundEvent` | 为组件/委托添加绑定事件 | 组件与委托必须可解析 | 用图详情读回绑定节点和目标委托，再编译。 |
-| `AddLocalVariable` | 在函数图添加局部变量 | `BlueprintPath`、`FunctionName`、变量名与类型 | 通过 `ListBlueprintMembers` 和图详情读回局部声明。 |
-| `RemoveLocalVariable` | 删除函数局部变量 | 局部声明定位与引用安全检查 | 读回成员和函数图，并编译。 |
-| `AddNodePin` | 为支持可变 Pin 的节点增加 Pin | `BlueprintPath`、`NodeGuid`、可选 `Count` | 用图详情读回新增 Pin 的稳定标识和连线。 |
-| `RemoveNodePin` | 删除可编辑节点用户 Pin | 节点 GUID、Pin 定位 | 用图详情确认目标 Pin 已移除，再编译。 |
-| `AddInterface` | 为蓝图添加接口 | 接口类路径 | 在概览中读回接口列表并编译。 |
-| `AddEventDispatcher` | 添加事件分发器 | 蓝图、名称/签名 | 用成员列表读回分发器签名并编译。 |
-| `RemoveEventDispatcher` | 删除事件分发器 | 引用与安全检查 | 读回成员列表确认移除，并编译。 |
-| `ApplyGraphPatch` | 单事务创建、连线、断线、删/移节点、设默认值与布局 | 先搜索 `SpawnerId`；支持 dry-run；失败时尝试自动回滚，无法证明恢复会明确报错 | 用 `GetGraphDetail` 核对节点、Pin、连线和坐标，再编译。 |
-| `SetPinDefaults` | 仅改现有节点输入 Pin 字面量 | `NodeGuid`、非空 `PinDefaults`；已连 Pin 保持连线并在运行时忽略字面量 | 用图详情读回目标 Pin 默认值和连线状态。 |
-| `FormatGraph` | 以 `Balanced`/`Straight`/`Compact` 布局图 | 图定位、布局范围/风格 | 用图详情核对节点坐标；需要可视核对时截取同一视图。 |
-| `AddCommentBox` | 添加原生 Comment Box | 图、文字、范围/节点 | 用图详情读回 Comment Box 的文字、范围和被包围节点。 |
-| `GetComponents` | 读取组件树、父级和模板信息 | Actor Blueprint 路径 | 用返回的精确组件名调用 `GetComponentProperties`。 |
-| `AddComponent` | 添加本地 SCS 组件 | 组件类、名称、可选父组件 | 用 `GetComponents` 读回组件树和父级，并编译。 |
-| `SetComponentProperties` | 原子修改本蓝图 SCS 组件模板属性 | `ComponentName`、`Properties`（UE 文本格式）；失败整笔回滚 | 用 `GetComponentProperties` 读回目标属性，并编译。 |
-| `RenameComponent` | 重命名本地 SCS 组件并更新成员引用 | 当前名、新唯一名 | 用 `GetComponents` 读回新名称和父级，并编译。 |
-| `RemoveComponent` | 删除组件 | 删除前读取层级；安全/恢复检查 | 读回组件树和引用，再编译。 |
-| `ReparentComponent` | 改本地 SceneComponent 附着父级 | `ComponentName`、`NewParentName`；禁止循环，根改用 `SetRootComponent` | 用 `GetComponents` 读回 Parent，并编译。 |
-| `SetRootComponent` | 设本地 SceneComponent 为根 | 目标须本地 SceneComponent | 用 `GetComponents` 读回根组件，并编译。 |
-| `DuplicateComponent` | 复制本地 SCS 组件及模板属性 | 源/新名称、父级；实际本地根不可复制 | 读回组件树和复制件的模板属性。 |
-| `GetComponentProperties` | 分页读可编辑组件模板属性 | 蓝图、组件名、分页参数 | 在写入前后读取同一属性集并比较 UE 文本值。 |
-| `GetClassDefaults` | 分页读可编辑 CDO 默认值 | 蓝图、分页参数 | 在写入前后读取同一 CDO 属性集并比较。 |
-| `SetClassDefaults` | 原子写 CDO（含继承）默认值 | `Properties` 为区分大小写的 UE 文本；须先编译过 | 用 `GetClassDefaults` 读回属性，并重新编译。 |
-| `CreateBlueprint` | 创建支持的 Blueprint 资产 | `AssetPath`、父类等定义 | 读取概览并编译；需持久化时保存再重载。 |
-| `ReparentBlueprint` | 改 Blueprint 类父类 | 先 `bDryRun`；层级变化/接口冲突须 `bAllowPotentialDataLoss` | 读回旧/新父类和编译报告，保存后重开确认。 |
-| `CompileBlueprint` | 编译并返回真实状态/诊断 | `BlueprintPath` | 确认状态为 `UpToDate` 或 `Warning`，并检查返回诊断。 |
-| `SaveAsset` | 显式保存资产 | 目标资产路径 | 关闭资产后重开，或从磁盘重载并读回目标内容。 |
-| `OpenAsset` | 打开资产编辑器 | 资产路径 | 后续 `CaptureGraphScreenshot` 返回有效文件，或读取已打开资产的图详情。 |
-| `CloseAsset` | 关闭资产编辑器 | 资产路径 | 再次 `OpenAsset` 后读取同一图或截取图表，确认可重新初始化。 |
-| `ReloadBlueprintFromDisk` | 从磁盘重载 Blueprint | 默认 dry-run；丢弃内存修改须批准 | 重载后读取概览和图详情，确认磁盘版本的成员与图结构。 |
-| `DeleteAsset` | 安全删除资产 | Package、引用/Undo/Redo 安全检查 | 同时检查 Asset Registry 不再存在该路径且磁盘包文件已删除。 |
-| `RenameAsset` | 重命名/移动资产 | 源与目标路径 | 在 Asset Registry 中读取新路径，并检查引用更新。 |
-| `DuplicateAsset` | 复制资产 | 源与目标路径 | 读取新路径概览并打开新资产确认。 |
-| `CaptureGraphScreenshot` | 截取真实已初始化图表编辑器画面 | 先 `OpenAsset`；图、视图/尺寸参数 | 检查返回文件存在、尺寸符合请求且 Viewport Token 可复用。 |
+| 工具 | 具体功能 | 必要注意事项 |
+|---|---|---|
+| `ListBlueprints` | 分页查找项目中的 Blueprint 资产。 | 大型项目请用 `PathFilter` 和分页缩小范围。 |
+| `GetBlueprintOverview` | 查看蓝图的父类、图、变量、组件和接口概览。 | 需要提供准确的 `BlueprintPath`。 |
+| `ListBlueprintMembers` | 分页查看函数、事件、分发器和局部变量。 | 大型蓝图请使用分页。 |
+| `GetGraphDetail` | 查看指定图的节点、Pin、连线和布局信息。 | 可用 `GraphName` 限定目标图。 |
+| `SearchGraphNodes` | 按英文动作名查找可创建的节点。 | 后续创建节点时只能使用返回的 `SpawnerId`。 |
+| `GetCompileErrors` | 获取蓝图当前的编译诊断。 | 用于处理编辑器报告的错误或警告。 |
+| `CreateUserDefinedStruct` | 在 `/Game` 下创建用户定义 Struct。 | 创建后不会自动保存。 |
+| `GetUserDefinedStruct` | 查看 Struct 的字段定义。 | 大型 Struct 可分页读取。 |
+| `ModifyUserDefinedStruct` | 添加、调整或删除 Struct 字段。 | 先使用 `bDryRun`；可能造成数据丢失时必须显式批准。 |
+| `CreateUserDefinedEnum` | 在 `/Game` 下创建用户定义 Enum。 | 创建后不会自动保存。 |
+| `GetUserDefinedEnum` | 查看 Enum 的条目、数值和显示名。 | 大型 Enum 可分页读取。 |
+| `ModifyUserDefinedEnum` | 添加、调整或删除 Enum 条目。 | 先使用 `bDryRun`；改变序列化含义时必须显式批准。 |
+| `AddVariable` | 为蓝图添加成员变量。 | 需要蓝图路径、变量名和 `TypeName`。 |
+| `ModifyVariable` | 修改成员变量的类型、默认值、名称、可编辑性、分类或提示。 | 被引用的变量不能改类型；带 RepNotify 的变量不能通过此工具改名。 |
+| `RemoveVariable` | 删除成员变量。 | 有引用或无法安全恢复时会被阻止。 |
+| `CreateFunction` | 创建蓝图函数及其参数。 | 需要蓝图路径、函数名和参数定义。 |
+| `RenameFunction` | 重命名用户函数，并更新可安全更新的引用。 | 先使用 dry-run；更新引用必须显式批准。 |
+| `ModifyFunctionSignature` | 添加、重命名、删除或改类型函数参数。 | 默认 dry-run；删除参数或改类型可能造成数据丢失，须显式批准。 |
+| `RemoveFunction` | 删除用户函数。 | 有引用或无法安全恢复时会被阻止。 |
+| `CreateCustomEvent` | 在 Event Graph 中创建自定义事件。 | 目标必须是实际的 Event Graph。 |
+| `AddEventNode` | 添加受支持的事件节点。 | 需指定蓝图和事件类型。 |
+| `AddBoundEvent` | 为组件或委托添加绑定事件。 | 组件和委托必须能被解析。 |
+| `AddLocalVariable` | 在函数图中添加局部变量。 | 需要函数名、变量名和类型。 |
+| `RemoveLocalVariable` | 删除函数局部变量。 | 有引用或无法安全恢复时会被阻止。 |
+| `AddNodePin` | 为支持可变 Pin 的节点增加 Pin。 | 先从图表详情取得目标节点标识。 |
+| `RemoveNodePin` | 删除节点上可编辑的用户 Pin。 | 需要准确定位目标 Pin。 |
+| `AddInterface` | 为蓝图添加接口。 | 使用接口类路径。 |
+| `AddEventDispatcher` | 添加事件分发器。 | 指定名称和签名。 |
+| `RemoveEventDispatcher` | 删除事件分发器。 | 有引用或无法安全恢复时会被阻止。 |
+| `ApplyGraphPatch` | 在一次操作中创建、连线、断线、删除、移动节点，设置默认值并布局。 | 先搜索节点；支持 dry-run；失败时会尝试回滚。 |
+| `SetPinDefaults` | 修改现有节点输入 Pin 的字面量。 | 已连线的输入 Pin 在运行时会忽略字面量。 |
+| `FormatGraph` | 用 `Balanced`、`Straight` 或 `Compact` 整理图表布局。 | 可按图或范围指定布局。 |
+| `AddCommentBox` | 添加原生 Comment Box。 | 指定文字和范围或目标节点。 |
+| `GetComponents` | 查看 Actor Blueprint 的组件树、父级和模板信息。 | 仅适用于 Actor Blueprint。 |
+| `AddComponent` | 添加本地 SCS 组件。 | 指定组件类、名称和可选父组件。 |
+| `SetComponentProperties` | 修改本蓝图 SCS 组件模板属性。 | 属性使用 UE 文本格式；任一属性无效时整次修改回滚。 |
+| `RenameComponent` | 重命名本地 SCS 组件并更新成员引用。 | 新名称必须唯一。 |
+| `RemoveComponent` | 删除组件。 | 有引用或无法安全恢复时会被阻止。 |
+| `ReparentComponent` | 修改本地 SceneComponent 的附着父级。 | 不能形成循环；根组件请用 `SetRootComponent`。 |
+| `SetRootComponent` | 将本地 SceneComponent 设为根组件。 | 目标必须是本地 SceneComponent。 |
+| `DuplicateComponent` | 复制本地 SCS 组件及模板属性。 | 实际本地根组件不能复制。 |
+| `GetComponentProperties` | 分页查看可编辑的组件模板属性。 | 需要蓝图路径、组件名和分页参数。 |
+| `GetClassDefaults` | 分页查看可编辑的 CDO 默认值。 | 大型属性集请使用分页。 |
+| `SetClassDefaults` | 修改蓝图 CDO（含继承属性）的默认值。 | 属性名区分大小写，值使用 UE 文本格式。 |
+| `CreateBlueprint` | 创建受支持类型的 Blueprint 资产。 | 指定资产路径和父类等定义；创建后不会自动保存。 |
+| `ReparentBlueprint` | 更改 Blueprint 类的父类。 | 先使用 `bDryRun`；层级或接口冲突可能需要 `bAllowPotentialDataLoss`。 |
+| `CompileBlueprint` | 编译指定蓝图并返回诊断。 | 用于处理编辑器报告的错误或警告。 |
+| `SaveAsset` | 将资产的当前改动明确保存到磁盘。 | 普通编辑不会自动保存。 |
+| `OpenAsset` | 打开资产编辑器。 | 截图前必须先打开资产。 |
+| `CloseAsset` | 关闭资产编辑器。 | 关闭前请先保存需要保留的改动。 |
+| `ReloadBlueprintFromDisk` | 用磁盘版本替换当前内存中的 Blueprint。 | 默认 dry-run；丢弃未保存改动必须显式批准。 |
+| `DeleteAsset` | 删除资产。 | 删除具有更严格的引用和恢复安全检查。 |
+| `RenameAsset` | 重命名或移动资产。 | 指定源路径和目标路径。 |
+| `DuplicateAsset` | 复制资产。 | 指定源路径和目标路径。 |
+| `CaptureGraphScreenshot` | 截取已打开蓝图图表的画面。 | 先 `OpenAsset`；图表控件必须已初始化。 |
 
 ## 重点教程：默认值、签名、组件与继承
 
 ### 1. `ModifyVariable`：声明默认值，不是节点值
 
-先用 `GetBlueprintOverview` 确认 `VariableName` 是本蓝图声明的成员变量。再只提交需要变化的字段：`TypeName`、`DefaultValue`、`NewName`、`bInstanceEditable`、`Category` 或 `Tooltip`。`DefaultValue` 使用 UE 文本格式；空 `Category` 恢复 UE 默认分类，空 `Tooltip` 删除提示。变量被引用时不能改类型；有 RepNotify 的变量不能通过该工具非交互重命名。写后重新读取概览并编译，确认 `ChangedFields`；要持久化再 `SaveAsset`。
+先用 `GetBlueprintOverview` 找到本蓝图声明的目标变量。只传入需要变化的字段：`TypeName`、`DefaultValue`、`NewName`、`bInstanceEditable`、`Category` 或 `Tooltip`。`DefaultValue` 使用 UE 文本格式；空 `Category` 恢复 UE 默认分类，空 `Tooltip` 删除提示。变量被引用时不能改类型；带 RepNotify 的变量不能通过此工具非交互改名。需要保留改动时再使用 `SaveAsset`。
 
 ### 2. `ModifyFunctionSignature`：函数参数不是普通节点 Pin
 
-先以 `GetGraphDetail` 获取精确 `FunctionGraphGuid` 和 Entry/Result 的稳定 `PinId`，不要用显示名称代替 ID。选择唯一的 `Operation`：`AddInput`、`AddOutput`、`RenamePin`、`RemovePin` 或 `ChangePinType`。默认 `bDryRun=true`；审阅调用者、派生类、Delegate、Override、接口与 AnimGraph blocker 后，写入还须 `bApproveReferenceUpdates=true`。删除参数或改参数类型还须 `bAllowPotentialDataLoss=true`。工具会事务性更新可安全处理的调用点、编译受影响蓝图，失败会回滚；最后读回签名和调用者，不会自动保存。
+使用 `GetGraphDetail` 找到函数图及 Entry/Result 的所需标识；不要用显示名称代替这些标识。选择一个操作：`AddInput`、`AddOutput`、`RenamePin`、`RemovePin` 或 `ChangePinType`。默认 `bDryRun=true`；更新引用时必须设置 `bApproveReferenceUpdates=true`。删除参数或改参数类型还须设置 `bAllowPotentialDataLoss=true`。工具会处理可安全更新的调用点，失败时尝试回滚；不会自动保存。
 
 ### 3. `SetPinDefaults`：只改未连接输入 Pin 的字面量
 
-从 `GetGraphDetail` 取得 `NodeGuid`，传入非空 `PinDefaults` 映射，例如 `{\"Duration\": \"2.0\", \"InString\": \"Hello\"}`。对象/Class Pin 需要完整对象路径。该工具不改变节点、连线或图结构；若输入 Pin 已连接，运行时会忽略它的默认值，应先确认连线是否存在。写后用图详情逐个核对 Pin 默认值；结构变化改用 `ApplyGraphPatch`。
+从 `GetGraphDetail` 取得目标节点标识，传入非空 `PinDefaults` 映射，例如 `{\"Duration\": \"2.0\", \"InString\": \"Hello\"}`。对象/Class Pin 需要完整对象路径。该工具不改变节点、连线或图结构；若输入 Pin 已连接，运行时会忽略它的默认值。结构变化请改用 `ApplyGraphPatch`。
 
 ### 4. `SetComponentProperties`：改 SCS 模板，不改实例
 
-先 `GetComponents` 取得本地 SCS `ComponentName`，建议再用 `GetComponentProperties` 建立属性基线。把 `Properties` 作为“属性名 → UE 文本值”映射，例如 `RelativeLocation: \"(X=0,Y=0,Z=50)\"`、`bHiddenInGame: \"True\"`。工具只改此 Blueprint 添加的组件模板；任一属性不合法，整次调用回滚并给出属性名与格式提示。写后读回属性、编译，最后按需保存。
+先用 `GetComponents` 找到本地 SCS `ComponentName`。把 `Properties` 作为“属性名 → UE 文本值”映射，例如 `RelativeLocation: \"(X=0,Y=0,Z=50)\"`、`bHiddenInGame: \"True\"`。工具只改此 Blueprint 添加的组件模板；任一属性不合法，整次调用会回滚并给出属性名与格式提示。按需使用 `SaveAsset` 保存。
 
 ### 5. `SetClassDefaults`：改 CDO，可覆盖继承属性
 
-先运行过一次 `CompileBlueprint`，再 `GetClassDefaults` 找到可编辑的、**大小写敏感**的反射属性名。传入 `Properties` 的 UE 文本映射，如 `bReplicates: \"True\"` 或 `JumpMaxCount: \"2\"`。它改的是该 Blueprint CDO，作用于以后放置/生成且未覆写的实例；不会追溯改变已存在实例。工具能访问父 C++/父 Blueprint 的属性，这是 `ModifyVariable` 做不到的。写后读回 CDO、编译并按需保存。
+使用 `GetClassDefaults` 找到可编辑且**大小写敏感**的反射属性名。传入 `Properties` 的 UE 文本映射，如 `bReplicates: \"True\"` 或 `JumpMaxCount: \"2\"`。它改的是该 Blueprint CDO，作用于以后放置/生成且未覆写的实例；不会追溯改变已存在实例。工具还能访问父 C++/父 Blueprint 的属性，这是 `ModifyVariable` 做不到的。按需使用 `SaveAsset` 保存。
 
 ### 6. `ReparentBlueprint` 与 `ReparentComponent`：两个“父级”完全不同
 
-`ReparentBlueprint` 改的是类继承：传 `NewParentClassPath`（原生完整路径、唯一已加载短名或 Blueprint 生成类）。先 `bDryRun=true` 检查旧/新类、层级风险和重复继承接口；新父类不是旧父类的子类、旧父类缺失或接口冲突时，必须明确 `bAllowPotentialDataLoss=true`。它会刷新图、编译，若编译失败尝试 Undo 回滚；读回父类和编译报告后，再重开验证。
+`ReparentBlueprint` 改的是类继承：传 `NewParentClassPath`（原生完整路径、唯一已加载短名或 Blueprint 生成类）。先使用 `bDryRun=true` 查看风险；新父类不是旧父类的子类、旧父类缺失或接口冲突时，必须明确 `bAllowPotentialDataLoss=true`。它会刷新图；若操作失败会尝试 Undo 回滚。
 
-`ReparentComponent` 改的是同一 Actor Blueprint 内本地 **SceneComponent** 的附着树：传组件名与新的 `NewParentName`。不能把节点挂到自身/子孙节点下；非 SceneComponent 不可改；实际本地根组件必须用 `SetRootComponent`。成功后用 `GetComponents` 检查 Parent，并编译验证。
+`ReparentComponent` 改的是同一 Actor Blueprint 内本地 **SceneComponent** 的附着树：传组件名与新的 `NewParentName`。不能把节点挂到自身或子孙节点下；非 SceneComponent 不可改；实际本地根组件必须用 `SetRootComponent`。
 
 ## 推荐操作流程
 
-所有写操作都使用同一顺序：
+涉及结构或数据变化的写操作可按以下顺序进行：
 
-1. **检查** — 确定精确资产、图、稳定 GUID、Pin、成员或组件。
+1. **定位** — 确定目标资产、图、Pin、成员或组件。
 2. **搜索** — 通过 `SearchGraphNodes` 获取合法 `SpawnerId`。
 3. **预览** — 工具支持时使用 `bDryRun=true`，检查受影响资产、规范化操作、限制和 blocker。
-4. **应用** — 只发送一次已审阅操作，不编造 GUID 或 `SpawnerId`。
-5. **读回** — 再次查询目标图或资产并比较预期状态。
-6. **编译** — 获取权威状态、错误和警告。
-7. **显式保存** — 只有用户需要持久化时才调用 `SaveAsset`。
+4. **应用** — 使用工具返回的标识，不编造 `SpawnerId`。
+5. **保存** — 只有需要保留改动时才调用 `SaveAsset`。
 
-Dry-run 可能报告 Action Registry 节点、生成 Pin、类型提升或精确修改后布局无法在不写入时证明。这是预览能力的真实限制，不是自动写入许可；应用前仍须核对当前图和精确的 `SearchGraphNodes` 返回结果。
+Dry-run 不能展示所有生成 Pin、类型提升或最终布局。这是预览能力的限制，不代表工具会自动写入；写入前仍应使用当前搜索结果中的 `SpawnerId`。
 
 ## 教程：创建计算函数
 
@@ -180,71 +178,71 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 1. 用 `CreateBlueprint` 创建 Actor 蓝图。
 2. 用 `CreateFunction` 创建 `CalculateScore`，包含三个 `double` 输入和一个 `double` 输出。
-3. 用 `GetGraphDetail` 读取新函数并记录 Entry/Result 节点 GUID。
+3. 用 `GetGraphDetail` 找到新函数的 Entry/Result 节点标识。
 4. 在这个函数图中搜索 `Add` 和 `Multiply`，使用返回的 `Operator:Add` 和 `Operator:Multiply`。
 5. 预览一个同时包含两个节点和五条数据连接的 `ApplyGraphPatch`。
 6. 对完全相同的 Patch 执行写入，使用原生 `double` 类型提升和自动 `Balanced` 布局。
-7. 读回四个节点和六条连线，编译并显式保存。
+7. 需要保留这项改动时，调用 `SaveAsset`。
 
-最终图应形成一个从左到右的单一连通组件：无节点重叠、无反向边、没有任何编造的节点 ID。
+最终图从左到右呈现 `BaseScore + Bonus` 后再乘以 `Multiplier` 的计算流程。
 
 ## 正常编辑器截图与业务规则修改对比
 
-以下 13 张图片均在本次同一 UE 5.2 D3D11 编辑器会话中重拍。MCP 只负责打开资产和定位图表；成品图片来自真实 Blueprint Editor 窗口像素：普通图使用最大化的 2560×1440 窗口，超宽图使用扩展到 3200×1800 的同一窗口，最后都等比缩小到统一的 1920×1080。每组 Before/After 使用相同的源窗口尺寸。教程没有采用 `FWidgetRenderer` 离屏 Graph PNG 作为成品，从而避开 UE 5.2 下可能出现的 Slate Brush 占位方块。
+以下示例展示 Blueprint Editor 中常见的计算函数、完整业务图和规则调整前后的可见差异。它们用于帮助你理解节点、连线和默认值变化。
 
 ### 正常图表示例
 
-`CalculateScore` 是本次新建的受控教程资产；截图展示 Action Registry 创建的 Add 与 Multiply 节点、完整数据/执行连线和自动布局。其持久化与正确性仍以图详情读回、编译、保存及重开核验为准。
+`CalculateScore` 展示 Add 与 Multiply 节点如何组合为一个清晰的计算函数。
 
 ![正常 Blueprint Editor 中的 CalculateScore](./Images/Tutorial/calculate-score.png)
 
 ### 复杂正式业务流程全图
 
-`EvaluateOrderBatchV2` 是一个包含 71 个节点的受控订单结算函数。同一张连通图中完成订单行累计、客户等级与首单折扣、地区运费、税费、人工复核决策、积分与风险分数，以及最终结算结果装配。
+`EvaluateOrderBatchV2` 展示一个订单结算函数如何在同一张图中处理订单累计、折扣、运费、税费、积分、风险分数和最终结果。
 
 ![正常 Blueprint Editor 中的完整订单结算流程](./Images/Tutorial/order-settlement-complex.png)
 
 ### 修改 1：Region 1 增加首单免运费
 
-此 Before 图来自当前 Complex 复制资产恢复到修改前逻辑后的独立受控函数：Region 1 直接执行 `ShippingCents = 1000`，首单判断分支不在执行路径中。
+修改前，Region 1 直接执行 `ShippingCents = 1000`，不区分是否为首单。
 
 ![Region 1 增加首单免运费之前](./Images/Tutorial/order-region1-before.png)
 
-对应的 After 图来自独立受控函数：Region 1 先进入 `FirstOrder` 分支；首单执行 `ShippingCents = 0`，非首单保留原来的 `ShippingCents = 1000` 规则。
+修改后，Region 1 增加 `FirstOrder` 分支：首单运费为 `0`，其他订单仍为 `1000`。
 
 ![Region 1 增加首单免运费之后](./Images/Tutorial/order-region1-after.png)
 
 ### 修改 2：积分基数排除运费
 
-此 Before 图来自本次新建的独立受控 `Points` 函数：`PointsEarned = TotalCents / 100`。
+修改前：`PointsEarned = TotalCents / 100`。
 
 ![积分排除运费之前](./Images/Tutorial/points-before.png)
 
-对应的 After 图来自独立受控 `Points` 函数：`PointsEarned = (TotalCents - ShippingCents) / 100`。同一视口可直接看到新增 Subtract 节点，以及保留的 Divide 和 Result 节点。
+修改后：`PointsEarned = (TotalCents - ShippingCents) / 100`，新增 Subtract 节点以排除运费。
 
 ![积分排除运费之后](./Images/Tutorial/points-after.png)
 
 ### 修改 3：首单折扣由固定值改为小计 5%
 
-此 Before 图来自本次新建的独立受控 `Discount` 函数：`SubtotalCents × 0` 后再加固定值 `500`，因此输出始终是固定折扣 `500`。
+修改前：`SubtotalCents × 0` 后再加固定值 `500`，因此输出始终是固定折扣 `500`。
 
 ![修改首单折扣规则之前](./Images/Tutorial/discount-before.png)
 
-对应的 After 图来自独立受控 `Discount` 函数：固定值路径替换为 `SubtotalCents / 20`，得到小计 5% 折扣，同时保持相同函数输出和图表画幅。
+修改后：固定值路径改为 `SubtotalCents / 20`，即小计的 5% 折扣。
 
 ![修改首单折扣规则之后](./Images/Tutorial/discount-after.png)
 
-三组 Before/After 均为独立受控函数或复制资产，并在各自组内使用相同的源窗口尺寸、Dock 布局、缩放流程和 1920×1080 输出；Region 1 两图还使用相同尺寸的局部裁剪。它们只用于可视比较真实节点、默认值或连线变化，不是业务运行结果证明。功能正确性与持久化仍须以图表读回、编译、显式保存和重开核验确认。若 dry-run 无法在不写入时证明生成 Pin 状态，则先核对现有 GUID 与连线，再执行单事务修改并在修改后再次验证。这些示例不含客户项目数据。
+修改逻辑前，先使用 dry-run（若工具支持）了解影响；涉及引用更新或数据丢失时，按工具要求显式批准。需要保留改动时使用 `SaveAsset`。
 
 ## 查找资产与图表
 
 - 用 `ListBlueprints` 分页查找资产。
 - 用 `GetBlueprintOverview` 查看图、变量、函数、组件、接口和父类。
 - 用 `ListBlueprintMembers` 查看函数、自定义事件、事件分发器和局部变量。
-- 图表修改前后都用 `GetGraphDetail` 获取 GUID、Pin、默认值、连线和坐标。
-- 用 `GetCompileErrors` 或 `CompileBlueprint` 获取权威诊断。
+- 用 `GetGraphDetail` 查看节点、Pin、默认值、连线和布局。
+- 用 `GetCompileErrors` 或 `CompileBlueprint` 查看编辑器诊断。
 
-始终使用插件返回的精确资产路径。大型图应分页读取，不要根据截图推断结构。
+使用插件返回的资产路径。大型图请分页查看，避免一次返回过多内容。
 
 ## 安全添加图表逻辑
 
@@ -254,33 +252,33 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 - 带临时 ID 和 Action Registry `SpawnerId` 的 `Nodes`。
 - `Connections` 与 `Disconnections`。
-- 通过稳定 Node GUID 定位的 `RemoveNodes`。
-- 通过稳定 Node GUID 和绝对图坐标定位的 `MoveNodes`。
+- 通过节点标识定位的 `RemoveNodes`。
+- 通过节点标识和图坐标定位的 `MoveNodes`。
 - 可选的 `PinDefaults`、`PromotedType`、布局范围和布局风格。
 
-整个 Patch 只使用一个事务。任一步失败都会尝试自动回滚；若工具无法证明目标图已恢复，会明确报告恢复失败。此时应停止后续写入，先用 `GetGraphDetail` 核对实际状态，不得在未知状态上直接重试。
+整个 Patch 只使用一个事务，失败时会尝试自动回滚。如果工具提示恢复失败，请停止继续修改，重新打开资产确认当前状态后再处理。
 
 ## 成员、函数、Struct 与 Enum
 
 - 变量工具管理类型、默认值、Category、Tooltip 和安全删除。
 - 函数工具创建、重命名、执行受支持的签名修改，或安全删除用户函数。
-- 局部变量动作同时绑定函数图和声明 GUID。
-- Struct/Enum 修改使用稳定字段或条目标识，并报告引用影响。
+- 局部变量操作需要函数图和变量声明标识。
+- Struct/Enum 修改使用字段或条目标识，并会报告引用影响。
 - 可能丢失数据或改变 Enum 序列化值语义的操作需要独立显式批准。
 
-函数重命名和签名修改默认先分析影响。遇到不支持的 Override、不完整引用扫描、不透明 Delegate 绑定、未加载派生类或无法安全恢复的状态时会 fail-closed。
+函数重命名和签名修改会先分析影响。遇到无法安全处理的 Override、Delegate 绑定、派生类或引用时，工具会拒绝操作，不会勉强修改。
 
-### 函数重命名：真实保存、重开验证截图
+### 函数重命名示例
 
-下面两张图均在本次同一 UE 5.2 D3D11 会话中通过真实窗口屏幕捕获，展示本次受控 `RenameFunction` 资产在安全检查、引用更新、编译、显式保存、关闭和重开后的函数定义与调用点；重开后又用 `GetGraphDetail` 确认调用节点标题为 `Renamed Function`。每次改名仍应执行 dry-run、读回和编译。
+下面两张图展示函数改名后的定义与调用点。改名前先使用 dry-run；工具要求更新引用时，必须显式批准。需要保留改动时使用 `SaveAsset`。
 
-![RenameFunction 后的函数定义，真实 UE5.2 保存重开验证](./Images/Tutorial/function-rename-base.png)
+![RenameFunction 后的函数定义](./Images/Tutorial/function-rename-base.png)
 
-![RenameFunction 后的调用者，真实 UE5.2 保存重开验证](./Images/Tutorial/function-rename-caller.png)
+![RenameFunction 后的调用者](./Images/Tutorial/function-rename-caller.png)
 
-### 当前运行时函数、事件与绑定事件截图
+### 函数、事件与绑定事件示例
 
-以下三张 Showcase 图均在本次同一 UE 5.2 D3D11 会话中通过真实窗口屏幕捕获：先完成 `initialize`，运行时 `tools/list` 返回 55 个工具，再用 `OpenAsset` 定位目标图表。它们证明当前插件能读取并打开对应的真实图表目标；是否安全完成修改仍必须以修改后读回、编译、显式保存和重开结果为准。
+以下示例展示带输入输出参数的函数、组件事件辅助函数图，以及 Actor 生命周期、组件绑定事件和可变 Pin 的常见结构。
 
 ![包含丰富输入输出参数的函数签名与实现](./Images/Tutorial/function-signature-overview.png)
 
@@ -296,30 +294,14 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 资产工具可以创建、复制、重命名、重设父类、编译、打开、关闭、重载、删除和保存支持的蓝图资产。
 
-- 编译成功不代表资产已经持久化。
 - 磁盘重载默认 dry-run，丢弃内存状态前必须显式批准。
 - 破坏性删除比普通图修改具有更严格的 Undo/Redo 和 Package 安全要求。
-- 只有 UObject、Asset Registry 和磁盘检查一致时才能报告成功。
 
 ## 截取图表
 
-先调用 `OpenAsset`，再使用 `CaptureGraphScreenshot`。优先选择文字、Pin 和连线可读的全图或节点聚焦画面。需要可比较画幅时，复用返回的视图位置、缩放、尺寸和 Viewport Token。响应会提供 PNG 内容或保存路径；当已保存 PNG 超过 1 MiB 时，可以省略 Base64 内容。
+先调用 `OpenAsset`，再使用 `CaptureGraphScreenshot`。可以截取完整图表、聚焦某个节点，或复用指定视口。分享图片前，请确认标题、Pin 和连线清晰可读。
 
-截图工具要求真正初始化的蓝图图表编辑器控件。完全无界面或尺寸为零的 Graph Widget 会被拒绝。UE 5.2 的 `FWidgetRenderer` 离屏输出仍可能出现 Slate Brush 占位方块，因此正式教程图片必须逐张目检；本教程的 13 张成品改用真实窗口屏幕捕获。
-
-## 待补真实截图矩阵
-
-下表保留尚未被图表能力覆盖的验证限制，**不是已完成截图的声明**。应使用真实 Editor 会话，在读回、编译、显式保存与重开核验后补入；未补齐前，以具体工具的读回与编译结果确认。
-
-| 场景 | 应证明的事实 | 建议工具链 | 当前状态 |
-|---|---|---|---|
-| 函数签名与事件图 | 函数 Entry/Result 参数、绑定事件和可变 Pin 的真实可视目标 | 概览/成员 → 图详情 → 编译；修改时再补 Before/After | 已有本次同一会话重拍的 Showcase 图；修改仍须图详情读回和编译 |
-| 组件模板属性 | SCS 模板属性写入，非关卡实例覆盖 | `GetComponents` → `GetComponentProperties` → `SetComponentProperties` → 读回/编译 | 待补 |
-| Class Defaults | CDO 改动与成员变量默认值的区别 | 编译 → `GetClassDefaults` → `SetClassDefaults` → 读回/重开 | 待补 |
-| 蓝图父类 | dry-run 风险、明确批准、编译后父类变化 | `GetBlueprintOverview` → `ReparentBlueprint` → 编译/重开 | 待补 |
-| 组件父子级 | SceneComponent 附着变化、根组件边界 | `GetComponents` → `ReparentComponent` 或 `SetRootComponent` → 编译 | 待补 |
-| Struct | 字段 GUID、引用影响与数据损失批准 | `GetUserDefinedStruct` → dry-run → 修改 → 读回/编译 | 待补 |
-| Enum | 条目整数值、序列化语义批准与读回 | `GetUserDefinedEnum` → dry-run → 修改 → 读回/编译 | 待补 |
+截图工具要求已初始化的蓝图图表编辑器控件。未打开图表编辑器或图表控件尺寸为零时，截图请求会被拒绝。
 
 ## 设置
 
@@ -333,23 +315,11 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 ## 当前限制
 
-- 目标平台为 Windows、macOS 和 Linux Editor；不提供 Runtime/Shipping 模块。各平台二进制以 Fab 官方构建结果作为发布门禁。
+- 支持 Windows、macOS 和 Linux Editor；不提供 Runtime/Shipping 模块。
 - 暂无“调用任意 Blueprint 函数并返回运行结果”的通用工具。
 - Custom Event 和 Event Dispatcher 的签名修改能力尚未达到普通函数签名修改的完整程度。
-- 某些 Blueprint Action 类型存在无法完整扫描或事务恢复的状态，此时会 fail-closed。
+- 某些 Blueprint Action 无法安全处理时，工具会直接拒绝操作。
 - 截图需要真实初始化的 Blueprint Graph Editor 控件。
-
-## 后续开发与完善方向
-
-后续准备推进：
-
-1. 有界、隔离的通用 Blueprint 运行调用与结果读回能力。
-2. 带引用影响分析和回滚的 Custom Event / Event Dispatcher 安全签名编辑。
-3. 更深入的图生命周期、调用者/引用、继承和未加载资产影响检查。
-4. 支持更多 Blueprint 资产类型和更复杂的原生 Action Registry 节点。
-5. 补充连接、dry-run、批准、持久化、Undo 和拒绝场景的完整图文教程。
-
-详细优先级和验收证据以 AIHub 为准。以上是开发方向，不承诺具体发布日期。
 
 ## 故障排查
 
