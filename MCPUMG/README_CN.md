@@ -19,7 +19,7 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 
 更新 MCPUMG 时，请先关闭编辑器，再使用匹配版本的新安装包完整替换现有 `MCPUMG` 目录。不要混用不同引擎版本的文件。
 
-## 工具（27 个）
+## 工具（28 个）
 
 ### 发现与读取
 
@@ -67,6 +67,7 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | UnbindWidgetEvent | 删除 Widget 事件绑定 |
 | AddEventActions | 添加事件动作 |
 | CreateWidgetBlueprint | 创建 Widget Blueprint |
+| SaveWidgetBlueprint | 编译并精确保存一个 Widget Blueprint；不执行 Save All，也不保存其他脏包 |
 | SetWidgetBlueprintSettings | 设置 Widget Blueprint 配置 |
 | SetPropertyBinding | 设置 Widget 属性绑定 |
 

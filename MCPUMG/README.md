@@ -19,7 +19,7 @@ MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via 
 
 To update MCPUMG, close the editor and replace the entire existing `MCPUMG` directory with the matching new package. Do not mix files from different engine versions.
 
-## Tools (27)
+## Tools (28)
 
 ### Discovery & Reading
 | Tool | Description |
@@ -63,6 +63,7 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | UnbindWidgetEvent | Remove a widget event binding |
 | AddEventActions | Add event actions |
 | CreateWidgetBlueprint | Create Widget Blueprint |
+| SaveWidgetBlueprint | Compile and save exactly one Widget Blueprint without Save All or unrelated dirty packages |
 | SetWidgetBlueprintSettings | Set Widget Blueprint settings |
 | SetPropertyBinding | Set a widget property binding |
 
