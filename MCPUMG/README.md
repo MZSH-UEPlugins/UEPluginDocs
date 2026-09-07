@@ -8,7 +8,7 @@ AI-driven UMG editing plugin for Unreal Engine, powered by MCP (Model Context Pr
 
 MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via an HTTP server running inside the Unreal Editor. AI tools can discover, create, modify widget trees, properties, slots, animations, and events through a standardized protocol.
 
-> Development status (2026-08-12): the data-driven ListView entry-class unit is complete. Further animation-track, event/binding, and other optimization work is paused and may continue when an opportunity arises.
+> Development status (2026-09-05): the reference-image-to-UMG workflow is under active development. Image understanding stays in the AI client; MCPUMG performs deterministic validation, construction, and visual verification without embedding a model or API key.
 
 ## Installation and Updates
 
@@ -19,7 +19,7 @@ MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via 
 
 To update MCPUMG, close the editor and replace the entire existing `MCPUMG` directory with the matching new package. Do not mix files from different engine versions.
 
-## Tools (28)
+## Tools (37)
 
 ### Discovery & Reading
 | Tool | Description |
@@ -29,6 +29,11 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | GetWidgetProperties | Get widget properties |
 | SearchWidgetClasses | Search available widget classes |
 | CaptureWidgetScreenshot | Capture Widget design view as PNG |
+| CaptureRuntimeWidgetScreenshot | Capture an existing PIE/Game Widget instance at its actual Slate window geometry as PNG; never creates a widget or injects preview state |
+| GetUIDesignCapabilities | Report the supported reference-to-UMG schema and safety limits |
+| ExportWidgetSpec | Export a stable Widget spec, revision, and fingerprint |
+| InspectWidgetLayout | Inspect authored metadata or paged live PIE layout diagnostics |
+| CompareUIImages | Compare two UI images without hidden resizing, cropping, or alignment |
 
 ### Widget Tree Editing
 | Tool | Description |
@@ -42,6 +47,8 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | SetWidgetProperties | Set widget properties |
 | SetSlotProperties | Set slot properties (layout parameters) |
 | SetListViewEntryClass | Configure a validated `IUserObjectListEntry` class for ListView, TileView, or TreeView |
+| ApplyWidgetTreePatch | Dry-run or atomically apply Widget Spec v1 operations |
+| SetWidgetStyle | Apply structured Image, Border, TextBlock, or Button styles |
 
 `SetListViewEntryClass` persists only the entry class. Unreal marks `UListView::ListItems` as transient, so populate items from Blueprint or runtime data with `SetListItems`/`AddItem`. A repeatable verification asset pair is `/Game/MCPTests/UMG/WBP_MCPUMG_ListViewProbe` and `/Game/MCPTests/UMG/WBP_MCPUMG_ListEntryProbe`: call the tool for widget `ListAssets`, read back `EntryWidgetClass` with `GetWidgetTree`, save and reopen the asset, then run the existing Construct-driven item population and capture the result.
 
@@ -66,6 +73,10 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | SaveWidgetBlueprint | Compile and save exactly one Widget Blueprint without Save All or unrelated dirty packages |
 | SetWidgetBlueprintSettings | Set Widget Blueprint settings |
 | SetPropertyBinding | Set a widget property binding |
+| ImportUITexture | Import a bounded local PNG/JPEG as a UI Texture2D |
+| SaveUIAsset | Save exactly one revision-checked UI texture package |
+
+See [Reference Image to UMG](./ImageToUMG.md) for the workflow, schema, safety boundaries, and acceptance guidance.
 
 ## Configuration
 

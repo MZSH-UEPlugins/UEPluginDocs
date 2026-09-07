@@ -8,7 +8,7 @@ MCPUMG 是一款由 MCP（Model Context Protocol，模型上下文协议）驱�
 
 MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供 Widget 专用的可视化编辑能力。AI 工具可以通过标准协议发现、创建和修改 Widget 树、属性、插槽、动画与事件。
 
-> 开发状态（2026-08-12）：ListView 数据驱动条目类单元已完成；动画轨道、事件/绑定及其他后续优化现已暂停，有机会再继续。
+> 开发状态（2026-09-05）：正在完善“任意参考图到 UMG”工作流。图片理解由 AI 客户端完成，MCPUMG 负责结构化规格的确定性校验、构建和视觉验收，不在插件内嵌模型或密钥。
 
 ## 安装与更新
 
@@ -19,7 +19,7 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 
 更新 MCPUMG 时，请先关闭编辑器，再使用匹配版本的新安装包完整替换现有 `MCPUMG` 目录。不要混用不同引擎版本的文件。
 
-## 工具（28 个）
+## 工具（37 个）
 
 ### 发现与读取
 
@@ -30,6 +30,11 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | GetWidgetProperties | 获取 Widget 属性 |
 | SearchWidgetClasses | 搜索可用的 Widget 类 |
 | CaptureWidgetScreenshot | 将 Widget 设计视图截取为 PNG |
+| CaptureRuntimeWidgetScreenshot | 按实际 Slate 窗口几何截取 PIE/Game 中已存在的 Widget 实例为 PNG；不会创建 Widget 或注入预览状态 |
+| GetUIDesignCapabilities | 获取图片到 UMG 规格版本、操作和安全限制 |
+| ExportWidgetSpec | 导出稳定的 Widget 结构规格、revision 与 fingerprint |
+| InspectWidgetLayout | 分页检查设计元数据或 PIE 实际布局、裁剪、文本与资源状态 |
+| CompareUIImages | 在不自动缩放、裁剪或对齐的前提下比较两张 UI 图片并返回热图 |
 
 ### Widget 树编辑
 
@@ -44,6 +49,8 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | SetWidgetProperties | 设置 Widget 属性 |
 | SetSlotProperties | 设置插槽属性（布局参数） |
 | SetListViewEntryClass | 为 ListView、TileView 或 TreeView 配置经过校验的 `IUserObjectListEntry` 条目类 |
+| ApplyWidgetTreePatch | dry-run 或原子应用 Widget Spec v1 的整树/增量 Patch |
+| SetWidgetStyle | 使用结构化 JSON 设置 Image、Border、TextBlock 与 Button 样式 |
 
 `SetListViewEntryClass` 只持久化条目类。Unreal 将 `UListView::ListItems` 标记为瞬态，因此条目数据仍应在 Blueprint 或运行时通过 `SetListItems`/`AddItem` 注入。可重复验证资产为 `/Game/MCPTests/UMG/WBP_MCPUMG_ListViewProbe` 与 `/Game/MCPTests/UMG/WBP_MCPUMG_ListEntryProbe`：对控件 `ListAssets` 调用工具，用 `GetWidgetTree` 读回 `EntryWidgetClass`，保存并重开资产，再运行现有 Construct 数据注入并截图核验。
 
@@ -70,6 +77,10 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | SaveWidgetBlueprint | 编译并精确保存一个 Widget Blueprint；不执行 Save All，也不保存其他脏包 |
 | SetWidgetBlueprintSettings | 设置 Widget Blueprint 配置 |
 | SetPropertyBinding | 设置 Widget 属性绑定 |
+| ImportUITexture | 从本地 PNG/JPEG 导入带预算与覆盖门禁的 UI Texture2D |
+| SaveUIAsset | 精确保存一个经过 revision 校验的 UI 纹理包 |
+
+图片到 UMG 的完整顺序、Schema、安全边界与验收建议见 [参考图到 UMG 工作流](./ImageToUMG.md)。
 
 ## 配置
 
