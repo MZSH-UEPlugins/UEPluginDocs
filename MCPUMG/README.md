@@ -97,6 +97,13 @@ The plugin runs an HTTP server inside the Unreal Editor. AI clients connect via 
 
 The server starts automatically when the editor opens (configurable via `bAutoStart`). The toolbar shows the actual URL (port auto-increments if 8765 is occupied).
 
+### Version and save troubleshooting
+
+- Treat `tools/list` from the live editor as authoritative. Updating the source tree or installed package does not hot-swap the DLL in an already running editor; if the tool count differs, verify the deployment directory and restart the target editor.
+- When `SaveWidgetBlueprint` fails, inspect `LogSavePackage` in the project log. Windows `Error 32` usually means a stale `-game`, PIE, or second editor process for the same project still owns the asset handle. Close only the stale process whose command line identifies that project, then retry the precise save.
+- If the patch succeeded in memory but saving failed, do not use Save All, overwrite the file externally, or repeat the patch. Release the file lock and retry `SaveWidgetBlueprint` so the existing in-memory change is saved once.
+- `CaptureRuntimeWidgetScreenshot` requires the MCPUMG editor module and an existing runtime Widget instance. A standalone `-game` process is not guaranteed to expose the MCPUMG server.
+
 ### Claude Code
 
 Add to `~/.claude/.mcp.json` (global) or project root `.mcp.json`:

@@ -101,6 +101,13 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 
 编辑器打开时服务器会自动启动（可通过 `bAutoStart` 配置）。如果 8765 端口被占用，插件会自动递增端口，工具栏将显示实际 URL。
 
+### 版本与保存排障
+
+- 运行时能力以当前编辑器返回的 `tools/list` 为准。更新源码或安装包后，已经运行的编辑器不会自动换用新 DLL；工具数量不符时先核对部署目录并重启目标编辑器。
+- `SaveWidgetBlueprint` 保存失败时检查项目日志的 `LogSavePackage`。Windows `Error 32` 通常表示同一项目仍有旧 `-game`、PIE 或第二编辑器进程占用资产；只关闭命令行明确指向该项目的遗留进程，再重试精确保存。
+- Patch 已成功而保存失败时，不要改用 Save All、外部覆盖或重复 Patch。解除文件锁后直接重试 `SaveWidgetBlueprint`，避免重复执行已生效的内存修改。
+- `CaptureRuntimeWidgetScreenshot` 需要加载 MCPUMG 编辑器模块并存在目标运行态 Widget；单独的 `-game` 进程不保证提供 MCPUMG 服务。
+
 ### Claude Code
 
 添加到 `~/.claude/.mcp.json`（全局）或项目根目录的 `.mcp.json`：
