@@ -14,7 +14,7 @@ CheckBox、Slider、ProgressBar、EditableTextBox、ScrollBar、ComboBoxString �
 
 ## 文本与富文本限制
 
-TextBlock 的 `Text` 支持 `color`、`fontSize`、已有 `/Game` **UFont** 的 `font`、`typefaceFontName`、`letterSpacing`、`lineHeight`、`wrapTextAt`、`autoWrap` 和 `ellipsis`。`ellipsis:false` 明确设置原生 Clip 策略。裸 `FontFace` 被拒绝：它不实现 Slate 所需的 `IFontProviderInterface`，会退回 fallback 字体。
+TextBlock 的 `Text` 支持 `color`、`fontSize`、已有 `/Game` 或 `/Engine` **UFont** 的 `font`、`typefaceFontName`、`letterSpacing`、`lineHeight`、`wrapTextAt`、`autoWrap` 和 `ellipsis`。`ellipsis:false` 明确设置原生 Clip 策略。裸 `FontFace` 被拒绝：它不实现 Slate 所需的 `IFontProviderInterface`，会退回 fallback 字体。引擎原生 UFont（例如默认 Roboto）可用于样式和主题回放。
 
 RichTextBlock 使用 `Style.RichText`：`textStyleSet` 必须是已有 `/Game` DataTable，且行结构**严格等于**引擎 `FRichTextStyleRow`；`decoratorClasses` 是已有、非 abstract `URichTextBlockDecorator` 子类的路径数组。工具仅引用并调用原生 `SetTextStyleSet`/`SetDecorators`，不会创建业务 Decorator。例如：
 

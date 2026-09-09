@@ -17,7 +17,7 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 
 更新 MCPUMG 时，请先关闭编辑器，再使用匹配版本的新安装包完整替换现有 `MCPUMG` 目录。不要混用不同引擎版本的文件。
 
-## 工具（45 个）
+## 工具（58 个）
 
 ### 发现与读取
 
@@ -34,6 +34,11 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | InspectWidgetLayout | 分页检查设计元数据或 PIE 实际布局、裁剪、文本与资源状态 |
 | InspectWidgetHitTest | 只读检查目标中心或局部坐标的实际缓存命中路径；不注入输入 |
 | CompareUIImages | 在不自动缩放、裁剪或对齐的前提下比较两张 UI 图片并返回热图 |
+| CaptureWidgetPreviewMatrix | 按命名状态和尺寸渲染临时预览矩阵 |
+| InspectWidgetPerformance | 读取有界的设计态 WidgetTree 复杂度信号 |
+| GetUIFrameworkCapabilities | 读取可用的 CommonUI 与 MVVM 操作 |
+| GetMVVMView | 读取 Widget Blueprint 的 MVVM Context 与 Binding |
+| ValidateMVVMBinding | 只读验证一个直接的 OneTime MVVM 属性关系 |
 
 ### Widget 树编辑
 
@@ -56,10 +61,16 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | SetWidgetInstanceProperties | 设置嵌套 UserWidget 实例的可编辑属性 |
 | SetNamedSlotContent | 为一个空 Named Slot 创建内容 |
 | CaptureWidgetPreview | 渲染临时 Widget 实例并返回离屏 PNG |
+| ExtractWidgetComponent | 将无依赖 Widget 子树复制为新的 Widget Blueprint |
+| ApplyWidgetTheme | 预检并应用可移植的样式/主题对象 |
+| ExportWidgetTheme | 导出指定 Widget 的可移植样式 |
+| BatchSetWidgetProperties | 预检并批量应用多个 Widget Blueprint 的属性改动 |
+| ConfigureCommonUIWidget | 配置一个受支持的既有 CommonUI Widget 实例 |
+| AddMVVMViewModelContext | 添加受支持的 MVVM ViewModel Context |
 
 `SetListViewEntryClass` 只持久化条目类。Unreal 将 `UListView::ListItems` 标记为瞬态，因此条目数据仍应在 Blueprint 或运行时通过 `SetListItems`/`AddItem` 注入。
 
-### UMG 动画（7 个工具）
+### UMG 动画（9 个工具）
 
 | 工具 | 说明 |
 |------|------|
@@ -70,6 +81,8 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | AddAnimationTrack | 添加动画轨道 |
 | RemoveAnimationTrack | 删除一个精确指定的动画属性轨道 |
 | SetAnimationKeys | 设置动画关键帧 |
+| DuplicateAnimation | 复制动画、轨道及 Widget 绑定 |
+| SetAnimationPlaybackRange | 以秒设置动画播放区间 |
 
 ### 事件逻辑
 
@@ -86,7 +99,7 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | ImportUIFont | 从本地 TTF/OTF 导入配套的 FontFace 与 UFont 资产 |
 | SaveUIAsset | 精确保存一个 Texture2D、FontFace 或 UFont 资产包 |
 
-图片到 UMG 的完整顺序与 Schema 见 [参考图到 UMG 工作流](./ImageToUMG.md)。导航、组件、预览、样式与字体的使用说明分别见 [导航](./Navigation.md)、[组件](./Components.md)、[预览](./Preview.md)、[通用控件样式](./CommonStyles.md)；对应英文完整指南见 [Daily Workflow](./DailyWorkflow_EN.md)。
+图片到 UMG 的完整顺序与 Schema 见 [参考图到 UMG 工作流](./ImageToUMG.md)。导航、组件、预览、样式与字体的使用说明分别见 [导航](./Navigation.md)、[组件](./Components.md)、[预览](./Preview.md)、[通用控件样式](./CommonStyles.md)；主题、预览矩阵、动画和组件提取见 [主题](./Themes.md)、[预览矩阵](./PreviewMatrix.md)、[动画工作流](./AnimationWorkflow.md)、[组件提取](./ComponentExtraction.md)；批量迁移、性能与可选框架见 [批量属性迁移](./BatchMigration.md)、[性能结构诊断](./Performance.md)、[可选 UI 框架](./OptionalUIFrameworks.md)，英文指南见 [Reuse Workflow](./ReuseWorkflow_EN.md) 与 [Advanced Workflow](./AdvancedWorkflow_EN.md)。
 
 ## 配置
 

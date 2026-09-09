@@ -8,7 +8,7 @@ This guide covers the everyday MCPUMG workflow for styling, nested widgets, navi
 
 Use `SetWidgetStyle` for Image, Border, TextBlock, Button, and supported extended controls. The tool validates the complete request before editing the target widget. Unknown fields, wrong JSON types, missing resources, and resource-type mismatches are rejected.
 
-For a `TextBlock`, `Text` supports `color`, `fontSize`, an existing `/Game` `UFont` in `font`, `typefaceFontName`, `letterSpacing`, `lineHeight`, `wrapTextAt`, `autoWrap`, and `ellipsis`. Set `ellipsis: false` to select the native Clip policy. A bare `FontFace` is not accepted for `Text.font`; it is not a Slate font provider.
+For a `TextBlock`, `Text` supports `color`, `fontSize`, an existing `/Game` or `/Engine` `UFont` in `font`, `typefaceFontName`, `letterSpacing`, `lineHeight`, `wrapTextAt`, `autoWrap`, and `ellipsis`. Set `ellipsis: false` to select the native Clip policy. A bare `FontFace` is not accepted for `Text.font`; it is not a Slate font provider. Engine UFont assets, including the default Roboto font, can also be used in portable theme playback.
 
 ```json
 {

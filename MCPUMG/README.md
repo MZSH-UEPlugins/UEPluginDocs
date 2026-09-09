@@ -17,7 +17,7 @@ MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via 
 
 To update MCPUMG, close the editor and replace the entire existing `MCPUMG` directory with the matching new package. Do not mix files from different engine versions.
 
-## Tools (45)
+## Tools (58)
 
 ### Discovery & Reading
 | Tool | Description |
@@ -33,6 +33,11 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | InspectWidgetLayout | Inspect authored metadata or paged live PIE layout diagnostics |
 | InspectWidgetHitTest | Read the cached hit path at a live widget's center or local coordinates; never inject input |
 | CompareUIImages | Compare two UI images without hidden resizing, cropping, or alignment |
+| CaptureWidgetPreviewMatrix | Render named temporary states at named sizes as a PNG matrix |
+| InspectWidgetPerformance | Read bounded authored WidgetTree complexity indicators |
+| GetUIFrameworkCapabilities | Read the available CommonUI and MVVM operations |
+| GetMVVMView | Read MVVM contexts and bindings on a Widget Blueprint |
+| ValidateMVVMBinding | Validate one direct OneTime MVVM property relationship without editing bindings |
 
 ### Widget Tree Editing
 | Tool | Description |
@@ -54,10 +59,16 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | SetWidgetInstanceProperties | Set editable properties on a nested UserWidget instance |
 | SetNamedSlotContent | Add content to one empty Named Slot |
 | CaptureWidgetPreview | Render a temporary Widget instance and return an off-screen PNG |
+| ExtractWidgetComponent | Copy one dependency-free widget subtree into a new Widget Blueprint |
+| ApplyWidgetTheme | Preflight and apply a portable style/theme object |
+| ExportWidgetTheme | Export portable styles for explicit widgets |
+| BatchSetWidgetProperties | Preflight and apply bounded property changes across Widget Blueprints |
+| ConfigureCommonUIWidget | Configure a supported existing CommonUI widget instance |
+| AddMVVMViewModelContext | Add a supported MVVM viewmodel context |
 
 `SetListViewEntryClass` persists only the entry class. Unreal marks `UListView::ListItems` as transient, so populate items from Blueprint or runtime data with `SetListItems`/`AddItem`.
 
-### UMG Animations (7 tools)
+### UMG Animations (9 tools)
 | Tool | Description |
 |------|-------------|
 | ListAnimations | List all animations |
@@ -67,6 +78,8 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | AddAnimationTrack | Add animation track |
 | RemoveAnimationTrack | Remove one precisely addressed animation property track |
 | SetAnimationKeys | Set animation keyframes |
+| DuplicateAnimation | Copy an animation with its tracks and widget bindings |
+| SetAnimationPlaybackRange | Set an animation's playback range in seconds |
 
 ### Event Logic
 | Tool | Description |
@@ -82,7 +95,7 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | ImportUIFont | Import one local TTF/OTF file as paired FontFace and UFont assets |
 | SaveUIAsset | Save exactly one Texture2D, FontFace, or UFont package |
 
-See [Reference Image to UMG](./ImageToUMG.md) for the workflow and schema. For practical navigation, component, preview, style, and font use, see [Daily Workflow](./DailyWorkflow_EN.md), [Common styles](./CommonStyles.md), [components](./Components.md), [navigation](./Navigation.md), and [previews](./Preview.md).
+See [Reference Image to UMG](./ImageToUMG.md) for the workflow and schema. For practical navigation, component, preview, style, font, reuse, themes, animation, batch, performance, and optional framework use, see [Daily Workflow](./DailyWorkflow_EN.md), [Reuse Workflow](./ReuseWorkflow_EN.md), [Advanced Workflow](./AdvancedWorkflow_EN.md), [component extraction](./ComponentExtraction.md), [Common styles](./CommonStyles.md), [components](./Components.md), [navigation](./Navigation.md), [previews](./Preview.md), [themes](./Themes.md), [preview matrices](./PreviewMatrix.md), [animation workflow](./AnimationWorkflow.md), [batch migration](./BatchMigration.md), [performance](./Performance.md), and [optional UI frameworks](./OptionalUIFrameworks.md).
 
 ## Configuration
 
