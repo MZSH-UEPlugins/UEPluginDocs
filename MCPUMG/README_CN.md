@@ -8,8 +8,6 @@ MCPUMG 是一款由 MCP（Model Context Protocol，模型上下文协议）驱�
 
 MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供 Widget 专用的可视化编辑能力。AI 工具可以通过标准协议发现、创建和修改 Widget 树、属性、插槽、动画与事件。
 
-> 开发状态（2026-09-05）：正在完善“任意参考图到 UMG”工作流。图片理解由 AI 客户端完成，MCPUMG 负责结构化规格的确定性校验、构建和视觉验收，不在插件内嵌模型或密钥。
-
 ## 安装与更新
 
 1. 关闭所有正在使用目标引擎版本的 Unreal Editor 实例。
@@ -19,7 +17,7 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 
 更新 MCPUMG 时，请先关闭编辑器，再使用匹配版本的新安装包完整替换现有 `MCPUMG` 目录。不要混用不同引擎版本的文件。
 
-## 工具（39 个）
+## 工具（45 个）
 
 ### 发现与读取
 
@@ -53,8 +51,13 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | ApplyWidgetTreePatch | dry-run 或原子应用 Widget Spec v1 的整树/增量 Patch |
 | SetWidgetStyle | 使用结构化 JSON 设置 Image、Border、TextBlock 与 Button 样式 |
 | SetWidgetLayout | 结构化设置 SizeBox、Canvas、Box 与通用 Slot，支持 dryRun |
+| SetWidgetNavigation | 局部设置原生 UMG 导航方向，不自动保存 |
+| GetWidgetNavigation | 读取全部六个原生 UMG 导航方向 |
+| SetWidgetInstanceProperties | 设置嵌套 UserWidget 实例的可编辑属性 |
+| SetNamedSlotContent | 为一个空 Named Slot 创建内容 |
+| CaptureWidgetPreview | 渲染临时 Widget 实例并返回离屏 PNG |
 
-`SetListViewEntryClass` 只持久化条目类。Unreal 将 `UListView::ListItems` 标记为瞬态，因此条目数据仍应在 Blueprint 或运行时通过 `SetListItems`/`AddItem` 注入。可重复验证资产为 `/Game/MCPTests/UMG/WBP_MCPUMG_ListViewProbe` 与 `/Game/MCPTests/UMG/WBP_MCPUMG_ListEntryProbe`：对控件 `ListAssets` 调用工具，用 `GetWidgetTree` 读回 `EntryWidgetClass`，保存并重开资产，再运行现有 Construct 数据注入并截图核验。
+`SetListViewEntryClass` 只持久化条目类。Unreal 将 `UListView::ListItems` 标记为瞬态，因此条目数据仍应在 Blueprint 或运行时通过 `SetListItems`/`AddItem` 注入。
 
 ### UMG 动画（7 个工具）
 
@@ -80,9 +83,10 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | SetWidgetBlueprintSettings | 设置 Widget Blueprint 配置 |
 | SetPropertyBinding | 设置 Widget 属性绑定 |
 | ImportUITexture | 从本地 PNG/JPEG 导入带预算与覆盖门禁的 UI Texture2D |
-| SaveUIAsset | 精确保存一个经过 revision 校验的 UI 纹理包 |
+| ImportUIFont | 从本地 TTF/OTF 导入配套的 FontFace 与 UFont 资产 |
+| SaveUIAsset | 精确保存一个 Texture2D、FontFace 或 UFont 资产包 |
 
-图片到 UMG 的完整顺序、Schema、安全边界与验收建议见 [参考图到 UMG 工作流](./ImageToUMG.md)。
+图片到 UMG 的完整顺序与 Schema 见 [参考图到 UMG 工作流](./ImageToUMG.md)。导航、组件、预览、样式与字体的使用说明分别见 [导航](./Navigation.md)、[组件](./Components.md)、[预览](./Preview.md)、[通用控件样式](./CommonStyles.md)；对应英文完整指南见 [Daily Workflow](./DailyWorkflow_EN.md)。
 
 ## 配置
 

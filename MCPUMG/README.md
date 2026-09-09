@@ -8,8 +8,6 @@ AI-driven UMG editing plugin for Unreal Engine, powered by MCP (Model Context Pr
 
 MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via an HTTP server running inside the Unreal Editor. AI tools can discover, create, modify widget trees, properties, slots, animations, and events through a standardized protocol.
 
-> Development status (2026-09-05): the reference-image-to-UMG workflow is under active development. Image understanding stays in the AI client; MCPUMG performs deterministic validation, construction, and visual verification without embedding a model or API key.
-
 ## Installation and Updates
 
 1. Close every Unreal Editor instance that uses the target engine version.
@@ -19,7 +17,7 @@ MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via 
 
 To update MCPUMG, close the editor and replace the entire existing `MCPUMG` directory with the matching new package. Do not mix files from different engine versions.
 
-## Tools (39)
+## Tools (45)
 
 ### Discovery & Reading
 | Tool | Description |
@@ -51,8 +49,13 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | ApplyWidgetTreePatch | Dry-run or atomically apply Widget Spec v1 operations |
 | SetWidgetStyle | Apply structured Image, Border, TextBlock, or Button styles |
 | SetWidgetLayout | Strict structured SizeBox, Canvas, Box and common Slot editing with dryRun |
+| SetWidgetNavigation | Patch selected native UMG navigation directions without saving |
+| GetWidgetNavigation | Read all six native UMG navigation directions |
+| SetWidgetInstanceProperties | Set editable properties on a nested UserWidget instance |
+| SetNamedSlotContent | Add content to one empty Named Slot |
+| CaptureWidgetPreview | Render a temporary Widget instance and return an off-screen PNG |
 
-`SetListViewEntryClass` persists only the entry class. Unreal marks `UListView::ListItems` as transient, so populate items from Blueprint or runtime data with `SetListItems`/`AddItem`. A repeatable verification asset pair is `/Game/MCPTests/UMG/WBP_MCPUMG_ListViewProbe` and `/Game/MCPTests/UMG/WBP_MCPUMG_ListEntryProbe`: call the tool for widget `ListAssets`, read back `EntryWidgetClass` with `GetWidgetTree`, save and reopen the asset, then run the existing Construct-driven item population and capture the result.
+`SetListViewEntryClass` persists only the entry class. Unreal marks `UListView::ListItems` as transient, so populate items from Blueprint or runtime data with `SetListItems`/`AddItem`.
 
 ### UMG Animations (7 tools)
 | Tool | Description |
@@ -76,9 +79,10 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | SetWidgetBlueprintSettings | Set Widget Blueprint settings |
 | SetPropertyBinding | Set a widget property binding |
 | ImportUITexture | Import a bounded local PNG/JPEG as a UI Texture2D |
-| SaveUIAsset | Save exactly one revision-checked UI texture package |
+| ImportUIFont | Import one local TTF/OTF file as paired FontFace and UFont assets |
+| SaveUIAsset | Save exactly one Texture2D, FontFace, or UFont package |
 
-See [Reference Image to UMG](./ImageToUMG.md) for the workflow, schema, safety boundaries, and acceptance guidance.
+See [Reference Image to UMG](./ImageToUMG.md) for the workflow and schema. For practical navigation, component, preview, style, and font use, see [Daily Workflow](./DailyWorkflow_EN.md), [Common styles](./CommonStyles.md), [components](./Components.md), [navigation](./Navigation.md), and [previews](./Preview.md).
 
 ## Configuration
 
@@ -107,7 +111,7 @@ Layout inspection now reports parent bounds, bounded clipping ancestors and vert
 
 `SetWidgetLayout` uses `Layout.sizeBox` (widthOverride/heightOverride, null clears), `canvas` (anchors.min/max x/y, offsets left/top/right/bottom, alignment x/y, autoSize, zOrder), `box` (size.rule Auto/Fill and positive Fill weight), and `slot` (padding, hAlign Left/Center/Right/Fill, vAlign Top/Center/Bottom/Fill). Box also accepts common padding/alignments, but duplicate fields across box/slot fail. Canvas offsets right/bottom mean sizes on unstretched axes and margins on stretched axes. It never reparents, edits parents or saves; dryRun validates only. Hit-test inspection reports cached evidence in the target window, not actual click delivery or mouse capture.
 
-UE text structs patch existing members by default: `Padding="()"` is not zero. Use all four explicit zero edges, or `ResetToClassDefault=true` to initialize only the properties supplied in `Properties` from their Widget/Slot class CDO before importing. This does not reset other fields or inherit Blueprint instance overrides. Empty `Properties={}` is invalid. Structured style numbers must be JSON numbers; unknown nested fields are rejected before mutation. Ancestor bounds and desired text sizes are diagnostic estimates, not final paint clips or a visual acceptance test.
+UE text structs patch existing members by default: `Padding="()"` is not zero. Use all four explicit zero edges, or `ResetToClassDefault=true` to initialize only the properties supplied in `Properties` from their Widget/Slot class CDO before importing. This does not reset other fields or inherit Blueprint instance overrides. Empty `Properties={}` is invalid. Structured style numbers must be JSON numbers; unknown nested fields are rejected before mutation. Ancestor bounds and desired text sizes are diagnostic estimates, not a substitute for viewing the final UI.
 
 - Treat `tools/list` from the live editor as authoritative. Updating the source tree or installed package does not hot-swap the DLL in an already running editor; if the tool count differs, verify the deployment directory and restart the target editor.
 - When `SaveWidgetBlueprint` fails, inspect `LogSavePackage` in the project log. Windows `Error 32` usually means a stale `-game`, PIE, or second editor process for the same project still owns the asset handle. Close only the stale process whose command line identifies that project, then retry the precise save.
