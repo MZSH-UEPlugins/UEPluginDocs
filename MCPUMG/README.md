@@ -19,7 +19,7 @@ MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via 
 
 To update MCPUMG, close the editor and replace the entire existing `MCPUMG` directory with the matching new package. Do not mix files from different engine versions.
 
-## Tools (37)
+## Tools (39)
 
 ### Discovery & Reading
 | Tool | Description |
@@ -33,6 +33,7 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | GetUIDesignCapabilities | Report the supported reference-to-UMG schema and safety limits |
 | ExportWidgetSpec | Export a stable Widget spec, revision, and fingerprint |
 | InspectWidgetLayout | Inspect authored metadata or paged live PIE layout diagnostics |
+| InspectWidgetHitTest | Read the cached hit path at a live widget's center or local coordinates; never inject input |
 | CompareUIImages | Compare two UI images without hidden resizing, cropping, or alignment |
 
 ### Widget Tree Editing
@@ -49,6 +50,7 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | SetListViewEntryClass | Configure a validated `IUserObjectListEntry` class for ListView, TileView, or TreeView |
 | ApplyWidgetTreePatch | Dry-run or atomically apply Widget Spec v1 operations |
 | SetWidgetStyle | Apply structured Image, Border, TextBlock, or Button styles |
+| SetWidgetLayout | Strict structured SizeBox, Canvas, Box and common Slot editing with dryRun |
 
 `SetListViewEntryClass` persists only the entry class. Unreal marks `UListView::ListItems` as transient, so populate items from Blueprint or runtime data with `SetListItems`/`AddItem`. A repeatable verification asset pair is `/Game/MCPTests/UMG/WBP_MCPUMG_ListViewProbe` and `/Game/MCPTests/UMG/WBP_MCPUMG_ListEntryProbe`: call the tool for widget `ListAssets`, read back `EntryWidgetClass` with `GetWidgetTree`, save and reopen the asset, then run the existing Construct-driven item population and capture the result.
 
@@ -98,6 +100,14 @@ The plugin runs an HTTP server inside the Unreal Editor. AI clients connect via 
 The server starts automatically when the editor opens (configurable via `bAutoStart`). The toolbar shows the actual URL (port auto-increments if 8765 is occupied).
 
 ### Version and save troubleshooting
+
+Layout inspection now reports parent bounds, bounded clipping ancestors and vertical text-overflow evidence, including wrapped text. `Unverified*` is not a pass. Property setters support optional `ResetToClassDefault`; structured styles add `RoundedBox` with explicit `outline`, `resource:null`, and Button `normalPadding`/`pressedPadding` (four numeric edges). Fixed corner radii require `roundingType: "FixedRadius"`; `HalfHeightRadius` produces capsules. Button style padding adds to ButtonSlot padding. See [workflow details](./ImageToUMG.md) and [layout/session guide](./LayoutAndSession.md).
+
+`initialize` exposes `_meta.mcpumgContext` with project file/name, engine/plugin version, process, actual port and SessionId. Optionally supply `params._meta.MCPUMGExpectedSessionId` on tool calls; stale or non-string tokens fail before tool execution. Omitted tokens keep older clients compatible; this is not authentication.
+
+`SetWidgetLayout` uses `Layout.sizeBox` (widthOverride/heightOverride, null clears), `canvas` (anchors.min/max x/y, offsets left/top/right/bottom, alignment x/y, autoSize, zOrder), `box` (size.rule Auto/Fill and positive Fill weight), and `slot` (padding, hAlign Left/Center/Right/Fill, vAlign Top/Center/Bottom/Fill). Box also accepts common padding/alignments, but duplicate fields across box/slot fail. Canvas offsets right/bottom mean sizes on unstretched axes and margins on stretched axes. It never reparents, edits parents or saves; dryRun validates only. Hit-test inspection reports cached evidence in the target window, not actual click delivery or mouse capture.
+
+UE text structs patch existing members by default: `Padding="()"` is not zero. Use all four explicit zero edges, or `ResetToClassDefault=true` to initialize only the properties supplied in `Properties` from their Widget/Slot class CDO before importing. This does not reset other fields or inherit Blueprint instance overrides. Empty `Properties={}` is invalid. Structured style numbers must be JSON numbers; unknown nested fields are rejected before mutation. Ancestor bounds and desired text sizes are diagnostic estimates, not final paint clips or a visual acceptance test.
 
 - Treat `tools/list` from the live editor as authoritative. Updating the source tree or installed package does not hot-swap the DLL in an already running editor; if the tool count differs, verify the deployment directory and restart the target editor.
 - When `SaveWidgetBlueprint` fails, inspect `LogSavePackage` in the project log. Windows `Error 32` usually means a stale `-game`, PIE, or second editor process for the same project still owns the asset handle. Close only the stale process whose command line identifies that project, then retry the precise save.

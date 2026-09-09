@@ -38,6 +38,38 @@ MCPUMG 不在插件内部连接图片模型，也不保存模型密钥。AI 客�
 
 ## 样式与素材
 
+### 布局检查不等于布局通过
+
+`dryRun` 只校验树和属性合法性，不执行 Slate 排版。`InspectWidgetLayout` 的 Design 模式只提供元数据；PIE 模式增加直接 Slate 父节点边界、最多 64 层裁切祖先（每页最多输出 256 条），以及包括自动换行文字在内的纵向溢出线索。`PossibleAncestorClipping` 和 `PossibleVerticalOverflow` 需要结合实际截图定位；`Unverified*` 表示没有足够证据，不是通过。
+
+祖先矩形采用屏幕空间轴对齐包围盒，并非最终绘制裁切区。旋转、OnDemand、ClipToBoundsWithoutIntersecting、自定义绘制和缓存几何时效均可能影响判断。工具不为诊断创建实例、强制预览数据或改变运行状态。先让真实页面完成布局，再检查目标实例。
+
+### 属性更新、清零与恢复默认
+
+`SetWidgetProperties` 和 `SetSlotProperties` 保持默认部分更新。`Properties={}` 无效；`Padding="()"` 保留旧结构成员，不会清零。设零请显式给出四边：`(Left=0,Top=0,Right=0,Bottom=0)`。
+
+新增可选 `ResetToClassDefault=true`：只将 `Properties` 中指定的顶层字段恢复为该 Widget/Slot 类 CDO 默认值，再导入提供的值；不影响其他字段，不修改类默认对象。它不代表零值、不读取父蓝图实例覆盖值。返回 `PropertyUpdateMode` 区分 `PatchCurrentValue` 与 `ResetToClassDefault`。
+
+### 显式圆角和按钮内边距
+
+`SetWidgetStyle` 的 Brush 支持 `drawType="RoundedBox"`；`outline` 是完整对象，必须提供四角、宽度、颜色及 `roundingType`。使用 `FixedRadius` 才会按四角值绘制；`HalfHeightRadius` 是胶囊模式。`resource:null` 显式清除 Brush 资源。未提供字段保留原值。
+
+```json
+{
+  "Brush": {
+    "drawType": "RoundedBox",
+    "outline": {
+      "topLeft": 4, "topRight": 4, "bottomRight": 4, "bottomLeft": 4,
+      "width": 1,
+      "color": {"r": 0.4, "g": 0.25, "b": 0.06, "a": 1},
+      "roundingType": "FixedRadius"
+    }
+  }
+}
+```
+
+按钮使用 `Style.Button.normalPadding` / `pressedPadding`，每个包含 `left/top/right/bottom` 四个数字，支持显式零和有限负值（有意重叠）。按钮样式 padding 与 ButtonSlot padding 相加；九宫格 Brush.margin 不是内容内边距。结构化样式的数值必须使用 JSON number，嵌套未知字段会被拒绝，整次调用在修改前校验。
+
 `SetWidgetStyle` 使用 JSON 对象，不要求调用方拼接 UE 文本结构：
 
 - Brush：资源、绘制方式、图像尺寸、颜色、九宫格 Margin、平铺和 UV。
