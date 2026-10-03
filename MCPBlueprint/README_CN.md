@@ -133,9 +133,63 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ### 1. `ModifyVariable`：声明默认值，不是节点值
 
-先用 `GetBlueprintOverview` 找到本蓝图声明的目标变量，再用 `GetBlueprintDetails` 读取准确值和可编辑限制。`Properties.NewName.Editable` 表示当前声明能否改名，拟使用的新名称仍需通过校验。基础字段包括 `TypeName`、`DefaultValue`、`NewName`、`bInstanceEditable`、`bBlueprintReadOnly`、`bPrivate`、`Category`、`Tooltip`、`bSaveGame`、`bTransient` 和 `bAdvancedDisplay`，只传入需要变化的字段。标记省略时保持原值，传 `false` 时关闭；`bPrivate: false` 会删除该元数据键。`bBlueprintReadOnly` 禁止蓝图 Set 节点而保留读取，启用时 UE 会清除 MakeEditWidget 元数据；`bPrivate` 把蓝图内的读写限制在声明该变量的蓝图中。现有 Set 引用会阻止启用只读，其他蓝图的引用会阻止启用私有；无法核实的引用或未加载的派生蓝图也会阻止收紧访问。两个访问标记与 `bInstanceEditable` 相互独立。SaveGame 控制 SaveGame 归档筛选，Transient 排除持久序列化，AdvancedDisplay 改变 Details 显示。Dirty 或刚创建而未编译的声明仍可编辑标记、默认值和元数据。改名、改类型要求已有成功编译基线；无法证明安全恢复的外部引用、依赖或派生蓝图、不支持的本地引用节点及未知改名回调会在事务前拒绝。`DefaultValue` 使用 UE 文本格式；空 `Category` 恢复 UE 默认分类，空 `Tooltip` 删除提示。变量被引用时不能改类型；带 RepNotify 的变量不能通过此工具非交互改名。需要保留改动时再使用 `SaveAsset`。
+1. 用 `BlueprintPath` 调用 `GetBlueprintOverview`，找到**由这个蓝图声明**的变量及其 `VarGuid`。再调用 `GetBlueprintDetails`，传入 `Target.Kind: "MemberVariable"`、变量 `Name`，并可附带 `VarGuid`。`CoverageComplete: false` 表示目前只返回已实现的成员变量声明属性，尚未覆盖全部蓝图 Details 功能。编辑前查看 `Properties`：`Current` 是当前值，`IsSet` 区分元数据键缺失与空字符串，`Editable`/`Reason` 或 `Enable`/`Disable` 说明可执行的更改。`Enable`/`Disable` 中，`Allowed` 表示操作可执行，`NoChange` 表示请求的状态已是当前状态，`Reason` 解释限制。`Properties.NewName.Editable` 只反映当前声明能否改名；拟用的新名称仍须通过校验。这里可以读取继承变量，但 `ModifyVariable` 只能修改目标蓝图自己声明的变量。
+2. 调用 `ModifyVariable`，传入 `BlueprintPath`、现有的 `VariableName`，以及需要变化的字段。`DefaultValue` 修改 UE 文本格式的**变量声明默认值**；图节点 Pin 字面量用 `SetPinDefaults`，直接修改类默认值用 `SetClassDefaults`。它不会追溯覆盖已有实例的覆写值。Dirty 或刚创建的声明可以修改标记、默认值和元数据；改名、改类型要求已有成功编译基线。需要时编译蓝图；只有希望改动落盘时，才用 `BlueprintPath` 调用 `SaveAsset`。
 
-成员变量还可传 `UIMin`、`UIMax`、`ClampMin`、`ClampMax`、`ForceUnits`、`bMultiLine`、`bBitmask`、`BitmaskEnum`、`bDeprecated`、`DeprecationMessage`。字符串字段传空串会删除对应元数据，布尔字段传 `false` 会关闭标记；省略则保持原值。范围字段用于非容器 int32、无枚举的 byte、float/double 和引擎支持的范围结构，要求有限数值、上下界和滑块与钳制区间有交集。`ForceUnits` 用于非容器数值变量，只改变单位显示，不换算默认值；UE 5.4 及以上会保存编辑器的完整单位名称，UE 5.2/5.3 保存可识别的输入名称或缩写，旧版缩写存档升级后可能在单位下拉框显示 None，可再次设置该字段。`bMultiLine` 适用于 string/text，包括数组、集合元素或 Map 的值。Bitmask 仅适用于非容器 int32，`BitmaskEnum` 必须给出带 `Bitflags` 元数据、可用作蓝图变量的 Enum 对象路径。启用 Enum 或设置非空弃用消息时，相应的 `bBitmask` 或 `bDeprecated` 必须在最终状态启用；关闭标记不会删除已存 Enum 或消息，需显式传空串清除。标记变量为弃用前，请先把仍需要的默认值迁移到替代变量：Unreal 不序列化弃用属性的值，重新打开蓝图后该值可能重置。Bitmask 变更只覆盖能安全重建的本蓝图 getter/setter；遇到外部引用、派生蓝图或不受支持的本地节点会拒绝写入。Bitmask 与改名、改类型请分两次调用。修改后按需保存资产。
+以下均为完整工具参数。请把 `/Game/Blueprints/BP_Player` 和示例变量名换成自己项目中的蓝图路径和声明：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player"}
+```
+
+把上面的参数传给 `GetBlueprintOverview`，再调用 `GetBlueprintDetails`：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"MemberVariable","Name":"Health"}}
+```
+
+若 `Health` 是 `int32` 声明，下面的 `ModifyVariable` 调用设置默认值、实例显示、分类和 SaveGame 归档标记：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","DefaultValue":"100","bInstanceEditable":true,"bSaveGame":true,"Category":"Stats","Tooltip":"Current health"}
+```
+
+| 字段 | 适用值或类型 | 作用 |
+|---|---|---|
+| `BlueprintPath`、`VariableName` | 必填字符串；已有蓝图和成员名 | 指定声明。即使同时传 `NewName`，`VariableName` 仍是旧名称。 |
+| `TypeName`、`DefaultValue`、`NewName` | `AddVariable` 接受的类型语法；UE 文本默认值；非空新名称 | 修改类型、声明默认值或名称。变量已有引用时不能改类型；带 RepNotify 的变量不能通过此工具改名。无法安全更新的引用或依赖也会阻止改名、改类型。 |
+| `bInstanceEditable`、`Category`、`Tooltip` | 布尔值；分类和提示字符串 | 控制实例 Details 编辑、分类和提示。空 `Category` 恢复 Unreal 默认分类，空 `Tooltip` 删除其元数据。 |
+| `bSaveGame`、`bTransient`、`bAdvancedDisplay` | 布尔值 | 分别用于 SaveGame 归档筛选、排除持久序列化、移入 Details 高级区。`bSaveGame` **不会**创建存档系统；`bTransient` 是序列化标记。 |
+| `bBlueprintReadOnly`、`bPrivate` | 本蓝图声明的成员变量上的布尔值 | 限制蓝图 Set 用法或其他蓝图的访问；与 `bInstanceEditable` 相互独立。见下方访问限制示例。 |
+| `UIMin`、`UIMax`、`ClampMin`、`ClampMax` | 有限数值字符串；标量 `int32`、无枚举 `byte`、`float`/`double` 或受支持的范围结构 | 设置滑块和钳制边界。下界不得大于上界，滑块与钳制区间必须有交集。 |
+| `ForceUnits` | 标量数值变量上可识别的单位名称或缩写 | 只改变显示单位，不换算默认值。UE 5.4 及以上保存编辑器完整单位名称；UE 5.2/5.3 保存可识别的输入。旧版缩写升级后可能显示 None，必要时重新设置单位。 |
+| `bMultiLine` | `string`/`text` 的布尔值，包含数组、集合元素和 Map 值 | 选择多行文本编辑器。 |
+| `bBitmask`、`BitmaskEnum` | 布尔值和明确的 Enum 对象路径；仅标量 `int32` | 显示位掩码，可选用带 `Bitflags` 元数据且允许用作蓝图变量的 Enum。非空 `BitmaskEnum` 要求最终状态中已启用 `bBitmask`。 |
+| `bDeprecated`、`DeprecationMessage` | 布尔值和字符串 | 标记声明为弃用并显示消息。非空消息要求最终状态中已启用 `bDeprecated`。 |
+
+| 输入方式 | 结果 |
+|---|---|
+| 省略可选字段 | 保持现有值或元数据不变。 |
+| 对布尔标记传 `false` | 清除标记。`bPrivate: false` 即使元数据存着 `"false"` 或空值，也会删除该键；可查看 Details 中的 `IsSet` 和 `Disable`。关闭 `bBitmask` 或 `bDeprecated` 不会同时删除 Enum 或消息，须另行清除。 |
+| 对 `Category`、`Tooltip` 或字符串元数据字段传 `""` | 恢复默认分类或删除相应元数据键。`NewName: ""` 不会改名；`DefaultValue` 使用 UE 文本，并不是清除元数据的指令。 |
+
+数值变量的范围修改也是一次完整的 `ModifyVariable` 请求：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","UIMin":"0","UIMax":"100","ClampMin":"0","ClampMax":"100"}
+```
+
+若 `AbilityFlags` 是标量 `int32`，可传 `{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"AbilityFlags","bBitmask":true}`。若增加 `BitmaskEnum`，必须提供自己项目中允许用于蓝图变量且带 `Bitflags` 元数据的 Enum 的实际对象路径。位掩码修改只重建受支持的本地 getter/setter 节点；外部引用、派生蓝图或不受支持的本地节点可能阻止修改。位掩码变更应与改名、改类型分开调用。
+
+访问限制示例：先检查 Details 中的 `Properties.bBlueprintReadOnly.Enable` 和 `Properties.bPrivate.Enable`；如果两者均允许，再调用 `ModifyVariable`：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","bBlueprintReadOnly":true,"bPrivate":true}
+```
+
+ReadOnly 保留蓝图读取，但阻止变量 Set 节点；它**不是深度不可变保证**。可变引用的使用者也可能阻止启用只读，而某些引擎版本中的容器操作仍可能带警告通过编译。启用 ReadOnly 会移除 `MakeEditWidget` 元数据。Private 限制声明蓝图之外的蓝图读写；现有外部引用会阻止启用私有。无法解析的引用或未加载的派生蓝图可能阻止任一访问限制。`SearchGraphNodes` 中缺少继承变量动作，并不能证明 Private 访问安全。要解除限制，使用 `{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","bBlueprintReadOnly":false,"bPrivate":false}`。
+
+设置 `bDeprecated: true` **之前**，先把仍需保留的默认值迁移到替代变量：Unreal 不会序列化弃用属性的值，重新打开蓝图后该值可能重置。需要保留修改时，用 `{"BlueprintPath":"/Game/Blueprints/BP_Player"}` 调用 `SaveAsset`。
 
 ### 2. `ModifyFunctionSignature`：函数参数不是普通节点 Pin
 

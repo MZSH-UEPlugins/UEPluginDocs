@@ -128,11 +128,65 @@ Call SearchGraphNodes first and use only returned `SpawnerId` values. A patch ca
 
 Start with `bDryRun=true`. Inspect normalized operations and every blocker; dry-run may explicitly say that Action Registry nodes, generated pins, type promotion, or exact post-layout state cannot be proven without mutation. Apply the same planned patch once. The write executes in one transaction and attempts automatic rollback on failure. If recovery cannot be proven, the response reports that explicitly; stop and read the graph back before any retry. Then call GetGraphDetail, compile, and explicitly save only when persistence is wanted. Use the default Auto layout for normal authored logic; use explicit positions or `LayoutScope=None` only for a real fixed-layout requirement.
 
-### ModifyVariable: variable defaults
+### ModifyVariable: member-variable declarations and defaults
 
-Change only the supplied declaration fields: TypeName, DefaultValue, NewName, bInstanceEditable, bBlueprintReadOnly, bPrivate, Category, Tooltip, bSaveGame, bTransient, and bAdvancedDisplay. Omitted flags keep their current values; `false` clears them (`bPrivate: false` removes the metadata key). Empty Category restores Unreal's default category; empty Tooltip removes metadata. Read exact declaration values and editing limits with GetBlueprintDetails, compile, then save deliberately. `Properties.NewName.Editable` describes whether the current declaration can be renamed; the proposed new name must still pass validation. `bBlueprintReadOnly` prevents Blueprint Set nodes while allowing reads; enabling it clears Unreal's MakeEditWidget metadata. `bPrivate` restricts Blueprint reads and writes to the declaring Blueprint. Existing Set references block enabling read-only, and references from other Blueprints block enabling private; unresolved references or unloaded derived Blueprints also block tightening access. The two access flags are independent of `bInstanceEditable`. SaveGame controls SaveGame archive inclusion, Transient excludes persistent serialization, and AdvancedDisplay changes Details presentation. Flags, defaults, and metadata remain editable on dirty or newly added declarations. Rename/type changes require a successfully compiled declaration and reject external references, dependent or derived Blueprints, unsupported local reference nodes, and unknown rename callbacks when they prevent verified recovery. This is neither SetPinDefaults nor a class-default write.
+1. Call `GetBlueprintOverview` with `BlueprintPath` to find a variable **declared by this Blueprint** and its `VarGuid`. Then call `GetBlueprintDetails` with `Target.Kind: "MemberVariable"`, its `Name`, and optionally that `VarGuid`. `CoverageComplete: false` means the tool currently returns implemented member-variable declaration properties only; it does not yet cover all Blueprint Details functionality. Inspect `Properties` before editing: `Current` is the value, `IsSet` distinguishes an absent metadata key from an empty one, and `Editable`/`Reason` or `Enable`/`Disable` explain available changes. Within `Enable`/`Disable`, `Allowed` means the action can run, `NoChange` means the requested state is already current, and `Reason` explains a restriction. `Properties.NewName.Editable` describes the current declaration; a proposed new name still needs validation. Inherited variables can be read here, but `ModifyVariable` changes only declarations owned by the target Blueprint.
+2. Call `ModifyVariable` with `BlueprintPath`, the existing `VariableName`, and only the fields you want to change. `DefaultValue` changes the UE-text **declaration default**; use `SetPinDefaults` for graph pin literals and `SetClassDefaults` for direct class-default edits. It does not retroactively replace existing instance overrides. A dirty or newly added declaration can receive flags, defaults, and metadata; rename and type changes require a successfully compiled baseline. Compile when relevant, then use `SaveAsset` with `BlueprintPath` only if you want to keep the change on disk.
 
-The same tool accepts `UIMin`, `UIMax`, `ClampMin`, `ClampMax`, `ForceUnits`, `bMultiLine`, `bBitmask`, `BitmaskEnum`, `bDeprecated`, and `DeprecationMessage`. Omitted fields retain their values; an empty string removes a string metadata key and `false` clears a Boolean marker. Range fields apply to scalar int32, non-enum byte, float/double, and engine-supported range structs; all bounds must be finite and the slider and clamp intervals must intersect. `ForceUnits` changes display units on scalar numeric variables without converting their defaults. UE 5.4+ stores the editor's full unit name; UE 5.2/5.3 retain a recognized input name or abbreviation. An older abbreviated value may show None in the unit dropdown after upgrading; set `ForceUnits` again to normalize it. `bMultiLine` applies to string/text values, including array/set elements and map values. Bitmask fields require scalar int32; `BitmaskEnum` requires an explicit path to an allowable Blueprint `Bitflags` enum. A new nonempty enum or deprecation message requires the corresponding marker enabled in the final state. Clearing a marker retains its enum or message until explicitly cleared with an empty string. Before marking a variable deprecated, move any default value you still need to a replacement variable: Unreal skips serializing deprecated property values, so reopening the Blueprint can reset that value. Bitmask edits reconstruct only covered local getter/setter nodes and reject external references, derived Blueprints, or unsupported local nodes before writing. Perform bitmask edits separately from rename/type edits, then save when needed.
+These are complete tool arguments; replace `/Game/Blueprints/BP_Player` and the sample variable names with your own Blueprint path and declarations:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player"}
+```
+
+Pass that object to `GetBlueprintOverview`, then use `GetBlueprintDetails`:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"MemberVariable","Name":"Health"}}
+```
+
+For an `int32` `Health` declaration, this `ModifyVariable` call sets a default, instance display, category, and SaveGame archive flag:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","DefaultValue":"100","bInstanceEditable":true,"bSaveGame":true,"Category":"Stats","Tooltip":"Current health"}
+```
+
+| Field | Applicable value or type | Effect |
+|---|---|---|
+| `BlueprintPath`, `VariableName` | Required strings; existing Blueprint and member name | Select the declaration. `VariableName` is the old name even when using `NewName`. |
+| `TypeName`, `DefaultValue`, `NewName` | Type syntax accepted by `AddVariable`; UE-text default; nonempty new name | Change type, declaration default, or name. Referenced variables cannot change type; RepNotify variables cannot be renamed here. Rename/type also reject references or dependencies that cannot be safely updated. |
+| `bInstanceEditable`, `Category`, `Tooltip` | Boolean; category/tooltip strings | Control instance Details editing, category, and help text. Empty `Category` restores Unreal's default category; empty `Tooltip` removes its metadata. |
+| `bSaveGame`, `bTransient`, `bAdvancedDisplay` | Booleans | Select properties for SaveGame archives, exclude them from persistent serialization, or move them to advanced Details. `bSaveGame` does **not** create a save system; `bTransient` is a serialization flag. |
+| `bBlueprintReadOnly`, `bPrivate` | Booleans on owned member declarations | Restrict Blueprint Set usage or Blueprint access from other Blueprints. These are independent of `bInstanceEditable`; see the access example below. |
+| `UIMin`, `UIMax`, `ClampMin`, `ClampMax` | Finite numeric strings on scalar `int32`, non-enum `byte`, `float`/`double`, or supported range structs | Set slider and clamp bounds. Lower bounds cannot exceed upper bounds, and slider/clamp intervals must overlap. |
+| `ForceUnits` | Recognized unit name or abbreviation on scalar numeric variables | Changes the displayed unit without converting the default. UE 5.4+ stores the editor's full unit name; UE 5.2/5.3 store a recognized input. An old abbreviation may display as None after upgrading; set the unit again if needed. |
+| `bMultiLine` | Boolean for `string`/`text`, including array/set elements and Map values | Select a multiline text editor. |
+| `bBitmask`, `BitmaskEnum` | Boolean and explicit Enum object path; scalar `int32` only | Display a bitmask, optionally using an allowable Blueprint Enum with `Bitflags` metadata. A nonempty `BitmaskEnum` requires `bBitmask` enabled in the final state. |
+| `bDeprecated`, `DeprecationMessage` | Boolean and string | Mark the declaration deprecated and show a message. A nonempty message requires `bDeprecated` enabled in the final state. |
+
+| Input | Result |
+|---|---|
+| Omit an optional field | Leave its current value or metadata unchanged. |
+| Pass `false` to a Boolean flag | Clear that flag. `bPrivate: false` removes its metadata key even if the stored value is `"false"` or empty; check `IsSet` and `Disable` in Details. Clearing `bBitmask` or `bDeprecated` leaves the Enum or message until you clear it separately. |
+| Pass `""` to `Category`, `Tooltip`, or a string metadata field | Restore the default category or remove the corresponding metadata key. `NewName: ""` does not rename; `DefaultValue` uses UE text and is not a metadata-clear command. |
+
+For a numeric variable, a range edit is another complete `ModifyVariable` request:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","UIMin":"0","UIMax":"100","ClampMin":"0","ClampMax":"100"}
+```
+
+For a scalar `int32` `AbilityFlags`, use `{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"AbilityFlags","bBitmask":true}`. If you add `BitmaskEnum`, supply the actual object path of your Blueprint-usable `Bitflags` Enum. Bitmask edits rebuild only supported local getter/setter nodes; external references, derived Blueprints, or unsupported local nodes can block the edit. Apply bitmask changes separately from rename or type changes.
+
+For an access-restriction example, first inspect `Properties.bBlueprintReadOnly.Enable` and `Properties.bPrivate.Enable` in Details. If both are allowed, call `ModifyVariable`:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","bBlueprintReadOnly":true,"bPrivate":true}
+```
+
+ReadOnly keeps Blueprint reads but blocks variable Set nodes; it is **not deep immutability**. A mutable reference consumer can also block enabling it, while some engine-version container operations may still compile with warnings. Enabling ReadOnly removes `MakeEditWidget` metadata. Private restricts Blueprint reads and writes outside the declaring Blueprint; existing external references block it. Unresolved references or unloaded derived Blueprints can block either restriction. A missing inherited-variable action in `SearchGraphNodes` does not prove Private access is safe. To remove these restrictions, use `{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","bBlueprintReadOnly":false,"bPrivate":false}`.
+
+Move any default value you still need to a replacement variable **before** setting `bDeprecated: true`: Unreal does not serialize deprecated property values, so reopening the Blueprint may reset them. To retain an edit, call `SaveAsset` with `{"BlueprintPath":"/Game/Blueprints/BP_Player"}`.
 
 ### ModifyFunctionSignature: function signature pins
 
