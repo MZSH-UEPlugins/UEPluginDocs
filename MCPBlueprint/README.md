@@ -64,7 +64,8 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | Tool | What it does | Important notes |
 |---|---|---|
 | ListBlueprints | Lists Blueprint assets. | Filter and page large projects. |
-| GetBlueprintOverview | Shows a Blueprint's parent, graphs, members, components, and interfaces. | A useful starting point before editing. |
+| GetBlueprintOverview | Shows a Blueprint's parent, graphs, members, components, and interfaces, including member variable flags and VarGuid. | A useful starting point before editing. |
+| GetBlueprintDetails | Reads implemented member-variable declaration properties and editing capability. | Target uses `Kind: "MemberVariable"`, `Name`, and optional `VarGuid`; `Properties.NewName` reports the current name and whether this declaration can be renamed. `CoverageComplete: false` marks the current scope. |
 | ListBlueprintMembers | Lists functions, events, dispatchers, and local variables. | Results are paged. |
 | GetGraphDetail | Shows graph nodes, pins, links, defaults, and positions. | Use returned identifiers when editing a graph. |
 | SearchGraphNodes | Finds available node actions. | Use only returned SpawnerId values. |
@@ -129,7 +130,7 @@ Start with `bDryRun=true`. Inspect normalized operations and every blocker; dry-
 
 ### ModifyVariable: variable defaults
 
-Change only the supplied declaration fields: TypeName, DefaultValue, NewName, bInstanceEditable, Category, and Tooltip. Empty Category restores Unreal's default category; empty Tooltip removes metadata. Read the variable table with GetBlueprintOverview, compile, then save deliberately. This is neither SetPinDefaults nor a class-default write.
+Change only the supplied declaration fields: TypeName, DefaultValue, NewName, bInstanceEditable, Category, Tooltip, bSaveGame, bTransient, and bAdvancedDisplay. Omitted flags keep their current values; `false` clears them. Empty Category restores Unreal's default category; empty Tooltip removes metadata. Read exact declaration values and editing limits with GetBlueprintDetails, compile, then save deliberately. `Properties.NewName.Editable` describes whether the current declaration can be renamed; the proposed new name must still pass validation. SaveGame controls SaveGame archive inclusion, Transient excludes persistent serialization, and AdvancedDisplay changes Details presentation. Flags, defaults, and metadata remain editable on dirty or newly added declarations. Rename/type changes require a successfully compiled declaration and reject external references, dependent or derived Blueprints, unsupported local reference nodes, and unknown rename callbacks when they prevent verified recovery. This is neither SetPinDefaults nor a class-default write.
 
 ### ModifyFunctionSignature: function signature pins
 

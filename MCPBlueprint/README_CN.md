@@ -73,7 +73,8 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | 工具 | 具体功能 | 必要注意事项 |
 |---|---|---|
 | `ListBlueprints` | 分页查找项目中的 Blueprint 资产。 | 大型项目请用 `PathFilter` 和分页缩小范围。 |
-| `GetBlueprintOverview` | 查看蓝图的父类、图、变量、组件和接口概览。 | 需要提供准确的 `BlueprintPath`。 |
+| `GetBlueprintOverview` | 查看蓝图的父类、图、变量、组件和接口概览；成员变量包含 `VarGuid` 与声明标记。 | 需要提供准确的 `BlueprintPath`。 |
+| `GetBlueprintDetails` | 查询已实现的成员变量声明属性及可编辑原因。 | `Target` 包含 `Kind: "MemberVariable"`、`Name` 和可选 `VarGuid`；`Properties.NewName` 返回当前名称及该声明能否改名；`CoverageComplete: false` 表示当前覆盖范围。 |
 | `ListBlueprintMembers` | 分页查看函数、事件、分发器和局部变量。 | 大型蓝图请使用分页。 |
 | `GetGraphDetail` | 查看指定图的节点、Pin、连线和布局信息。 | 可用 `GraphName` 限定目标图。 |
 | `SearchGraphNodes` | 按英文动作名查找可创建的节点。 | 后续创建节点时只能使用返回的 `SpawnerId`。 |
@@ -132,7 +133,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ### 1. `ModifyVariable`：声明默认值，不是节点值
 
-先用 `GetBlueprintOverview` 找到本蓝图声明的目标变量。只传入需要变化的字段：`TypeName`、`DefaultValue`、`NewName`、`bInstanceEditable`、`Category` 或 `Tooltip`。`DefaultValue` 使用 UE 文本格式；空 `Category` 恢复 UE 默认分类，空 `Tooltip` 删除提示。变量被引用时不能改类型；带 RepNotify 的变量不能通过此工具非交互改名。需要保留改动时再使用 `SaveAsset`。
+先用 `GetBlueprintOverview` 找到本蓝图声明的目标变量，再用 `GetBlueprintDetails` 读取准确值和可编辑限制。`Properties.NewName.Editable` 表示当前声明能否改名，拟使用的新名称仍需通过校验。只传入需要变化的字段：`TypeName`、`DefaultValue`、`NewName`、`bInstanceEditable`、`Category`、`Tooltip`、`bSaveGame`、`bTransient` 或 `bAdvancedDisplay`。三个新增标记省略时保持原值，传 `false` 时关闭；SaveGame 控制 SaveGame 归档筛选，Transient 排除持久序列化，AdvancedDisplay 改变 Details 显示。Dirty 或刚创建而未编译的声明仍可编辑标记、默认值和元数据。改名、改类型要求已有成功编译基线；无法证明安全恢复的外部引用、依赖或派生蓝图、不支持的本地引用节点及未知改名回调会在事务前拒绝。`DefaultValue` 使用 UE 文本格式；空 `Category` 恢复 UE 默认分类，空 `Tooltip` 删除提示。变量被引用时不能改类型；带 RepNotify 的变量不能通过此工具非交互改名。需要保留改动时再使用 `SaveAsset`。
 
 ### 2. `ModifyFunctionSignature`：函数参数不是普通节点 Pin
 
