@@ -64,7 +64,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | Tool | What it does | Important notes |
 |---|---|---|
 | ListBlueprints | Lists Blueprint assets. | Filter and page large projects. |
-| GetBlueprintOverview | Shows a Blueprint's parent, graphs, members, components, and interfaces, including member variable flags and VarGuid. | A useful starting point before editing. |
+| GetBlueprintOverview | Shows a Blueprint's parent, graphs, members, components, and interfaces, including member variable flags, Details metadata, and VarGuid. | `IsSet` fields distinguish absent metadata from an empty string. |
 | GetBlueprintDetails | Reads implemented member-variable declaration properties and editing capability. | Target uses `Kind: "MemberVariable"`, `Name`, and optional `VarGuid`; `Properties.NewName` reports the current name and whether this declaration can be renamed. `CoverageComplete: false` marks the current scope. |
 | ListBlueprintMembers | Lists functions, events, dispatchers, and local variables. | Results are paged. |
 | GetGraphDetail | Shows graph nodes, pins, links, defaults, and positions. | Use returned identifiers when editing a graph. |
@@ -77,7 +77,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | GetUserDefinedEnum | Shows Enum entries and serialized values. | Results are bounded. |
 | ModifyUserDefinedEnum | Changes one Enum operation. | Start with dry-run; remove or move needs semantic-change approval. |
 | AddVariable | Adds a Blueprint member variable. | Supports type, default, category, and instance-editable settings. |
-| ModifyVariable | Changes a member variable. | Type changes block while referenced; remove RepNotify before renaming. |
+| ModifyVariable | Changes a member variable and its Details metadata. | Type changes block while referenced; remove RepNotify before renaming. |
 | RemoveVariable | Removes a member variable. | References block removal; force affects only local references. |
 | CreateFunction | Creates a function graph with inputs and outputs. | Can create pure functions or overrides. |
 | RenameFunction | Renames a declared function and safe loaded callers. | Dry-run by default; applying needs explicit reference approval and unsafe bindings block it. |
@@ -131,6 +131,8 @@ Start with `bDryRun=true`. Inspect normalized operations and every blocker; dry-
 ### ModifyVariable: variable defaults
 
 Change only the supplied declaration fields: TypeName, DefaultValue, NewName, bInstanceEditable, Category, Tooltip, bSaveGame, bTransient, and bAdvancedDisplay. Omitted flags keep their current values; `false` clears them. Empty Category restores Unreal's default category; empty Tooltip removes metadata. Read exact declaration values and editing limits with GetBlueprintDetails, compile, then save deliberately. `Properties.NewName.Editable` describes whether the current declaration can be renamed; the proposed new name must still pass validation. SaveGame controls SaveGame archive inclusion, Transient excludes persistent serialization, and AdvancedDisplay changes Details presentation. Flags, defaults, and metadata remain editable on dirty or newly added declarations. Rename/type changes require a successfully compiled declaration and reject external references, dependent or derived Blueprints, unsupported local reference nodes, and unknown rename callbacks when they prevent verified recovery. This is neither SetPinDefaults nor a class-default write.
+
+The same tool accepts `UIMin`, `UIMax`, `ClampMin`, `ClampMax`, `ForceUnits`, `bMultiLine`, `bBitmask`, `BitmaskEnum`, `bDeprecated`, and `DeprecationMessage`. Omitted fields retain their values; an empty string removes a string metadata key and `false` clears a Boolean marker. Range fields apply to scalar int32, non-enum byte, float/double, and engine-supported range structs; all bounds must be finite and the slider and clamp intervals must intersect. `ForceUnits` changes display units on scalar numeric variables without converting their defaults. UE 5.4+ stores the editor's full unit name; UE 5.2/5.3 retain a recognized input name or abbreviation. An older abbreviated value may show None in the unit dropdown after upgrading; set `ForceUnits` again to normalize it. `bMultiLine` applies to string/text values, including array/set elements and map values. Bitmask fields require scalar int32; `BitmaskEnum` requires an explicit path to an allowable Blueprint `Bitflags` enum. A new nonempty enum or deprecation message requires the corresponding marker enabled in the final state. Clearing a marker retains its enum or message until explicitly cleared with an empty string. Before marking a variable deprecated, move any default value you still need to a replacement variable: Unreal skips serializing deprecated property values, so reopening the Blueprint can reset that value. Bitmask edits reconstruct only covered local getter/setter nodes and reject external references, derived Blueprints, or unsupported local nodes before writing. Perform bitmask edits separately from rename/type edits, then save when needed.
 
 ### ModifyFunctionSignature: function signature pins
 

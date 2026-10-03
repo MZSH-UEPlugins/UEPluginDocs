@@ -73,7 +73,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | 工具 | 具体功能 | 必要注意事项 |
 |---|---|---|
 | `ListBlueprints` | 分页查找项目中的 Blueprint 资产。 | 大型项目请用 `PathFilter` 和分页缩小范围。 |
-| `GetBlueprintOverview` | 查看蓝图的父类、图、变量、组件和接口概览；成员变量包含 `VarGuid` 与声明标记。 | 需要提供准确的 `BlueprintPath`。 |
+| `GetBlueprintOverview` | 查看蓝图的父类、图、变量、组件和接口概览；成员变量包含 `VarGuid`、声明标记和 Details 元数据。 | 需要提供准确的 `BlueprintPath`；元数据的 `IsSet` 字段区分未设置与空字符串。 |
 | `GetBlueprintDetails` | 查询已实现的成员变量声明属性及可编辑原因。 | `Target` 包含 `Kind: "MemberVariable"`、`Name` 和可选 `VarGuid`；`Properties.NewName` 返回当前名称及该声明能否改名；`CoverageComplete: false` 表示当前覆盖范围。 |
 | `ListBlueprintMembers` | 分页查看函数、事件、分发器和局部变量。 | 大型蓝图请使用分页。 |
 | `GetGraphDetail` | 查看指定图的节点、Pin、连线和布局信息。 | 可用 `GraphName` 限定目标图。 |
@@ -86,7 +86,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `GetUserDefinedEnum` | 查看 Enum 的条目、数值和显示名。 | 大型 Enum 可分页读取。 |
 | `ModifyUserDefinedEnum` | 添加、调整或删除 Enum 条目。 | 先使用 `bDryRun`；改变序列化含义时必须显式批准。 |
 | `AddVariable` | 为蓝图添加成员变量。 | 需要蓝图路径、变量名和 `TypeName`。 |
-| `ModifyVariable` | 修改成员变量的类型、默认值、名称、可编辑性、分类或提示。 | 被引用的变量不能改类型；带 RepNotify 的变量不能通过此工具改名。 |
+| `ModifyVariable` | 修改成员变量的类型、默认值、名称、可编辑性、分类、提示及 Details 元数据。 | 被引用的变量不能改类型；带 RepNotify 的变量不能通过此工具改名。 |
 | `RemoveVariable` | 删除成员变量。 | 有引用或无法安全恢复时会被阻止。 |
 | `CreateFunction` | 创建蓝图函数及其参数。 | 需要蓝图路径、函数名和参数定义。 |
 | `RenameFunction` | 重命名用户函数，并更新可安全更新的引用。 | 先使用 dry-run；更新引用必须显式批准。 |
@@ -133,7 +133,9 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ### 1. `ModifyVariable`：声明默认值，不是节点值
 
-先用 `GetBlueprintOverview` 找到本蓝图声明的目标变量，再用 `GetBlueprintDetails` 读取准确值和可编辑限制。`Properties.NewName.Editable` 表示当前声明能否改名，拟使用的新名称仍需通过校验。只传入需要变化的字段：`TypeName`、`DefaultValue`、`NewName`、`bInstanceEditable`、`Category`、`Tooltip`、`bSaveGame`、`bTransient` 或 `bAdvancedDisplay`。三个新增标记省略时保持原值，传 `false` 时关闭；SaveGame 控制 SaveGame 归档筛选，Transient 排除持久序列化，AdvancedDisplay 改变 Details 显示。Dirty 或刚创建而未编译的声明仍可编辑标记、默认值和元数据。改名、改类型要求已有成功编译基线；无法证明安全恢复的外部引用、依赖或派生蓝图、不支持的本地引用节点及未知改名回调会在事务前拒绝。`DefaultValue` 使用 UE 文本格式；空 `Category` 恢复 UE 默认分类，空 `Tooltip` 删除提示。变量被引用时不能改类型；带 RepNotify 的变量不能通过此工具非交互改名。需要保留改动时再使用 `SaveAsset`。
+先用 `GetBlueprintOverview` 找到本蓝图声明的目标变量，再用 `GetBlueprintDetails` 读取准确值和可编辑限制。`Properties.NewName.Editable` 表示当前声明能否改名，拟使用的新名称仍需通过校验。基础字段包括 `TypeName`、`DefaultValue`、`NewName`、`bInstanceEditable`、`Category`、`Tooltip`、`bSaveGame`、`bTransient` 和 `bAdvancedDisplay`，只传入需要变化的字段。标记省略时保持原值，传 `false` 时关闭；SaveGame 控制 SaveGame 归档筛选，Transient 排除持久序列化，AdvancedDisplay 改变 Details 显示。Dirty 或刚创建而未编译的声明仍可编辑标记、默认值和元数据。改名、改类型要求已有成功编译基线；无法证明安全恢复的外部引用、依赖或派生蓝图、不支持的本地引用节点及未知改名回调会在事务前拒绝。`DefaultValue` 使用 UE 文本格式；空 `Category` 恢复 UE 默认分类，空 `Tooltip` 删除提示。变量被引用时不能改类型；带 RepNotify 的变量不能通过此工具非交互改名。需要保留改动时再使用 `SaveAsset`。
+
+成员变量还可传 `UIMin`、`UIMax`、`ClampMin`、`ClampMax`、`ForceUnits`、`bMultiLine`、`bBitmask`、`BitmaskEnum`、`bDeprecated`、`DeprecationMessage`。字符串字段传空串会删除对应元数据，布尔字段传 `false` 会关闭标记；省略则保持原值。范围字段用于非容器 int32、无枚举的 byte、float/double 和引擎支持的范围结构，要求有限数值、上下界和滑块与钳制区间有交集。`ForceUnits` 用于非容器数值变量，只改变单位显示，不换算默认值；UE 5.4 及以上会保存编辑器的完整单位名称，UE 5.2/5.3 保存可识别的输入名称或缩写，旧版缩写存档升级后可能在单位下拉框显示 None，可再次设置该字段。`bMultiLine` 适用于 string/text，包括数组、集合元素或 Map 的值。Bitmask 仅适用于非容器 int32，`BitmaskEnum` 必须给出带 `Bitflags` 元数据、可用作蓝图变量的 Enum 对象路径。启用 Enum 或设置非空弃用消息时，相应的 `bBitmask` 或 `bDeprecated` 必须在最终状态启用；关闭标记不会删除已存 Enum 或消息，需显式传空串清除。标记变量为弃用前，请先把仍需要的默认值迁移到替代变量：Unreal 不序列化弃用属性的值，重新打开蓝图后该值可能重置。Bitmask 变更只覆盖能安全重建的本蓝图 getter/setter；遇到外部引用、派生蓝图或不受支持的本地节点会拒绝写入。Bitmask 与改名、改类型请分两次调用。修改后按需保存资产。
 
 ### 2. `ModifyFunctionSignature`：函数参数不是普通节点 Pin
 
