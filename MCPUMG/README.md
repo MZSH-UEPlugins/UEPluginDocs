@@ -155,4 +155,4 @@ MCP client configuration varies by tool (Cursor, Windsurf, VS Code Copilot, etc.
 - Editor only
 - Optional: [MCPBlueprint](https://github.com/MZSH-UEPlugins/MCPBlueprint) for Blueprint graph editing (widget event logic calls MCPBlueprint tools for advanced graph operations)
 
-For questions or feedback, email [mengzhishanghun@outlook.com](mailto:mengzhishanghun@outlook.com). I will take care of it when I see your message.
+For questions or feedback, visit the [unified contact page](https://mengzhishanghun.github.io/mengzhishanghun/contact/) and add me on WeChat.

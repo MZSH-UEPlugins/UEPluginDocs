@@ -100,4 +100,4 @@ UE 5.8 的实验性 Animation Assistant Toolset 是依赖 SequencerScripting 的
 
 当前源码已按 UE 5.2 与 5.8 头文件和调用链进行静态核对；编译、编辑器运行、资产保存/关闭交互和完整 Undo 行为仍属于后续统一构建与运行验证边界。
 
-如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。
+如有问题或反馈，请访问[统一联系页面](https://mengzhishanghun.github.io/mengzhishanghun/contact/)，添加我的微信。

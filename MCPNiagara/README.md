@@ -53,4 +53,4 @@ Object and data-interface parameters require typed asset or instance handling an
 
 The source targets Unreal Engine 5.2 and newer. This pass performs static source verification only; real editor writes, save/reopen behavior, and multi-version packaging still require later validation.
 
-For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
+For questions or feedback, visit the [unified contact page](https://mengzhishanghun.github.io/mengzhishanghun/contact/) and add me on WeChat.

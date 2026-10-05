@@ -100,4 +100,4 @@ The following differences are intentional:
 
 The source has been statically checked against UE 5.2 and 5.8 headers and call paths. Compilation, live editor behavior, asset save/close interaction, and complete Undo behavior remain part of the later coordinated build and runtime validation boundary.
 
-For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
+For questions or feedback, visit the [unified contact page](https://mengzhishanghun.github.io/mengzhishanghun/contact/) and add me on WeChat.

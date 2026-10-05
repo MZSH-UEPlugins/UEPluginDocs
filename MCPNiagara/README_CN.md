@@ -53,4 +53,4 @@ MCP Niagara 在 Unreal Editor 中提供面向 Niagara System、Emitter、模块�
 
 源码支持 UE 5.2 及以上版本。本轮仅完成静态源码核对；实际编辑器写入、保存、重开和跨版本打包仍需后续验证。
 
-如有问题或反馈，请发送邮件至 [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com)。我看到后会处理。
+如有问题或反馈，请访问[统一联系页面](https://mengzhishanghun.github.io/mengzhishanghun/contact/)，添加我的微信。

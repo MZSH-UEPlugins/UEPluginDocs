@@ -36,4 +36,4 @@ Write, compile, and save tools reject targets that are still open in an asset ed
 - JSON-RPC treats only messages without an `id` member as notifications; an explicit `id:null` still receives a response with a null id.
 - A timeout cannot forcibly stop an editor operation after the GameThread has claimed it. After a timeout error, inspect editor state before retrying.
 
-For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
+For questions or feedback, visit the [unified contact page](https://mengzhishanghun.github.io/mengzhishanghun/contact/) and add me on WeChat.

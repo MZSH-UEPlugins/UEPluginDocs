@@ -64,4 +64,4 @@ The Epic toolset is Experimental and tied to UE 5.8's Toolset/MCP infrastructure
 - A Behavior Tree that has runtime nodes but no editor graph is rejected instead of being rebuilt as an empty graph. Repair that asset in the Behavior Tree editor before using MCP editing or save tools.
 - Source changes do not imply that an existing packaged plugin has been rebuilt or published.
 
-For questions or feedback, email [mzsh.me@icloud.com](mailto:mzsh.me@icloud.com). I will take care of it when I see your message.
+For questions or feedback, visit the [unified contact page](https://mengzhishanghun.github.io/mengzhishanghun/contact/) and add me on WeChat.
