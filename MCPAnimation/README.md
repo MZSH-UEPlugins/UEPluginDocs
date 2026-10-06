@@ -77,4 +77,4 @@ The official UE 5.8 `AnimationAssistantToolset` focuses on Level Sequence, Contr
 - Complex or ambiguous state result graphs are not modified by guesswork. Simplify them to one direct driver or edit them manually in Unreal Editor.
 - The tools do not compile C++, build Unreal projects, or package plugins.
 
-For questions or feedback, visit the [unified contact page](https://mengzhishanghun.github.io/mengzhishanghun/contact/) and add me on WeChat.
+For questions or feedback, visit the [unified contact page](https://mengzhishanghun.github.io/contact/) and add me on WeChat.

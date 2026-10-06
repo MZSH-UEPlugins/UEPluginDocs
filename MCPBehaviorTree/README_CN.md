@@ -64,4 +64,4 @@ Epic 工具集属于 Experimental，并绑定 UE 5.8 的 Toolset/MCP 基础设�
 - 若行为树已有运行时节点却缺失编辑器图，插件会拒绝把它重建为空图。请先在 Behavior Tree 编辑器中修复资产，再使用 MCP 编辑或保存工具。
 - 源码发生变化不代表既有插件包已经重新打包或发布。
 
-如有问题或反馈，请访问[统一联系页面](https://mengzhishanghun.github.io/mengzhishanghun/contact/)，添加我的微信。
+如有问题或反馈，请访问[统一联系页面](https://mengzhishanghun.github.io/contact/)，添加我的微信。

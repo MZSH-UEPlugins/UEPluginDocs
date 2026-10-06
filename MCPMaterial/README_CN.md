@@ -36,4 +36,4 @@ MCPMaterial 为 Unreal Editor 提供面向 AI 客户端的材质与材质实例 
 - JSON-RPC 仅把缺少 `id` 字段的消息视为通知；显式 `id:null` 仍会收到带空 id 的响应。
 - 超时不能强制终止已被 GameThread 认领的编辑器操作；收到超时错误后应先核对编辑器状态，再决定是否重试。
 
-如有问题或反馈，请访问[统一联系页面](https://mengzhishanghun.github.io/mengzhishanghun/contact/)，添加我的微信。
+如有问题或反馈，请访问[统一联系页面](https://mengzhishanghun.github.io/contact/)，添加我的微信。
