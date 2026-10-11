@@ -372,6 +372,8 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 ### 修改本地函数显示与编辑器属性
 
+`ListBlueprintMembers` 的函数 `Inputs`、`Outputs` 仍按名称字母顺序返回。每个函数参数额外包含 `DeclarationIndex`（其所属入口或结果 Terminal 声明数组中的零基下标）、`bIsReference` 和 `bIsConst`。下标属于各 Terminal，并非整个函数的唯一序号。原有分页、16 个 Pin 的签名上限及默认值截断规则保持有效；CustomEvent、EventDispatcher 返回字段保持原样。
+
 用 `MemberKind: "Function"` 调用 `ListBlueprintMembers`，把函数的 `Name` 和 `FunctionGraphGuid` 放入 `Kind: "Function"` 的 `Target`。`NodeGuid` 标识入口节点，不能代替图 GUID。先用相同 Target 调用 `GetBlueprintDetails` 查看可用属性和编辑限制，再调用 `ModifyFunctionDetails`：
 
 ```json
@@ -444,11 +446,17 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 如有问题或反馈，请使用[统一联系页面](https://mengzhishanghun.github.io/mengzhishanghun/contact/)。
 
+### 读取蓝图类设置
+
+普通蓝图可用 `GetBlueprintDetails` 与 `Target: {"Kind":"ClassSettings"}` 读取资产声明的 `DisplayName`、`Description`、`Category` 原始值，包括空字符串。该 Target 只接受 `Kind`，不要附加成员名称或 GUID。每个字段返回 `Current`、`Editable: false` 与 `Reason`，说明当前工具尚未开放类设置修改；`CoverageComplete` 保持 false。查询直接读取蓝图声明，不编译或创建 CDO，也不读取实例默认值。
+
 ### 创建与使用宏
 
 `ModifyMacroDetails` 编辑已成功编译的普通蓝图中本地宏的原生输入 Tunnel 元数据。先用 `GetGraphDetail` 获取宏的 `GraphGuid`，再用 `Target: {"Kind":"Macro","Name":"Relay","GraphGuid":"<返回的 GUID>"}` 调用 `GetBlueprintDetails`，查看各属性的原始 `Current`、`Editable`、`Reason` 和 `Impact`。
 
 用同一 Target 调用 `ModifyMacroDetails`，传入需要改变的 `Category`、`Tooltip`、`Keywords` 或 `CompactTitle` 字符串。省略字段保持原值；分类、关键词和紧凑标题会去除首尾空白。空分类恢复 Unreal 默认分类；空提示、关键词或紧凑标题只清除对应字段，清除紧凑标题仍保留独立关键词。动作搜索读取原生分类、关键词和提示，保持名称式 `SpawnerId`；原始提示为空时，搜索结果可以显示 Unreal 的宏实例默认提示。分类实质变更遇到同名 skeleton 或继承函数时拒绝。未知字段、null、过期标识和无实质变化的请求均拒绝。工具保全既有图标识、Pin 与连线，编译修改但不自动保存；当前不支持宏库编辑、签名或改名。
+
+`GetBlueprintDetails` 也可用同一组 `Kind: "Macro"`、`Name` 与 `GraphGuid` 读取宏库的自有宏，返回 Category、Tooltip、Keywords、CompactTitle 原始值。宏库返回 `Editable: false`，`Reason` 说明当前工具只开放普通宏的修改；`ModifyMacroDetails` 继续拒绝宏库写入。
 
 `CreateBlueprint` 可选 `BlueprintKind: "MacroLibrary"`；省略时保持普通蓝图行为。宏库当前只支持合法原生父类，如 `/Script/Engine.Actor` 或 `/Script/CoreUObject.Object`，拒绝蓝图生成类作为父类。
 

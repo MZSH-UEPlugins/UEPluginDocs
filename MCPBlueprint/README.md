@@ -317,6 +317,8 @@ These four actions support scalar dispatchers declared in the target Blueprint i
 
 ### Change local function presentation and editor properties
 
+`ListBlueprintMembers` returns function `Inputs` and `Outputs` in alphabetical order. Each function pin also includes `DeclarationIndex` (the zero-based position in its own entry or result terminal declaration array), `bIsReference` and `bIsConst`. The index is local to each terminal, not a unique sequence across the whole function. Existing pagination, 16-pin signature limits and default-value truncation remain in effect. CustomEvent and EventDispatcher results retain their existing fields.
+
 Call `ListBlueprintMembers` with `MemberKind: "Function"`. Copy the function's `Name` and `FunctionGraphGuid` into a `Target` with `Kind: "Function"`; `NodeGuid` identifies the entry node and cannot replace the graph GUID. Use that target with `GetBlueprintDetails` to inspect supported values and editing restrictions, then call `ModifyFunctionDetails`:
 
 ```json
@@ -356,11 +358,17 @@ In **Project Settings → Plugins → MCP Blueprint**, configure Port, Auto Star
 
 For questions or feedback, use the [contact page](https://mengzhishanghun.github.io/mengzhishanghun/contact/).
 
+### Read Blueprint class settings
+
+For an ordinary Blueprint, call `GetBlueprintDetails` with `Target: {"Kind":"ClassSettings"}` to read the asset's raw `DisplayName`, `Description` and `Category`, including empty strings. This target accepts only `Kind`; do not include member names or GUIDs. The fields return `Current`, `Editable: false` and a `Reason` stating that this tool does not currently expose class-setting changes. `CoverageComplete` remains false. This reads the Blueprint declaration, without compiling it or creating a CDO; it does not read instance defaults.
+
 ### Create and use macros
 
 `ModifyMacroDetails` edits the native input-tunnel metadata of a local macro in a successfully compiled ordinary Blueprint. Use `GetGraphDetail` to obtain the macro's `GraphGuid`, then read `GetBlueprintDetails` with `Target: {"Kind":"Macro","Name":"Relay","GraphGuid":"<returned GUID>"}`. The response exposes raw `Current`, `Editable`, `Reason` and `Impact` for each supported property.
 
 Pass any changed `Category`, `Tooltip`, `Keywords` or `CompactTitle` string to `ModifyMacroDetails` with that same target. Omitted fields retain their values; `Category`, `Keywords` and `CompactTitle` are trimmed. Empty category restores Unreal's default category; empty tooltip, keywords or compact title clears only that field. Clearing compact title retains independent keywords. The action search reads native category, keywords and tooltip while preserving the name-based `SpawnerId`; an empty raw tooltip can display Unreal's macro-instance fallback text. Category changes are refused if a same-name skeleton or inherited function exists. Unknown fields, null values, stale identities and requests with no actual change are rejected. The tool preserves existing graph identities, pins and links, compiles the edit, and does not save automatically. MacroLibrary editing and signature/name changes are outside this tool's current scope.
+
+`GetBlueprintDetails` also reads a self-owned macro in a MacroLibrary with the same `Kind: "Macro"`, `Name` and `GraphGuid` target. It returns the raw Category, Tooltip, Keywords and CompactTitle values with `Editable: false`; `Reason` explains that this tool currently supports editing ordinary macros only. `ModifyMacroDetails` continues to reject MacroLibrary writes.
 
 `CreateBlueprint` accepts optional `BlueprintKind: "MacroLibrary"`; omission keeps the ordinary Blueprint behavior. Macro libraries currently require a legal native parent, such as `/Script/Engine.Actor` or `/Script/CoreUObject.Object`. A Blueprint-generated parent is rejected.
 
