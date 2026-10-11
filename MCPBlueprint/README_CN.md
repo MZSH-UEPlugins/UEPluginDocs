@@ -30,13 +30,13 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ## 功能概览
 
-当前版本注册 59 个工具：
+当前版本注册 60 个工具：
 
 | 能力 | 数量 | 工具 |
 |---|---:|---|
 | 发现与读取 | 7 | `ListBlueprints`、`GetBlueprintOverview`、`GetBlueprintDetails`、`ListBlueprintMembers`、`GetGraphDetail`、`SearchGraphNodes`、`GetCompileErrors` |
 | User Defined Struct 与 Enum | 6 | `CreateUserDefinedStruct`、`GetUserDefinedStruct`、`ModifyUserDefinedStruct`、`CreateUserDefinedEnum`、`GetUserDefinedEnum`、`ModifyUserDefinedEnum` |
-| 变量、函数、宏、事件与 Pin | 20 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`CreateMacro`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`AddEventDispatcher`、`RemoveEventDispatcher` |
+| 变量、函数、宏、事件与 Pin | 21 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`CreateMacro`、`ModifyMacroDetails`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`AddEventDispatcher`、`RemoveEventDispatcher` |
 | 图表编辑与布局 | 4 | `ApplyGraphPatch`、`SetPinDefaults`、`FormatGraph`、`AddCommentBox` |
 | 组件与默认值 | 11 | `GetComponents`、`AddComponent`、`SetComponentProperties`、`RenameComponent`、`RemoveComponent`、`ReparentComponent`、`SetRootComponent`、`DuplicateComponent`、`GetComponentProperties`、`GetClassDefaults`、`SetClassDefaults` |
 | 资产生命周期与截图 | 11 | `CreateBlueprint`、`ReparentBlueprint`、`CompileBlueprint`、`SaveAsset`、`OpenAsset`、`CloseAsset`、`ReloadBlueprintFromDisk`、`DeleteAsset`、`RenameAsset`、`DuplicateAsset`、`CaptureGraphScreenshot` |
@@ -66,7 +66,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | 蓝图父类 | Blueprint 类继承的父类；用 `ReparentBlueprint`。 | 组件树中的父组件关系。 |
 | 组件父子级 | 同一个 Actor Blueprint 的 SceneComponent 附着层级；用 `ReparentComponent`，本地根组件改用 `SetRootComponent`。 | Blueprint 的类继承关系。 |
 
-## 59 个工具逐项功能总表
+## 60 个工具逐项功能总表
 
 普通编辑工具只标脏，不会静默保存；需要保留改动时使用 `SaveAsset`。下表说明每个工具的用途和用户需要注意的边界。
 
@@ -74,7 +74,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 |---|---|---|
 | `ListBlueprints` | 分页查找项目中的 Blueprint 资产。 | 大型项目请用 `PathFilter` 和分页缩小范围。 |
 | `GetBlueprintOverview` | 查看蓝图的父类、图、变量、组件和接口概览；成员变量包含 `VarGuid`、声明标记和 Details 元数据。 | 需要提供准确的 `BlueprintPath`；元数据的 `IsSet` 字段区分未设置与空字符串。 |
-| `GetBlueprintDetails` | 查询已实现的成员变量、自定义事件或函数声明属性及可编辑原因。 | 成员变量使用 `Target.Kind: "MemberVariable"`、`Name` 和可选 `VarGuid`；自定义事件使用 `Target.Kind: "CustomEvent"` 和 `NodeGuid`；函数使用 `Target.Kind: "Function"`、`Name` 和 `ListBlueprintMembers` 返回的 `FunctionGraphGuid`。`CoverageComplete: false` 表示当前覆盖范围。 |
+| `GetBlueprintDetails` | 查询已实现的成员变量、自定义事件、函数或普通蓝图本地宏声明属性及可编辑原因。 | 成员变量使用 `Target.Kind: "MemberVariable"`、`Name` 和可选 `VarGuid`；自定义事件使用 `Target.Kind: "CustomEvent"` 和 `NodeGuid`；函数使用 `Target.Kind: "Function"`、`Name` 和 `ListBlueprintMembers` 返回的 `FunctionGraphGuid`。宏使用 `Target.Kind: "Macro"`、`Name` 和 `GetGraphDetail` 返回的 `GraphGuid`。`CoverageComplete: false` 表示当前覆盖范围。 |
 | `ListBlueprintMembers` | 分页查看函数、事件、分发器和局部变量。 | 大型蓝图请使用分页。 |
 | `GetGraphDetail` | 查看指定图的节点、Pin、连线和布局信息。 | 可用 `GraphName` 限定目标图。 |
 | `SearchGraphNodes` | 按英文动作名查找可创建的节点。 | 后续创建节点时只能使用返回的 `SpawnerId`。 |
@@ -89,6 +89,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `ModifyVariable` | 修改成员变量的类型、默认值、名称、可编辑性、分类、提示及 Details 元数据。 | 被引用的变量不能改类型；带 RepNotify 的变量不能通过此工具改名。 |
 | `RemoveVariable` | 删除成员变量。 | 有引用或无法安全恢复时会被阻止。 |
 | `CreateMacro` | 创建宏及显式执行、数据 Pin。 | 先成功编译蓝图；省略签名不会自动创建 exec Pin；使用返回的图与 Tunnel GUID。 |
+| `ModifyMacroDetails` | 修改普通蓝图本地宏的分类、提示、关键词和紧凑标题。 | 使用 `Target.Kind: "Macro"`、`Name` 和 `GraphGuid`；不改签名，不自动保存；宏库编辑暂不支持。 |
 | `CreateFunction` | 创建蓝图函数及其参数。 | 需要蓝图路径、函数名和参数定义。 |
 | `RenameFunction` | 重命名用户函数，并更新可安全更新的引用。 | 先使用 dry-run；更新引用必须显式批准。 |
 | `ModifyFunctionSignature` | 添加、重命名、删除或改类型函数参数。 | 默认 dry-run；删除参数或改类型可能造成数据丢失，须显式批准。 |
@@ -205,6 +206,16 @@ ReadOnly 保留蓝图读取，但阻止变量 Set 节点；它**不是深度不�
 ### 4. `SetComponentProperties`：改 SCS 模板，不改实例
 
 先用 `GetComponents` 找到本地 SCS `ComponentName`。把 `Properties` 作为“属性名 → UE 文本值”映射，例如 `RelativeLocation: \"(X=0,Y=0,Z=50)\"`、`bHiddenInGame: \"True\"`。工具只改此 Blueprint 添加的组件模板；任一属性不合法，整次调用会回滚并给出属性名与格式提示。按需使用 `SaveAsset` 保存。
+
+### `GetComponentProperties`：读取继承 SCS 模板
+
+`GetComponents` 新增独立分页的 `InheritedSCSComponents` 列表。每行给出声明蓝图 `DeclaringBlueprintPath`、`ComponentGuid`、组件 `Name`、有效 `TemplatePath` 和来源蓝图 `SourceBlueprintPath`；`TemplateSource` 为 `Declaration` 或 `Override`。读取子蓝图时复制该声明身份：
+
+```json
+{"BlueprintPath":"/Game/MyActorChild","ComponentName":"InheritedRoot","DeclaringBlueprintPath":"/Game/MyActorParent","ComponentGuid":"11111111-2222-3333-4444-555555555555"}
+```
+
+GUID 使用 `GetComponents` 实际返回的值。两个可选身份字段必须成对提供；不提供时仍读取本地 SCS 模板。继承读取要求已有编译成功的目标及一致的祖先链，返回最近已有覆盖或原始声明的有效值，并注明来源。缺少生成状态、GUID 歧义、owner／模板不一致时返回原因，需另行修复。查询不创建 CDO、handler 或覆盖模板。这组继承身份用于读取；`SetComponentProperties` 仍只接受本地 SCS 组件。
 
 ### 5. `SetClassDefaults`：改 CDO，可覆盖继承属性
 
@@ -434,6 +445,10 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 如有问题或反馈，请使用[统一联系页面](https://mengzhishanghun.github.io/mengzhishanghun/contact/)。
 
 ### 创建与使用宏
+
+`ModifyMacroDetails` 编辑已成功编译的普通蓝图中本地宏的原生输入 Tunnel 元数据。先用 `GetGraphDetail` 获取宏的 `GraphGuid`，再用 `Target: {"Kind":"Macro","Name":"Relay","GraphGuid":"<返回的 GUID>"}` 调用 `GetBlueprintDetails`，查看各属性的原始 `Current`、`Editable`、`Reason` 和 `Impact`。
+
+用同一 Target 调用 `ModifyMacroDetails`，传入需要改变的 `Category`、`Tooltip`、`Keywords` 或 `CompactTitle` 字符串。省略字段保持原值；分类、关键词和紧凑标题会去除首尾空白。空分类恢复 Unreal 默认分类；空提示、关键词或紧凑标题只清除对应字段，清除紧凑标题仍保留独立关键词。动作搜索读取原生分类、关键词和提示，保持名称式 `SpawnerId`；原始提示为空时，搜索结果可以显示 Unreal 的宏实例默认提示。分类实质变更遇到同名 skeleton 或继承函数时拒绝。未知字段、null、过期标识和无实质变化的请求均拒绝。工具保全既有图标识、Pin 与连线，编译修改但不自动保存；当前不支持宏库编辑、签名或改名。
 
 `CreateBlueprint` 可选 `BlueprintKind: "MacroLibrary"`；省略时保持普通蓝图行为。宏库当前只支持合法原生父类，如 `/Script/Engine.Actor` 或 `/Script/CoreUObject.Object`，拒绝蓝图生成类作为父类。
 

@@ -2,7 +2,7 @@
 
 # MCPBlueprint User Guide
 
-MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **59 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
+MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **60 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
 
 ## Requirements and installation
 
@@ -57,7 +57,7 @@ Blueprint asset
 
 Edits are not saved automatically. Use `SaveAsset` when you want to keep a change. Destructive tools require extra confirmation or refuse the operation when references could be broken.
 
-## Complete feature matrix (59 tools)
+## Complete feature matrix (60 tools)
 
 The table is a quick guide. Live tools/list remains the source for the exact fields and constraints.
 
@@ -65,7 +65,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 |---|---|---|
 | ListBlueprints | Lists Blueprint assets. | Filter and page large projects. |
 | GetBlueprintOverview | Shows a Blueprint's parent, graphs, members, components, and interfaces, including member variable flags, Details metadata, and VarGuid. | `IsSet` fields distinguish absent metadata from an empty string. |
-| GetBlueprintDetails | Reads implemented member-variable, CustomEvent, or Function declaration properties and editing capability. | Member variables use `Target.Kind: "MemberVariable"`, `Name`, and optional `VarGuid`; CustomEvents use `Target.Kind: "CustomEvent"` and `NodeGuid`; Functions use `Target.Kind: "Function"`, `Name`, and `FunctionGraphGuid` from `ListBlueprintMembers`. `CoverageComplete: false` marks the current scope. |
+| GetBlueprintDetails | Reads implemented member-variable, CustomEvent, Function or ordinary local Macro declaration properties and editing capability. | Member variables use `Target.Kind: "MemberVariable"`, `Name`, and optional `VarGuid`; CustomEvents use `Target.Kind: "CustomEvent"` and `NodeGuid`; Functions use `Target.Kind: "Function"`, `Name`, and `FunctionGraphGuid` from `ListBlueprintMembers`. Macros use `Target.Kind: "Macro"`, `Name`, and `GraphGuid` returned by `GetGraphDetail`. `CoverageComplete: false` marks the current scope. |
 | ListBlueprintMembers | Lists functions, events, dispatchers, and local variables. | Results are paged. |
 | GetGraphDetail | Shows graph nodes, pins, links, defaults, and positions. | Use returned identifiers when editing a graph. |
 | SearchGraphNodes | Finds available node actions. | Use only returned SpawnerId values. |
@@ -80,6 +80,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | ModifyVariable | Changes a member variable and its Details metadata. | Type changes block while referenced; remove RepNotify before renaming. |
 | RemoveVariable | Removes a member variable. | References block removal; force affects only local references. |
 | CreateMacro | Creates a macro with explicit exec or concrete data pins. | Requires a successful current compile; omitted signatures create no pins; use returned graph/tunnel GUIDs. |
+| ModifyMacroDetails | Edits an ordinary local macro's category, tooltip, keywords and compact title. | Uses `Target.Kind: "Macro"`, `Name`, and `GraphGuid`; preserves signatures, does not save automatically, and does not yet edit MacroLibraries. |
 | CreateFunction | Creates a function graph with inputs and outputs. | Can create pure functions or overrides. |
 | RenameFunction | Renames a declared function and safe loaded callers. | Dry-run by default; applying needs explicit reference approval and unsafe bindings block it. |
 | ModifyFunctionSignature | Adds, renames, removes, or changes one function parameter. | Dry-run by default; changing/removing a parameter requires explicit approvals. |
@@ -202,6 +203,16 @@ Use a returned NodeGuid and a nonempty PinDefaults object mapping pin names to U
 ### SetComponentProperties and ReparentComponent
 
 SetComponentProperties writes editable non-array **local SCS component-template** values from a nonempty UE-text Properties map. Read with GetComponentProperties first, then reread and compile. ReparentComponent changes the **attachment parent**; both sides must be local SceneComponents and cycles reject. An actual local root must use SetRootComponent. Neither changes the Blueprint parent class.
+
+### GetComponentProperties: inherited SCS templates
+
+`GetComponents` returns a separate, independently paginated `InheritedSCSComponents` list. Each row identifies the declaring `DeclaringBlueprintPath`, `ComponentGuid`, component `Name`, effective `TemplatePath`, and `SourceBlueprintPath` (`TemplateSource` is `Declaration` or `Override`). Copy that declaration identity when reading a child Blueprint:
+
+```json
+{"BlueprintPath":"/Game/MyActorChild","ComponentName":"InheritedRoot","DeclaringBlueprintPath":"/Game/MyActorParent","ComponentGuid":"11111111-2222-3333-4444-555555555555"}
+```
+
+Use the actual GUID returned by `GetComponents`. Both optional identity fields must be supplied together; without them, `GetComponentProperties` continues to read local SCS templates. Inherited reads require an existing, successfully compiled target and consistent ancestor chain. The effective value comes from the nearest existing override or the original declaration; the response names its source. Missing generated state, ambiguous GUIDs, or inconsistent owners/templates return a reason and require separate repair. Queries do not create CDOs, handlers or overrides. These inherited identities are for reading; `SetComponentProperties` continues to accept local SCS components only.
 
 ### SetClassDefaults: CDO defaults
 
@@ -346,6 +357,10 @@ In **Project Settings → Plugins → MCP Blueprint**, configure Port, Auto Star
 For questions or feedback, use the [contact page](https://mengzhishanghun.github.io/mengzhishanghun/contact/).
 
 ### Create and use macros
+
+`ModifyMacroDetails` edits the native input-tunnel metadata of a local macro in a successfully compiled ordinary Blueprint. Use `GetGraphDetail` to obtain the macro's `GraphGuid`, then read `GetBlueprintDetails` with `Target: {"Kind":"Macro","Name":"Relay","GraphGuid":"<returned GUID>"}`. The response exposes raw `Current`, `Editable`, `Reason` and `Impact` for each supported property.
+
+Pass any changed `Category`, `Tooltip`, `Keywords` or `CompactTitle` string to `ModifyMacroDetails` with that same target. Omitted fields retain their values; `Category`, `Keywords` and `CompactTitle` are trimmed. Empty category restores Unreal's default category; empty tooltip, keywords or compact title clears only that field. Clearing compact title retains independent keywords. The action search reads native category, keywords and tooltip while preserving the name-based `SpawnerId`; an empty raw tooltip can display Unreal's macro-instance fallback text. Category changes are refused if a same-name skeleton or inherited function exists. Unknown fields, null values, stale identities and requests with no actual change are rejected. The tool preserves existing graph identities, pins and links, compiles the edit, and does not save automatically. MacroLibrary editing and signature/name changes are outside this tool's current scope.
 
 `CreateBlueprint` accepts optional `BlueprintKind: "MacroLibrary"`; omission keeps the ordinary Blueprint behavior. Macro libraries currently require a legal native parent, such as `/Script/Engine.Actor` or `/Script/CoreUObject.Object`. A Blueprint-generated parent is rejected.
 
