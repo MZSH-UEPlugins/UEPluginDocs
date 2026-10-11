@@ -288,6 +288,19 @@ After the change, `SubtotalCents / 20` produces a 5% discount.
 
 ![Discount after](./Images/Tutorial/discount-after.png)
 
+### Connect an Event Dispatcher
+
+Declare `OnSignal` with an input such as `Payload:int` using `AddEventDispatcher`. Call `SearchGraphNodes` with the target `BlueprintPath`, `GraphName`, and `Query="OnSignal"` to obtain the actual actions and pins.
+
+- `Bind` adds a receiving event.
+- `Call` broadcasts the inputs to every bound receiver.
+- `Unbind` removes a specific receiver.
+- `UnbindAll` removes all receivers from that dispatcher.
+
+Create a receiver with a matching input signature using `CreateCustomEvent`, then create the searched actions with `ApplyGraphPatch`. Connect the receiver's `@<NodeGuid>.OutputDelegate` to the Bind or Unbind `Delegate` pin. Connect the initiating event's `then` to Bind's `execute`, and Bind's `then` to Call's `execute`. Supply Call's `Payload` through `PinDefaults` or a data connection. Read `GetGraphDetail` to verify the wiring and compile result, then call `SaveAsset`.
+
+These four actions support scalar dispatchers declared in the target Blueprint itself. Their `Delegate:<operation>:self:<declarationGUID>` IDs survive compilation and saving. Deleting and recreating the same name produces a new GUID: old IDs are rejected, so search again. Assign, CreateDelegate, inherited or cross-Blueprint targets, and dispatcher signature or rename migration remain unsupported.
+
 ## Capture, settings, limits, and troubleshooting
 
 Call `OpenAsset` before `CaptureGraphScreenshot`. You can capture the full graph, focus on one node, or reuse a specific viewport. Check that titles, pins, and connections are readable before sharing the image.

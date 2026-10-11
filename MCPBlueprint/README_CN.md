@@ -343,6 +343,19 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 ![Actor 生命周期、组件绑定事件与可变 Pin 流程](./Images/Tutorial/event-graph-overview.png)
 
+### 连接 Event Dispatcher
+
+先用 `AddEventDispatcher` 声明分发器，例如 `OnSignal`，输入 `Payload:int`。随后调用 `SearchGraphNodes`，传入目标 `BlueprintPath`、`GraphName` 和 `Query="OnSignal"`，获取真实节点和 Pin。
+
+- `Bind`：添加一个接收事件。
+- `Call`：广播输入参数，调用所有已绑定的接收事件。
+- `Unbind`：移除指定接收事件。
+- `UnbindAll`：移除该分发器的所有接收事件。
+
+用 `CreateCustomEvent` 创建输入签名相同的接收事件，再用 `ApplyGraphPatch` 创建搜索返回的节点。把接收事件的 `@<NodeGuid>.OutputDelegate` 连到 Bind 或 Unbind 的 `Delegate` Pin；把发起事件的 `then` 连到 Bind 的 `execute`，再把 Bind 的 `then` 连到 Call 的 `execute`。Call 的 `Payload` 可以通过 `PinDefaults` 设置，也可以连接数据来源。完成后用 `GetGraphDetail` 核对连线和编译结果，使用 `SaveAsset` 保存。
+
+这四种操作当前只支持目标蓝图自身声明的标量分发器。`Delegate:<操作>:self:<声明GUID>` 标识在编译和保存后保持稳定；删除后同名重建会产生新 GUID，旧标识会被拒绝，应重新搜索。Assign、CreateDelegate、继承或跨蓝图目标，以及分发器签名修改和改名迁移仍待支持。
+
 ## 组件与类默认值
 
 添加、重命名、复制、重设父级、设置根组件、修改模板属性或删除组件前，先读取当前组件层级。类默认值工具读取或修改支持的 Blueprint 默认值，不会把实例值冒充为类默认值。
