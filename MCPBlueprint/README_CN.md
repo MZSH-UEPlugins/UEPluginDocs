@@ -74,7 +74,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 |---|---|---|
 | `ListBlueprints` | 分页查找项目中的 Blueprint 资产。 | 大型项目请用 `PathFilter` 和分页缩小范围。 |
 | `GetBlueprintOverview` | 查看蓝图的父类、图、变量、组件和接口概览；成员变量包含 `VarGuid`、声明标记和 Details 元数据。 | 需要提供准确的 `BlueprintPath`；元数据的 `IsSet` 字段区分未设置与空字符串。 |
-| `GetBlueprintDetails` | 查询已实现的成员变量声明属性及可编辑原因。 | `Target` 包含 `Kind: "MemberVariable"`、`Name` 和可选 `VarGuid`；`Properties.NewName` 返回当前名称及该声明能否改名；`CoverageComplete: false` 表示当前覆盖范围。 |
+| `GetBlueprintDetails` | 查询已实现的成员变量或自定义事件声明属性及可编辑原因。 | 成员变量使用 `Target.Kind: "MemberVariable"`、`Name` 和可选 `VarGuid`；自定义事件使用 `Target.Kind: "CustomEvent"` 和 `NodeGuid`。`CoverageComplete: false` 表示当前覆盖范围。 |
 | `ListBlueprintMembers` | 分页查看函数、事件、分发器和局部变量。 | 大型蓝图请使用分页。 |
 | `GetGraphDetail` | 查看指定图的节点、Pin、连线和布局信息。 | 可用 `GraphName` 限定目标图。 |
 | `SearchGraphNodes` | 按英文动作名查找可创建的节点。 | 后续创建节点时只能使用返回的 `SpawnerId`。 |
@@ -93,6 +93,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `ModifyFunctionSignature` | 添加、重命名、删除或改类型函数参数。 | 默认 dry-run；删除参数或改类型可能造成数据丢失，须显式批准。 |
 | `RemoveFunction` | 删除用户函数。 | 有引用或无法安全恢复时会被阻止。 |
 | `CreateCustomEvent` | 在 Event Graph 中创建自定义事件。 | 目标必须是实际的 Event Graph。 |
+| `ModifyCustomEvent` | 修改自定义事件的编辑器调用、弃用和 RPC 声明属性。 | 使用 `Target.Kind: "CustomEvent"` 与 `NodeGuid`；只修改本蓝图可编辑的事件，遗漏字段保持原值。 |
 | `AddEventNode` | 添加受支持的事件节点。 | 需指定蓝图和事件类型。 |
 | `AddBoundEvent` | 为组件或委托添加绑定事件。 | 组件和委托必须能被解析。 |
 | `AddLocalVariable` | 在函数图中添加局部变量。 | 需要函数名、变量名和类型。 |
@@ -133,7 +134,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ### 1. `ModifyVariable`：声明默认值，不是节点值
 
-1. 用 `BlueprintPath` 调用 `GetBlueprintOverview`，找到**由这个蓝图声明**的变量及其 `VarGuid`。再调用 `GetBlueprintDetails`，传入 `Target.Kind: "MemberVariable"`、变量 `Name`，并可附带 `VarGuid`。`CoverageComplete: false` 表示目前只返回已实现的成员变量声明属性，尚未覆盖全部蓝图 Details 功能。编辑前查看 `Properties`：`Current` 是当前值，`IsSet` 区分元数据键缺失与空字符串，`Editable`/`Reason` 或 `Enable`/`Disable` 说明可执行的更改。`Enable`/`Disable` 中，`Allowed` 表示操作可执行，`NoChange` 表示请求的状态已是当前状态，`Reason` 解释限制。`Properties.NewName.Editable` 只反映当前声明能否改名；拟用的新名称仍须通过校验。这里可以读取继承变量，但 `ModifyVariable` 只能修改目标蓝图自己声明的变量。
+1. 用 `BlueprintPath` 调用 `GetBlueprintOverview`，找到**由这个蓝图声明**的变量及其 `VarGuid`。再调用 `GetBlueprintDetails`，传入 `Target.Kind: "MemberVariable"`、变量 `Name`，并可附带 `VarGuid`。`CoverageComplete: false` 表示目前返回已实现目标类型的声明属性，尚未覆盖全部蓝图 Details 功能。编辑前查看 `Properties`：`Current` 是当前值，`IsSet` 区分元数据键缺失与空字符串，`Editable`/`Reason` 或 `Enable`/`Disable` 说明可执行的更改。`Enable`/`Disable` 中，`Allowed` 表示操作可执行，`NoChange` 表示请求的状态已是当前状态，`Reason` 解释限制。`Properties.NewName.Editable` 只反映当前声明能否改名；拟用的新名称仍须通过校验。这里可以读取继承变量，但 `ModifyVariable` 只能修改目标蓝图自己声明的变量。
 2. 调用 `ModifyVariable`，传入 `BlueprintPath`、现有的 `VariableName`，以及需要变化的字段。`DefaultValue` 修改 UE 文本格式的**变量声明默认值**；图节点 Pin 字面量用 `SetPinDefaults`，直接修改类默认值用 `SetClassDefaults`。它不会追溯覆盖已有实例的覆写值。Dirty 或刚创建的声明可以修改标记、默认值和元数据；改名、改类型要求已有成功编译基线。需要时编译蓝图；只有希望改动落盘时，才用 `BlueprintPath` 调用 `SaveAsset`。
 
 以下均为完整工具参数。请把 `/Game/Blueprints/BP_Player` 和示例变量名换成自己项目中的蓝图路径和声明：
@@ -355,6 +356,18 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 用 `CreateCustomEvent` 创建输入签名相同的接收事件，再用 `ApplyGraphPatch` 创建搜索返回的节点。把接收事件的 `@<NodeGuid>.OutputDelegate` 连到 Bind 或 Unbind 的 `Delegate` Pin；把发起事件的 `then` 连到 Bind 的 `execute`，再把 Bind 的 `then` 连到 Call 的 `execute`。Call 的 `Payload` 可以通过 `PinDefaults` 设置，也可以连接数据来源。完成后用 `GetGraphDetail` 核对连线和编译结果，使用 `SaveAsset` 保存。
 
 这四种操作当前只支持目标蓝图自身声明的标量分发器。`Delegate:<操作>:self:<声明GUID>` 标识在编译和保存后保持稳定；删除后同名重建会产生新 GUID，旧标识会被拒绝，应重新搜索。Assign、CreateDelegate、继承或跨蓝图目标，以及分发器签名修改和改名迁移仍待支持。
+
+### 修改自定义事件属性与 RPC
+
+从 `CreateCustomEvent` 或 `GetGraphDetail` 获取事件的 `NodeGuid`，用相同 `Target` 调用 `GetBlueprintDetails` 和 `ModifyCustomEvent`。例如，把本地事件声明为可靠的服务端 RPC：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"CustomEvent","NodeGuid":"<事件的 NodeGuid>"},"Replication":"Server","bReliable":true}
+```
+
+`Replication` 可选 `None`、`Server`、`Client`、`Multicast`。`None` 停用 RPC，未传 `bReliable` 时保留声明中保存的可靠位；它在非 RPC 模式下不生效。显式设置或清除 `bReliable` 时，最终模式必须是 RPC，可在同一个请求中指定模式。Details 的 `Current` 显示保存值，`Effective` 显示当前生效的 RPC 和可靠位。
+
+`bCallInEditor` 控制编辑器可调用声明，工具不会执行事件；`bDeprecated` 标记弃用，`DeprecationMessage` 保存弃用说明，空字符串清除说明。布尔值须使用 JSON `true`/`false`。遗漏的字段保持原值，相同状态请求报无变化。只支持本蓝图自身且编译成功的可编辑事件；覆盖、接口实现和已绑定分发器的接收事件会被拒绝。完成后用 `SaveAsset` 保存。这些设置不改变 Actor 的复制开关，联机运行仍须配置 Actor 复制、所有权和调用端。
 
 ## 组件与类默认值
 

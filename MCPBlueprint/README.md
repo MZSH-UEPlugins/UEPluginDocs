@@ -65,7 +65,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 |---|---|---|
 | ListBlueprints | Lists Blueprint assets. | Filter and page large projects. |
 | GetBlueprintOverview | Shows a Blueprint's parent, graphs, members, components, and interfaces, including member variable flags, Details metadata, and VarGuid. | `IsSet` fields distinguish absent metadata from an empty string. |
-| GetBlueprintDetails | Reads implemented member-variable declaration properties and editing capability. | Target uses `Kind: "MemberVariable"`, `Name`, and optional `VarGuid`; `Properties.NewName` reports the current name and whether this declaration can be renamed. `CoverageComplete: false` marks the current scope. |
+| GetBlueprintDetails | Reads implemented member-variable or CustomEvent declaration properties and editing capability. | Member variables use `Target.Kind: "MemberVariable"`, `Name`, and optional `VarGuid`; CustomEvents use `Target.Kind: "CustomEvent"` and `NodeGuid`. `CoverageComplete: false` marks the current scope. |
 | ListBlueprintMembers | Lists functions, events, dispatchers, and local variables. | Results are paged. |
 | GetGraphDetail | Shows graph nodes, pins, links, defaults, and positions. | Use returned identifiers when editing a graph. |
 | SearchGraphNodes | Finds available node actions. | Use only returned SpawnerId values. |
@@ -84,6 +84,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | ModifyFunctionSignature | Adds, renames, removes, or changes one function parameter. | Dry-run by default; changing/removing a parameter requires explicit approvals. |
 | RemoveFunction | Removes a declared function graph. | References and unsafe unloaded descendants block removal. |
 | CreateCustomEvent | Adds a Custom Event node. | Optional input parameters are supported. |
+| ModifyCustomEvent | Changes editor-callable, deprecation, and RPC declaration properties of a CustomEvent. | Use `Target.Kind: "CustomEvent"` and `NodeGuid`. Supports local editable events; omitted fields keep their values. |
 | AddEventNode | Adds an overridable engine event node. | Repeating the same event is safe. |
 | AddBoundEvent | Adds a bound event for an Actor component or Level Blueprint Actor. | Not for UMG WidgetTree events; use MCPUMG there. |
 | AddLocalVariable | Adds a variable scoped to one function. | The function must already exist. |
@@ -130,7 +131,7 @@ Start with `bDryRun=true`. Inspect normalized operations and every blocker; dry-
 
 ### ModifyVariable: member-variable declarations and defaults
 
-1. Call `GetBlueprintOverview` with `BlueprintPath` to find a variable **declared by this Blueprint** and its `VarGuid`. Then call `GetBlueprintDetails` with `Target.Kind: "MemberVariable"`, its `Name`, and optionally that `VarGuid`. `CoverageComplete: false` means the tool currently returns implemented member-variable declaration properties only; it does not yet cover all Blueprint Details functionality. Inspect `Properties` before editing: `Current` is the value, `IsSet` distinguishes an absent metadata key from an empty one, and `Editable`/`Reason` or `Enable`/`Disable` explain available changes. Within `Enable`/`Disable`, `Allowed` means the action can run, `NoChange` means the requested state is already current, and `Reason` explains a restriction. `Properties.NewName.Editable` describes the current declaration; a proposed new name still needs validation. Inherited variables can be read here, but `ModifyVariable` changes only declarations owned by the target Blueprint.
+1. Call `GetBlueprintOverview` with `BlueprintPath` to find a variable **declared by this Blueprint** and its `VarGuid`. Then call `GetBlueprintDetails` with `Target.Kind: "MemberVariable"`, its `Name`, and optionally that `VarGuid`. `CoverageComplete: false` means the tool currently returns implemented declaration properties for supported target kinds; it does not yet cover all Blueprint Details functionality. Inspect `Properties` before editing: `Current` is the value, `IsSet` distinguishes an absent metadata key from an empty one, and `Editable`/`Reason` or `Enable`/`Disable` explain available changes. Within `Enable`/`Disable`, `Allowed` means the action can run, `NoChange` means the requested state is already current, and `Reason` explains a restriction. `Properties.NewName.Editable` describes the current declaration; a proposed new name still needs validation. Inherited variables can be read here, but `ModifyVariable` changes only declarations owned by the target Blueprint.
 2. Call `ModifyVariable` with `BlueprintPath`, the existing `VariableName`, and only the fields you want to change. `DefaultValue` changes the UE-text **declaration default**; use `SetPinDefaults` for graph pin literals and `SetClassDefaults` for direct class-default edits. It does not retroactively replace existing instance overrides. A dirty or newly added declaration can receive flags, defaults, and metadata; rename and type changes require a successfully compiled baseline. Compile when relevant, then use `SaveAsset` with `BlueprintPath` only if you want to keep the change on disk.
 
 These are complete tool arguments; replace `/Game/Blueprints/BP_Player` and the sample variable names with your own Blueprint path and declarations:
@@ -300,6 +301,18 @@ Declare `OnSignal` with an input such as `Payload:int` using `AddEventDispatcher
 Create a receiver with a matching input signature using `CreateCustomEvent`, then create the searched actions with `ApplyGraphPatch`. Connect the receiver's `@<NodeGuid>.OutputDelegate` to the Bind or Unbind `Delegate` pin. Connect the initiating event's `then` to Bind's `execute`, and Bind's `then` to Call's `execute`. Supply Call's `Payload` through `PinDefaults` or a data connection. Read `GetGraphDetail` to verify the wiring and compile result, then call `SaveAsset`.
 
 These four actions support scalar dispatchers declared in the target Blueprint itself. Their `Delegate:<operation>:self:<declarationGUID>` IDs survive compilation and saving. Deleting and recreating the same name produces a new GUID: old IDs are rejected, so search again. Assign, CreateDelegate, inherited or cross-Blueprint targets, and dispatcher signature or rename migration remain unsupported.
+
+### Change CustomEvent properties and RPC declarations
+
+Get the event's `NodeGuid` from `CreateCustomEvent` or `GetGraphDetail`. Use the same `Target` with `GetBlueprintDetails` and `ModifyCustomEvent`. For example, declare a local event as a reliable server RPC:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"CustomEvent","NodeGuid":"<event NodeGuid>"},"Replication":"Server","bReliable":true}
+```
+
+`Replication` accepts `None`, `Server`, `Client`, or `Multicast`. `None` disables RPC routing while preserving the stored reliable bit when `bReliable` is omitted; that bit has no effect outside RPC mode. Explicitly setting or clearing `bReliable` requires a final RPC mode, which can be supplied in the same request. Details reports the saved value in `Current` and active routing/reliability in `Effective`.
+
+`bCallInEditor` controls the editor-callable declaration; the tool does not execute the event. `bDeprecated` marks usage deprecated, and `DeprecationMessage` stores guidance; an empty string clears the message. Booleans must be JSON `true`/`false`. Omitted fields stay unchanged, and same-state requests report no change. Only local editable events in a successfully compiled Blueprint are supported; overrides, interface implementations, and dispatcher-bound receivers are refused. Call `SaveAsset` to persist changes. These settings do not change Actor replication: multiplayer use still requires Actor replication, ownership, and the correct calling endpoint.
 
 ## Capture, settings, limits, and troubleshooting
 
