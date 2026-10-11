@@ -30,13 +30,13 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ## 功能概览
 
-当前版本注册 58 个工具：
+当前版本注册 59 个工具：
 
 | 能力 | 数量 | 工具 |
 |---|---:|---|
 | 发现与读取 | 7 | `ListBlueprints`、`GetBlueprintOverview`、`GetBlueprintDetails`、`ListBlueprintMembers`、`GetGraphDetail`、`SearchGraphNodes`、`GetCompileErrors` |
 | User Defined Struct 与 Enum | 6 | `CreateUserDefinedStruct`、`GetUserDefinedStruct`、`ModifyUserDefinedStruct`、`CreateUserDefinedEnum`、`GetUserDefinedEnum`、`ModifyUserDefinedEnum` |
-| 变量、函数、事件与 Pin | 19 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`AddEventDispatcher`、`RemoveEventDispatcher` |
+| 变量、函数、宏、事件与 Pin | 20 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`CreateMacro`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`AddEventDispatcher`、`RemoveEventDispatcher` |
 | 图表编辑与布局 | 4 | `ApplyGraphPatch`、`SetPinDefaults`、`FormatGraph`、`AddCommentBox` |
 | 组件与默认值 | 11 | `GetComponents`、`AddComponent`、`SetComponentProperties`、`RenameComponent`、`RemoveComponent`、`ReparentComponent`、`SetRootComponent`、`DuplicateComponent`、`GetComponentProperties`、`GetClassDefaults`、`SetClassDefaults` |
 | 资产生命周期与截图 | 11 | `CreateBlueprint`、`ReparentBlueprint`、`CompileBlueprint`、`SaveAsset`、`OpenAsset`、`CloseAsset`、`ReloadBlueprintFromDisk`、`DeleteAsset`、`RenameAsset`、`DuplicateAsset`、`CaptureGraphScreenshot` |
@@ -66,7 +66,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | 蓝图父类 | Blueprint 类继承的父类；用 `ReparentBlueprint`。 | 组件树中的父组件关系。 |
 | 组件父子级 | 同一个 Actor Blueprint 的 SceneComponent 附着层级；用 `ReparentComponent`，本地根组件改用 `SetRootComponent`。 | Blueprint 的类继承关系。 |
 
-## 55 个工具逐项功能总表
+## 59 个工具逐项功能总表
 
 普通编辑工具只标脏，不会静默保存；需要保留改动时使用 `SaveAsset`。下表说明每个工具的用途和用户需要注意的边界。
 
@@ -88,6 +88,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `AddVariable` | 为蓝图添加成员变量。 | 需要蓝图路径、变量名和 `TypeName`。 |
 | `ModifyVariable` | 修改成员变量的类型、默认值、名称、可编辑性、分类、提示及 Details 元数据。 | 被引用的变量不能改类型；带 RepNotify 的变量不能通过此工具改名。 |
 | `RemoveVariable` | 删除成员变量。 | 有引用或无法安全恢复时会被阻止。 |
+| `CreateMacro` | 创建宏及显式执行、数据 Pin。 | 先成功编译蓝图；省略签名不会自动创建 exec Pin；使用返回的图与 Tunnel GUID。 |
 | `CreateFunction` | 创建蓝图函数及其参数。 | 需要蓝图路径、函数名和参数定义。 |
 | `RenameFunction` | 重命名用户函数，并更新可安全更新的引用。 | 先使用 dry-run；更新引用必须显式批准。 |
 | `ModifyFunctionSignature` | 添加、重命名、删除或改类型函数参数。 | 默认 dry-run；删除参数或改类型可能造成数据丢失，须显式批准。 |
@@ -119,7 +120,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `GetComponentProperties` | 分页查看可编辑的组件模板属性。 | 需要蓝图路径、组件名和分页参数。 |
 | `GetClassDefaults` | 分页查看可编辑的 CDO 默认值。 | 大型属性集请使用分页。 |
 | `SetClassDefaults` | 修改蓝图 CDO（含继承属性）的默认值。 | 属性名区分大小写，值使用 UE 文本格式。 |
-| `CreateBlueprint` | 创建受支持类型的 Blueprint 资产。 | 指定资产路径和父类等定义；创建后不会自动保存。 |
+| `CreateBlueprint` | 创建受支持类型的 Blueprint 资产。 | 指定资产路径和父类；BlueprintKind 可选 Normal（默认）或原生父类 MacroLibrary；创建后不会自动保存。 |
 | `ReparentBlueprint` | 更改 Blueprint 类的父类。 | 先使用 `bDryRun`；层级或接口冲突可能需要 `bAllowPotentialDataLoss`。 |
 | `CompileBlueprint` | 编译指定蓝图并返回诊断。 | 用于处理编辑器报告的错误或警告。 |
 | `SaveAsset` | 将资产的当前改动明确保存到磁盘。 | 普通编辑不会自动保存。 |
@@ -431,3 +432,22 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 ## 支持
 
 如有问题或反馈，请使用[统一联系页面](https://mengzhishanghun.github.io/mengzhishanghun/contact/)。
+
+### 创建与使用宏
+
+`CreateBlueprint` 可选 `BlueprintKind: "MacroLibrary"`；省略时保持普通蓝图行为。宏库当前只支持合法原生父类，如 `/Script/Engine.Actor` 或 `/Script/CoreUObject.Object`，拒绝蓝图生成类作为父类。
+
+新建资产先调用 `CompileBlueprint`，再调用 `CreateMacro`。创建要求当前蓝图已成功编译，并保全既有图和链接。执行 Pin 必须明确写 `TypeName: "exec"`；省略 `Inputs` 或 `Outputs` 不会自动增加执行 Pin。数据 Pin 沿用现有具体类型语法，不支持 wildcard、by-reference 或 const 签名。
+
+```json
+{
+  "BlueprintPath": "/Game/Blueprints/BP_MacroLibrary",
+  "MacroName": "Relay",
+  "Inputs": [{"Name": "Enter", "TypeName": "exec"}, {"Name": "Value", "TypeName": "int"}],
+  "Outputs": [{"Name": "Leave", "TypeName": "exec"}, {"Name": "Result", "TypeName": "int"}]
+}
+```
+
+返回 `GraphGuid`、`EntryNodeGuid`、`ExitNodeGuid` 和真实 Pin 详情。Inputs 对应入口 Tunnel 的输出 Pin；Outputs 对应出口 Tunnel 的输入 Pin。使用 `ApplyGraphPatch` 连接宏内部逻辑；`GetGraphDetail` 也会返回 `GraphGuid`。
+
+在实际消费图中调用 `SearchGraphNodes` 获得精确宏 `SpawnerId`，通过 `ApplyGraphPatch` 放置并连线，再编译消费蓝图。普通蓝图中的宏仅在本蓝图使用；宏库可用性遵循原生父类和官方 ActionFilter。现有图上下文检查会拒绝自递归及函数中使用 latent 宏。本工具不修改已有宏签名，不提供宏重命名或删除传播。宏库与消费蓝图都需明确 `SaveAsset` 保存。

@@ -2,7 +2,7 @@
 
 # MCPBlueprint User Guide
 
-MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **58 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
+MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **59 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
 
 ## Requirements and installation
 
@@ -57,7 +57,7 @@ Blueprint asset
 
 Edits are not saved automatically. Use `SaveAsset` when you want to keep a change. Destructive tools require extra confirmation or refuse the operation when references could be broken.
 
-## Complete feature matrix (55 tools)
+## Complete feature matrix (59 tools)
 
 The table is a quick guide. Live tools/list remains the source for the exact fields and constraints.
 
@@ -79,6 +79,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | AddVariable | Adds a Blueprint member variable. | Supports type, default, category, and instance-editable settings. |
 | ModifyVariable | Changes a member variable and its Details metadata. | Type changes block while referenced; remove RepNotify before renaming. |
 | RemoveVariable | Removes a member variable. | References block removal; force affects only local references. |
+| CreateMacro | Creates a macro with explicit exec or concrete data pins. | Requires a successful current compile; omitted signatures create no pins; use returned graph/tunnel GUIDs. |
 | CreateFunction | Creates a function graph with inputs and outputs. | Can create pure functions or overrides. |
 | RenameFunction | Renames a declared function and safe loaded callers. | Dry-run by default; applying needs explicit reference approval and unsafe bindings block it. |
 | ModifyFunctionSignature | Adds, renames, removes, or changes one function parameter. | Dry-run by default; changing/removing a parameter requires explicit approvals. |
@@ -110,7 +111,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | GetComponentProperties | Shows editable component-template properties. | Values use UE text. |
 | GetClassDefaults | Shows editable Blueprint Class Default Object properties. | Values use UE text. |
 | SetClassDefaults | Sets supported Class Default Object properties. | Uses editable non-array UE-text properties; requires an editor transaction. |
-| CreateBlueprint | Creates a Blueprint asset in memory. | Provide an asset path and parent class; save explicitly. |
+| CreateBlueprint | Creates a Blueprint asset in memory. | Provide an asset path and parent class; optional BlueprintKind is Normal (default) or MacroLibrary with a legal native parent; save explicitly. |
 | ReparentBlueprint | Changes a Blueprint's parent class. | Start with dry-run; hierarchy changes need potential-data-loss approval. |
 | CompileBlueprint | Explicitly compiles a Blueprint. | Supports warnings-as-errors. |
 | SaveAsset | Saves a dirty Blueprint, Struct, or Enum. | Saving is always explicit. |
@@ -343,3 +344,22 @@ In **Project Settings → Plugins → MCP Blueprint**, configure Port, Auto Star
 ## Support
 
 For questions or feedback, use the [contact page](https://mengzhishanghun.github.io/mengzhishanghun/contact/).
+
+### Create and use macros
+
+`CreateBlueprint` accepts optional `BlueprintKind: "MacroLibrary"`; omission keeps the ordinary Blueprint behavior. Macro libraries currently require a legal native parent, such as `/Script/Engine.Actor` or `/Script/CoreUObject.Object`. A Blueprint-generated parent is rejected.
+
+Compile the new asset with `CompileBlueprint` before `CreateMacro`. Creation requires a current successful compile and preserves existing graphs and links. Define execution pins explicitly with `TypeName: "exec"`; omitting `Inputs` or `Outputs` creates no implicit execution pins. Data pins use the existing concrete type syntax; wildcard, by-reference and const signatures are unsupported.
+
+```json
+{
+  "BlueprintPath": "/Game/Blueprints/BP_MacroLibrary",
+  "MacroName": "Relay",
+  "Inputs": [{"Name": "Enter", "TypeName": "exec"}, {"Name": "Value", "TypeName": "int"}],
+  "Outputs": [{"Name": "Leave", "TypeName": "exec"}, {"Name": "Result", "TypeName": "int"}]
+}
+```
+
+The response includes `GraphGuid`, `EntryNodeGuid`, `ExitNodeGuid` and actual pin details. Inputs appear as output pins on the entry tunnel; outputs appear as input pins on the exit tunnel. Connect the macro body through `ApplyGraphPatch`. `GetGraphDetail` also returns `GraphGuid`.
+
+Use `SearchGraphNodes` in the intended consumer graph to obtain the exact macro `SpawnerId`, then place and connect it with `ApplyGraphPatch` and compile the consumer. Ordinary Blueprint macros are local; macro-library availability follows its native parent and Unreal's action filtering. Self-recursion and latent macro use in a function are rejected by the existing graph-context checks. Editing existing macro signatures, renaming or deleting macros is outside this creation tool. Save the library and consumer explicitly with `SaveAsset`.
