@@ -30,13 +30,13 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ## 功能概览
 
-当前版本注册 55 个工具：
+当前版本注册 58 个工具：
 
 | 能力 | 数量 | 工具 |
 |---|---:|---|
-| 发现与读取 | 6 | `ListBlueprints`、`GetBlueprintOverview`、`ListBlueprintMembers`、`GetGraphDetail`、`SearchGraphNodes`、`GetCompileErrors` |
+| 发现与读取 | 7 | `ListBlueprints`、`GetBlueprintOverview`、`GetBlueprintDetails`、`ListBlueprintMembers`、`GetGraphDetail`、`SearchGraphNodes`、`GetCompileErrors` |
 | User Defined Struct 与 Enum | 6 | `CreateUserDefinedStruct`、`GetUserDefinedStruct`、`ModifyUserDefinedStruct`、`CreateUserDefinedEnum`、`GetUserDefinedEnum`、`ModifyUserDefinedEnum` |
-| 变量、函数、事件与 Pin | 17 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`RenameFunction`、`ModifyFunctionSignature`、`RemoveFunction`、`CreateCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`AddEventDispatcher`、`RemoveEventDispatcher` |
+| 变量、函数、事件与 Pin | 19 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`AddEventDispatcher`、`RemoveEventDispatcher` |
 | 图表编辑与布局 | 4 | `ApplyGraphPatch`、`SetPinDefaults`、`FormatGraph`、`AddCommentBox` |
 | 组件与默认值 | 11 | `GetComponents`、`AddComponent`、`SetComponentProperties`、`RenameComponent`、`RemoveComponent`、`ReparentComponent`、`SetRootComponent`、`DuplicateComponent`、`GetComponentProperties`、`GetClassDefaults`、`SetClassDefaults` |
 | 资产生命周期与截图 | 11 | `CreateBlueprint`、`ReparentBlueprint`、`CompileBlueprint`、`SaveAsset`、`OpenAsset`、`CloseAsset`、`ReloadBlueprintFromDisk`、`DeleteAsset`、`RenameAsset`、`DuplicateAsset`、`CaptureGraphScreenshot` |
@@ -74,7 +74,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 |---|---|---|
 | `ListBlueprints` | 分页查找项目中的 Blueprint 资产。 | 大型项目请用 `PathFilter` 和分页缩小范围。 |
 | `GetBlueprintOverview` | 查看蓝图的父类、图、变量、组件和接口概览；成员变量包含 `VarGuid`、声明标记和 Details 元数据。 | 需要提供准确的 `BlueprintPath`；元数据的 `IsSet` 字段区分未设置与空字符串。 |
-| `GetBlueprintDetails` | 查询已实现的成员变量或自定义事件声明属性及可编辑原因。 | 成员变量使用 `Target.Kind: "MemberVariable"`、`Name` 和可选 `VarGuid`；自定义事件使用 `Target.Kind: "CustomEvent"` 和 `NodeGuid`。`CoverageComplete: false` 表示当前覆盖范围。 |
+| `GetBlueprintDetails` | 查询已实现的成员变量、自定义事件或函数声明属性及可编辑原因。 | 成员变量使用 `Target.Kind: "MemberVariable"`、`Name` 和可选 `VarGuid`；自定义事件使用 `Target.Kind: "CustomEvent"` 和 `NodeGuid`；函数使用 `Target.Kind: "Function"`、`Name` 和 `ListBlueprintMembers` 返回的 `FunctionGraphGuid`。`CoverageComplete: false` 表示当前覆盖范围。 |
 | `ListBlueprintMembers` | 分页查看函数、事件、分发器和局部变量。 | 大型蓝图请使用分页。 |
 | `GetGraphDetail` | 查看指定图的节点、Pin、连线和布局信息。 | 可用 `GraphName` 限定目标图。 |
 | `SearchGraphNodes` | 按英文动作名查找可创建的节点。 | 后续创建节点时只能使用返回的 `SpawnerId`。 |
@@ -94,6 +94,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `RemoveFunction` | 删除用户函数。 | 有引用或无法安全恢复时会被阻止。 |
 | `CreateCustomEvent` | 在 Event Graph 中创建自定义事件。 | 目标必须是实际的 Event Graph。 |
 | `ModifyCustomEvent` | 修改自定义事件的编辑器调用、弃用和 RPC 声明属性。 | 使用 `Target.Kind: "CustomEvent"` 与 `NodeGuid`；只修改本蓝图可编辑的事件，遗漏字段保持原值。 |
+| `ModifyFunctionDetails` | 修改本地函数的显示名、提示、分类、搜索关键词、紧凑标题、编辑器调用与弃用属性。 | 使用 `Target.Kind: "Function"`、`Name` 和 `ListBlueprintMembers` 返回的 `FunctionGraphGuid`；遗漏字段保持原值。 |
 | `AddEventNode` | 添加受支持的事件节点。 | 需指定蓝图和事件类型。 |
 | `AddBoundEvent` | 为组件或委托添加绑定事件。 | 组件和委托必须能被解析。 |
 | `AddLocalVariable` | 在函数图中添加局部变量。 | 需要函数名、变量名和类型。 |
@@ -356,6 +357,18 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 用 `CreateCustomEvent` 创建输入签名相同的接收事件，再用 `ApplyGraphPatch` 创建搜索返回的节点。把接收事件的 `@<NodeGuid>.OutputDelegate` 连到 Bind 或 Unbind 的 `Delegate` Pin；把发起事件的 `then` 连到 Bind 的 `execute`，再把 Bind 的 `then` 连到 Call 的 `execute`。Call 的 `Payload` 可以通过 `PinDefaults` 设置，也可以连接数据来源。完成后用 `GetGraphDetail` 核对连线和编译结果，使用 `SaveAsset` 保存。
 
 这四种操作当前只支持目标蓝图自身声明的标量分发器。`Delegate:<操作>:self:<声明GUID>` 标识在编译和保存后保持稳定；删除后同名重建会产生新 GUID，旧标识会被拒绝，应重新搜索。Assign、CreateDelegate、继承或跨蓝图目标，以及分发器签名修改和改名迁移仍待支持。
+
+### 修改本地函数显示与编辑器属性
+
+用 `MemberKind: "Function"` 调用 `ListBlueprintMembers`，把函数的 `Name` 和 `FunctionGraphGuid` 放入 `Kind: "Function"` 的 `Target`。`NodeGuid` 标识入口节点，不能代替图 GUID。先用相同 Target 调用 `GetBlueprintDetails` 查看可用属性和编辑限制，再调用 `ModifyFunctionDetails`：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"Function","Name":"SendSignal","FunctionGraphGuid":"<ListBlueprintMembers 返回的 FunctionGraphGuid>"},"DisplayName":"Send Signal","Tooltip":"Sends the current payload.","Category":"Signals","Keywords":"payload emit","CompactTitle":"SEND","bCallInEditor":true,"bDeprecated":false,"DeprecationMessage":""}
+```
+
+`DisplayName` 修改调用节点标题；`Tooltip` 提供函数提示；`Category` 控制菜单分类；`Keywords` 便于动作搜索；`CompactTitle` 设置紧凑调用节点标题。`bCallInEditor` 仅声明函数可从编辑器调用，不执行函数。`bDeprecated` 标记函数使用已弃用，启用该标记时 `DeprecationMessage` 提供替代建议。可用新显示名、分类或关键词调用 `SearchGraphNodes` 查找调用动作。
+
+遗漏字段保持原值；空文本清除对应内容，空 `Category` 恢复 Unreal 默认分类。分类、关键词与紧凑标题会去除首尾空白。清除 `CompactTitle` 会恢复普通调用标题并保留关键词。弃用函数只有在 Blueprint Editor 中启用显示弃用函数的设置（`bExposeDeprecatedFunctions`）后，才会出现在动作搜索中。工具会编译蓝图，需要保留修改时调用 `SaveAsset`；无实际变化的请求会被拒绝。重写／接口实现、RepNotify、构造和其他受保护函数只读。此工具不修改 Pure、Const、访问级别、签名或 RPC 声明。
 
 ### 修改自定义事件属性与 RPC
 

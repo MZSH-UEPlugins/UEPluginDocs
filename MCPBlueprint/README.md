@@ -2,7 +2,7 @@
 
 # MCPBlueprint User Guide
 
-MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **55 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
+MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **58 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
 
 ## Requirements and installation
 
@@ -65,7 +65,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 |---|---|---|
 | ListBlueprints | Lists Blueprint assets. | Filter and page large projects. |
 | GetBlueprintOverview | Shows a Blueprint's parent, graphs, members, components, and interfaces, including member variable flags, Details metadata, and VarGuid. | `IsSet` fields distinguish absent metadata from an empty string. |
-| GetBlueprintDetails | Reads implemented member-variable or CustomEvent declaration properties and editing capability. | Member variables use `Target.Kind: "MemberVariable"`, `Name`, and optional `VarGuid`; CustomEvents use `Target.Kind: "CustomEvent"` and `NodeGuid`. `CoverageComplete: false` marks the current scope. |
+| GetBlueprintDetails | Reads implemented member-variable, CustomEvent, or Function declaration properties and editing capability. | Member variables use `Target.Kind: "MemberVariable"`, `Name`, and optional `VarGuid`; CustomEvents use `Target.Kind: "CustomEvent"` and `NodeGuid`; Functions use `Target.Kind: "Function"`, `Name`, and `FunctionGraphGuid` from `ListBlueprintMembers`. `CoverageComplete: false` marks the current scope. |
 | ListBlueprintMembers | Lists functions, events, dispatchers, and local variables. | Results are paged. |
 | GetGraphDetail | Shows graph nodes, pins, links, defaults, and positions. | Use returned identifiers when editing a graph. |
 | SearchGraphNodes | Finds available node actions. | Use only returned SpawnerId values. |
@@ -85,6 +85,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | RemoveFunction | Removes a declared function graph. | References and unsafe unloaded descendants block removal. |
 | CreateCustomEvent | Adds a Custom Event node. | Optional input parameters are supported. |
 | ModifyCustomEvent | Changes editor-callable, deprecation, and RPC declaration properties of a CustomEvent. | Use `Target.Kind: "CustomEvent"` and `NodeGuid`. Supports local editable events; omitted fields keep their values. |
+| ModifyFunctionDetails | Changes a local function's display name, tooltip, category, keywords, compact title, editor-call and deprecation details. | Use `Target.Kind: "Function"`, `Name`, and `FunctionGraphGuid` from `ListBlueprintMembers`; omitted fields keep their values. |
 | AddEventNode | Adds an overridable engine event node. | Repeating the same event is safe. |
 | AddBoundEvent | Adds a bound event for an Actor component or Level Blueprint Actor. | Not for UMG WidgetTree events; use MCPUMG there. |
 | AddLocalVariable | Adds a variable scoped to one function. | The function must already exist. |
@@ -301,6 +302,18 @@ Declare `OnSignal` with an input such as `Payload:int` using `AddEventDispatcher
 Create a receiver with a matching input signature using `CreateCustomEvent`, then create the searched actions with `ApplyGraphPatch`. Connect the receiver's `@<NodeGuid>.OutputDelegate` to the Bind or Unbind `Delegate` pin. Connect the initiating event's `then` to Bind's `execute`, and Bind's `then` to Call's `execute`. Supply Call's `Payload` through `PinDefaults` or a data connection. Read `GetGraphDetail` to verify the wiring and compile result, then call `SaveAsset`.
 
 These four actions support scalar dispatchers declared in the target Blueprint itself. Their `Delegate:<operation>:self:<declarationGUID>` IDs survive compilation and saving. Deleting and recreating the same name produces a new GUID: old IDs are rejected, so search again. Assign, CreateDelegate, inherited or cross-Blueprint targets, and dispatcher signature or rename migration remain unsupported.
+
+### Change local function presentation and editor properties
+
+Call `ListBlueprintMembers` with `MemberKind: "Function"`. Copy the function's `Name` and `FunctionGraphGuid` into a `Target` with `Kind: "Function"`; `NodeGuid` identifies the entry node and cannot replace the graph GUID. Use that target with `GetBlueprintDetails` to inspect supported values and editing restrictions, then call `ModifyFunctionDetails`:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"Function","Name":"SendSignal","FunctionGraphGuid":"<FunctionGraphGuid from ListBlueprintMembers>"},"DisplayName":"Send Signal","Tooltip":"Sends the current payload.","Category":"Signals","Keywords":"payload emit","CompactTitle":"SEND","bCallInEditor":true,"bDeprecated":false,"DeprecationMessage":""}
+```
+
+`DisplayName` changes call-node titles; `Tooltip` describes the function; `Category` groups it in menus; `Keywords` helps action search; `CompactTitle` selects a compact call-node title. `bCallInEditor` exposes an editor-callable declaration and does not execute the function. `bDeprecated` marks usage deprecated, and `DeprecationMessage` supplies guidance while that flag is enabled. Use `SearchGraphNodes` with the new title, category, or keywords to find the call action.
+
+Omit a field to preserve it. Empty text clears it; an empty `Category` resets to Unreal's default category. Category, keywords, and compact title trim surrounding whitespace. Clearing `CompactTitle` preserves keywords and restores the ordinary call-node title. Deprecated functions appear in action search only when the Blueprint Editor setting to expose deprecated functions (`bExposeDeprecatedFunctions`) is enabled. The tool compiles the Blueprint; use `SaveAsset` to keep the changes. Requests with no effective change are rejected. Override/interface implementations, RepNotify, construction and other protected functions are read-only. This tool does not change purity, constness, access, signatures, or RPC declarations.
 
 ### Change CustomEvent properties and RPC declarations
 
