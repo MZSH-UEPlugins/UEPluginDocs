@@ -89,7 +89,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `ModifyVariable` | 修改成员变量的类型、默认值、名称、可编辑性、分类、提示及 Details 元数据。 | 被引用的变量不能改类型；带 RepNotify 的变量不能通过此工具改名。 |
 | `RemoveVariable` | 删除成员变量。 | 有引用或无法安全恢复时会被阻止。 |
 | `CreateMacro` | 创建宏及显式执行、数据 Pin。 | 先成功编译蓝图；省略签名不会自动创建 exec Pin；使用返回的图与 Tunnel GUID。 |
-| `ModifyMacroDetails` | 修改普通蓝图本地宏的分类、提示、关键词和紧凑标题。 | 使用 `Target.Kind: "Macro"`、`Name` 和 `GraphGuid`；不改签名，不自动保存；宏库编辑暂不支持。 |
+| `ModifyMacroDetails` | 修改普通蓝图或原生宏库本地宏的分类、提示、关键词和紧凑标题。 | 使用 `Target.Kind: "Macro"`、`Name` 和 `GraphGuid`；不改签名，不自动保存；宏库展示编辑保全已加载权威资产图中的消费者。 |
 | `CreateFunction` | 创建蓝图函数及其参数。 | 需要蓝图路径、函数名和参数定义。 |
 | `RenameFunction` | 重命名用户函数，并更新可安全更新的引用。 | 先使用 dry-run；更新引用必须显式批准。 |
 | `ModifyFunctionSignature` | 添加、重命名、删除或改类型函数参数。 | 默认 dry-run；删除参数或改类型可能造成数据丢失，须显式批准。 |
@@ -454,9 +454,11 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 `ModifyMacroDetails` 编辑已成功编译的普通蓝图中本地宏的原生输入 Tunnel 元数据。先用 `GetGraphDetail` 获取宏的 `GraphGuid`，再用 `Target: {"Kind":"Macro","Name":"Relay","GraphGuid":"<返回的 GUID>"}` 调用 `GetBlueprintDetails`，查看各属性的原始 `Current`、`Editable`、`Reason` 和 `Impact`。
 
-用同一 Target 调用 `ModifyMacroDetails`，传入需要改变的 `Category`、`Tooltip`、`Keywords` 或 `CompactTitle` 字符串。省略字段保持原值；分类、关键词和紧凑标题会去除首尾空白。空分类恢复 Unreal 默认分类；空提示、关键词或紧凑标题只清除对应字段，清除紧凑标题仍保留独立关键词。动作搜索读取原生分类、关键词和提示，保持名称式 `SpawnerId`；原始提示为空时，搜索结果可以显示 Unreal 的宏实例默认提示。分类实质变更遇到同名 skeleton 或继承函数时拒绝。未知字段、null、过期标识和无实质变化的请求均拒绝。工具保全既有图标识、Pin 与连线，编译修改但不自动保存；当前不支持宏库编辑、签名或改名。
+用同一 Target 调用 `ModifyMacroDetails`，传入需要改变的 `Category`、`Tooltip`、`Keywords` 或 `CompactTitle` 字符串。省略字段保持原值；分类、关键词和紧凑标题会去除首尾空白。空分类恢复 Unreal 默认分类；空提示、关键词或紧凑标题只清除对应字段，清除紧凑标题仍保留独立关键词。动作搜索读取原生分类、关键词和提示，保持名称式 `SpawnerId`；原始提示为空时，搜索结果可以显示 Unreal 的宏实例默认提示。分类实质变更遇到同名 skeleton 或继承函数时拒绝。未知字段、null、过期标识和无实质变化的请求均拒绝。普通蓝图修改保全既有图标识、Pin 与连线，并编译修改。工具不改签名或名称；请显式保存资产。
 
-`GetBlueprintDetails` 也可用同一组 `Kind: "Macro"`、`Name` 与 `GraphGuid` 读取宏库的自有宏，返回 Category、Tooltip、Keywords、CompactTitle 原始值。宏库返回 `Editable: false`，`Reason` 说明当前工具只开放普通宏的修改；`ModifyMacroDetails` 继续拒绝宏库写入。
+原生宏库使用同一组 Target 和四个字段。`GetBlueprintDetails` 返回原始值及编辑能力。库须有有效 GeneratedClass，状态为 UpToDate、Warning 或 Dirty；缺少类、Error/Unknown 状态或正在编译时，写入前拒绝。新库尚未生成类时，先显式编译。展示编辑保留库现有状态，并保全已加载资产的权威图（含嵌套子图）中消费者的内容、状态及 dirty。不支持的 Blueprint 子类、自定义宏实例类型和未解析的相关引用会被拒绝；操作不会加载尚未加载的消费者包。
+
+宏库展示编辑不主动请求完整蓝图编译。原生编辑器 Undo/Redo 可能重新生成 skeleton 并使库保持 Dirty；此时仍可继续修改展示字段。`bCompilationRequired`、`AfterStatus` 和 `bPackageDirty` 如实报告资产状态。操作失败时，`bContentRestored` 和 `bRollbackStateRestored` 分别表示内容恢复与编辑器状态恢复；内容恢复成功后库仍可能为 Dirty，响应仍为错误。请显式调用 `SaveAsset` 持久化库，metadata 操作不会修改或保存消费者。
 
 `CreateBlueprint` 可选 `BlueprintKind: "MacroLibrary"`；省略时保持普通蓝图行为。宏库当前只支持合法原生父类，如 `/Script/Engine.Actor` 或 `/Script/CoreUObject.Object`，拒绝蓝图生成类作为父类。
 
