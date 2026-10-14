@@ -170,6 +170,10 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `bMultiLine` | `string`/`text` 的布尔值，包含数组、集合元素和 Map 值 | 选择多行文本编辑器。 |
 | `bBitmask`、`BitmaskEnum` | 布尔值和明确的 Enum 对象路径；仅标量 `int32` | 显示位掩码，可选用带 `Bitflags` 元数据且允许用作蓝图变量的 Enum。非空 `BitmaskEnum` 要求最终状态中已启用 `bBitmask`。 |
 | `bDeprecated`、`DeprecationMessage` | 布尔值和字符串 | 标记声明为弃用并显示消息。非空消息要求最终状态中已启用 `bDeprecated`。 |
+| `bConfig` | 原生 Config 规则允许的类型 | 设置配置属性标记；不读取或写入 ini。硬 Object 和 Interface 不允许，Class、SoftClass、SoftObject 及容器按实际类型检查。 |
+| `bExposeToCinematics` | 当前 Sequencer 可动画的属性 | 设置 Interp 标记，使属性可用于 Cinematics；Sequencer 能力不可用时返回原因。 |
+| `bMakeEditWidget` | Vector、Transform 及其数组；须启用 Instance Editable | 在编辑器视口中提供属性编辑控件。 |
+| `bFieldNotify` | 当前蓝图类型与编译器支持的成员 | 设置 FieldNotify 声明，保留已有通知依赖；关闭时可能同时删除其他字段对它的通知依赖。 |
 
 | 输入方式 | 结果 |
 |---|---|
@@ -194,6 +198,32 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 ReadOnly 保留蓝图读取，但阻止变量 Set 节点；它**不是深度不可变保证**。可变引用的使用者也可能阻止启用只读，而某些引擎版本中的容器操作仍可能带警告通过编译。启用 ReadOnly 会移除 `MakeEditWidget` 元数据。Private 限制声明蓝图之外的蓝图读写；现有外部引用会阻止启用私有。无法解析的引用或未加载的派生蓝图可能阻止任一访问限制。`SearchGraphNodes` 中缺少继承变量动作，并不能证明 Private 访问安全。要解除限制，使用 `{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","bBlueprintReadOnly":false,"bPrivate":false}`。
 
 设置 `bDeprecated: true` **之前**，先把仍需保留的默认值迁移到替代变量：Unreal 不会序列化弃用属性的值，重新打开蓝图后该值可能重置。需要保留修改时，用 `{"BlueprintPath":"/Game/Blueprints/BP_Player"}` 调用 `SaveAsset`。
+
+四个编辑器标记只接受 JSON `true`/`false`；省略字段保持原态，同值请求报告无变更且不创建事务。修改限于本蓝图声明的成员，继承或原生成员可查询。用 `GetBlueprintDetails` 查看方向是否允许：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"MemberVariable","Name":"Health"}}
+```
+
+`Properties` 中每个标记包含 `Current`（声明值）、`IsSet`（这四个标记中与声明值一致）、`Effective`（当前编译产物中的效果，无法判断时为 `null`）、`EffectiveReason`、`Editable`，以及 `Enable`/`Disable` 的 `Allowed`、`NoChange`、`Reason`。`GetBlueprintOverview` 也返回四个声明布尔值。蓝图待编译或刚执行原生 Undo/Redo 时，`Current` 与 `Effective` 可能不同；Undo/Redo 不保证自动重编译。
+
+若 `HandleOffset` 是 Vector，可在同一请求启用实例编辑与视口控件：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"HandleOffset","bInstanceEditable":true,"bMakeEditWidget":true}
+```
+
+设置 `bInstanceEditable:false` 或 `bBlueprintReadOnly:true` 会清除 `MakeEditWidget`，响应会列出这项隐式修改。先检查最终组合是否允许，再提交请求。
+
+FieldNotify 修改涉及使用它的蓝图时，先预览影响。例如 Widget 中已有的 `Health`：
+
+```json
+{"BlueprintPath":"/Game/UI/WBP_Player","VariableName":"Health","bFieldNotify":true,"bDryRun":true}
+```
+
+`ModifyVariable` 默认 `bDryRun:false`；预览不写入或编译。实际更新消费者须传 `bApproveReferenceUpdates:true`，删除通知依赖还须传 `bAllowPotentialDataLoss:true`。启用 `bAutoCompileAfterModify` 时，工具编译受影响蓝图；关闭时，声明与当前 `Effective` 可能不同，需要显式编译。工具不自动保存，需要持久保存时调用 `SaveAsset`。
+
+UE 5.2 的 Widget 不允许对 ReadOnly 成员启用 FieldNotify；5.2 MVVM 还需要实际注册的专用编译器，仅加载模块或类型不足以支持生成。5.3 及以上按通知接口和当前编译产物判断。相关资产未加载或引用无法确认时，请求会返回具体阻塞。UE 5.8 相关 MVVM 转换仅支持已确认的静态原生 BlueprintPure Float 函数、前向 OneTime 绑定、单个 Manual 上下文与单属性输入路径；其他标量、实例/getter、拆分 Pin、Node 或多路径转换会返回限制原因。
 
 ### 2. `ModifyFunctionSignature`：函数参数不是普通节点 Pin
 
@@ -327,7 +357,20 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 - 通过节点标识和图坐标定位的 `MoveNodes`。
 - 可选的 `PinDefaults`、`PromotedType`、布局范围和布局风格。
 
-整个 Patch 只使用一个事务，失败时会尝试自动回滚。如果工具提示恢复失败，请停止继续修改，重新打开资产确认当前状态后再处理。
+整个 Patch 只使用自己的事务，失败时会检查 Undo 记录归属并尝试恢复。`ApplyGraphPatch`、`ModifyVariable` 和 `ModifyFunctionSignature` 的恢复响应带有 `RecoveryContractVersion: 2`，仍作为错误返回。查看以下字段后再决定下一步：
+
+| 字段 | 含义 |
+|---|---|
+| `bUndoSucceeded` | 本次调用自己的 Undo 成功；不会撤销后来加入的其他事务。 |
+| `bContentRestored`、`bSnapshotRestored` | 声明、图、节点和 Pin 内容与操作前相同。`bRolledBack` 还要求自己的 Undo 成功。 |
+| `RuntimeVerification` | `Verified` 表示运行时形状与默认值相同；`Different` 表示存在差异；`Unavailable` 表示无法完整检查；`NotRequested` 表示未要求检查。只有 `Verified` 时 `bRuntimeRestored` 才为 true。 |
+| `RecoveryAssets` | 各蓝图操作前后的实际 `Status`、状态码和包 Dirty；内容恢复后仍可能是 Dirty。 |
+| `bRollbackStateRestored` | 内容、所需运行时与原生状态均相同。工具不会为满足此字段而回填 Status 或清除 Dirty。 |
+| `RollbackRecoveryCompileReports` | 必要恢复编译的实际结果；编译成功还须通过内容和运行时比较。 |
+| `DefaultRepairResult`、`DefaultRepairProperties` | 变量恢复编译后对指定成员默认值的恢复结果和属性路径；`Applied` 仍须通过最终全量比较。 |
+| `AuthoringDifference`、`RuntimeDifference`、`RecoveryError` | 未恢复内容或无法检查的位置和原因。 |
+
+若出现内容差异、运行时差异或无法证明恢复，请停止修改并检查当前资产。Dirty 或已有编译错误的图仍可建图；蓝图缺少 Undo 所需的实际生成类/CDO 时会返回 `RecoveryUnavailable`，不会偷偷先编译。
 
 ## 成员、函数、Struct 与 Enum
 

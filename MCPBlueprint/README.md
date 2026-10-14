@@ -132,6 +132,21 @@ Call SearchGraphNodes first and use only returned `SpawnerId` values. A patch ca
 
 Start with `bDryRun=true`. Inspect normalized operations and every blocker; dry-run may explicitly say that Action Registry nodes, generated pins, type promotion, or exact post-layout state cannot be proven without mutation. Apply the same planned patch once. The write executes in one transaction and attempts automatic rollback on failure. If recovery cannot be proven, the response reports that explicitly; stop and read the graph back before any retry. Then call GetGraphDetail, compile, and explicitly save only when persistence is wanted. Use the default Auto layout for normal authored logic; use explicit positions or `LayoutScope=None` only for a real fixed-layout requirement.
 
+Recovery responses from `ApplyGraphPatch`, `ModifyVariable`, and `ModifyFunctionSignature` use `RecoveryContractVersion: 2` and remain errors. Check these fields before deciding what to do next:
+
+| Field | Meaning |
+|---|---|
+| `bUndoSucceeded` | This call's own Undo succeeded. A later transaction from another operation is never undone. |
+| `bContentRestored`, `bSnapshotRestored` | Declarations, graphs, nodes, and pins match their previous contents. `bRolledBack` additionally requires the owned Undo to succeed. |
+| `RuntimeVerification` | `Verified` means runtime shapes and default values match; `Different` means they differ; `Unavailable` means a complete check was unavailable; `NotRequested` means no check was requested. `bRuntimeRestored` is true only for `Verified`. |
+| `RecoveryAssets` | Each Blueprint's actual before/after Status, status code, and package Dirty state. Restored content may still be Dirty. |
+| `bRollbackStateRestored` | Content, required runtime state, and native state all match. The tool never rewrites Status or clears Dirty to satisfy this field. |
+| `RollbackRecoveryCompileReports` | Actual recovery compiler results when needed. Successful compilation still requires content and runtime comparisons. |
+| `DefaultRepairResult`, `DefaultRepairProperties` | Result and property paths for restoring a specified variable default after recovery compilation. `Applied` still requires the final complete comparison. |
+| `AuthoringDifference`, `RuntimeDifference`, `RecoveryError` | The location and cause of a difference or unavailable recovery proof. |
+
+Stop editing and inspect the current assets when content/runtime differs or recovery cannot be proven. Dirty graphs and graphs with existing compiler errors remain editable. A Blueprint without the actual generated class/CDO needed by native Undo returns `RecoveryUnavailable`; the tool does not compile it implicitly before the edit.
+
 ### ModifyVariable: member-variable declarations and defaults
 
 1. Call `GetBlueprintOverview` with `BlueprintPath` to find a variable **declared by this Blueprint** and its `VarGuid`. Then call `GetBlueprintDetails` with `Target.Kind: "MemberVariable"`, its `Name`, and optionally that `VarGuid`. `CoverageComplete: false` means the tool currently returns implemented declaration properties for supported target kinds; it does not yet cover all Blueprint Details functionality. Inspect `Properties` before editing: `Current` is the value, `IsSet` distinguishes an absent metadata key from an empty one, and `Editable`/`Reason` or `Enable`/`Disable` explain available changes. Within `Enable`/`Disable`, `Allowed` means the action can run, `NoChange` means the requested state is already current, and `Reason` explains a restriction. `Properties.NewName.Editable` describes the current declaration; a proposed new name still needs validation. Inherited variables can be read here, but `ModifyVariable` changes only declarations owned by the target Blueprint.
@@ -167,6 +182,10 @@ For an `int32` `Health` declaration, this `ModifyVariable` call sets a default, 
 | `bMultiLine` | Boolean for `string`/`text`, including array/set elements and Map values | Select a multiline text editor. |
 | `bBitmask`, `BitmaskEnum` | Boolean and explicit Enum object path; scalar `int32` only | Display a bitmask, optionally using an allowable Blueprint Enum with `Bitflags` metadata. A nonempty `BitmaskEnum` requires `bBitmask` enabled in the final state. |
 | `bDeprecated`, `DeprecationMessage` | Boolean and string | Mark the declaration deprecated and show a message. A nonempty message requires `bDeprecated` enabled in the final state. |
+| `bConfig` | Types allowed by native Config rules | Set the configuration-property flag without reading or writing ini files. Hard Object and Interface are disallowed; Class, SoftClass, SoftObject, and containers are checked against the actual type. |
+| `bExposeToCinematics` | Properties animatable by the current Sequencer | Set Interp for Cinematics use; unavailable Sequencer capability returns a reason. |
+| `bMakeEditWidget` | Vector, Transform, and their arrays; Instance Editable required | Provide a property editing widget in the editor viewport. |
+| `bFieldNotify` | Members supported by the current Blueprint type and compiler | Set the FieldNotify declaration while preserving existing notification dependencies; disabling it can also remove other fields' dependencies on this field. |
 
 | Input | Result |
 |---|---|
@@ -191,6 +210,32 @@ For an access-restriction example, first inspect `Properties.bBlueprintReadOnly.
 ReadOnly keeps Blueprint reads but blocks variable Set nodes; it is **not deep immutability**. A mutable reference consumer can also block enabling it, while some engine-version container operations may still compile with warnings. Enabling ReadOnly removes `MakeEditWidget` metadata. Private restricts Blueprint reads and writes outside the declaring Blueprint; existing external references block it. Unresolved references or unloaded derived Blueprints can block either restriction. A missing inherited-variable action in `SearchGraphNodes` does not prove Private access is safe. To remove these restrictions, use `{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","bBlueprintReadOnly":false,"bPrivate":false}`.
 
 Move any default value you still need to a replacement variable **before** setting `bDeprecated: true`: Unreal does not serialize deprecated property values, so reopening the Blueprint may reset them. To retain an edit, call `SaveAsset` with `{"BlueprintPath":"/Game/Blueprints/BP_Player"}`.
+
+The four editor flags accept JSON `true`/`false` only. Omission preserves the current state; same-state requests report no change without creating a transaction. Edits apply to owned member declarations; inherited and native members can be queried. Inspect direction availability with `GetBlueprintDetails`:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"MemberVariable","Name":"Health"}}
+```
+
+Each flag in `Properties` contains `Current` (the declaration), `IsSet` (equal to the declaration for these four flags), `Effective` (the current compiled product, or `null` when unknown), `EffectiveReason`, `Editable`, and `Enable`/`Disable` with `Allowed`, `NoChange`, and `Reason`. `GetBlueprintOverview` also returns the four declaration booleans. A pending compilation or native Undo/Redo can leave `Current` different from `Effective`; Undo/Redo does not guarantee automatic recompilation.
+
+For a Vector `HandleOffset`, enable instance editing and the viewport widget together:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"HandleOffset","bInstanceEditable":true,"bMakeEditWidget":true}
+```
+
+Setting `bInstanceEditable:false` or `bBlueprintReadOnly:true` clears `MakeEditWidget`; the response lists this implicit edit. Check whether the final combination is allowed before applying it.
+
+Preview FieldNotify edits that affect consumer Blueprints. For an existing Widget `Health` member:
+
+```json
+{"BlueprintPath":"/Game/UI/WBP_Player","VariableName":"Health","bFieldNotify":true,"bDryRun":true}
+```
+
+`ModifyVariable` defaults to `bDryRun:false`; preview neither writes nor compiles. Applying consumer updates requires `bApproveReferenceUpdates:true`; removing notification dependencies also requires `bAllowPotentialDataLoss:true`. With `bAutoCompileAfterModify` enabled, the tool compiles affected Blueprints. With it disabled, the declaration can differ from the current `Effective` value and requires explicit compilation. The tool does not save automatically; call `SaveAsset` to persist changes.
+
+UE 5.2 Widgets cannot enable FieldNotify on ReadOnly members. UE 5.2 MVVM also requires an actually registered dedicated compiler; loaded modules or types alone are insufficient for generation. UE 5.3+ checks the notification interface and current compiled product. Unloaded related assets or unconfirmed references return concrete blockers. Related UE 5.8 MVVM conversions support only confirmed static native BlueprintPure Float functions, forward OneTime bindings, one Manual context, and single-property input paths. Other scalar, instance/getter, split-pin, Node, or multipath conversions return a limitation reason.
 
 ### ModifyFunctionSignature: function signature pins
 
