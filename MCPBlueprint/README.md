@@ -77,7 +77,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | GetUserDefinedEnum | Shows Enum entries and serialized values. | Results are bounded. |
 | ModifyUserDefinedEnum | Changes one Enum operation. | Start with dry-run; remove or move needs semantic-change approval. |
 | AddVariable | Adds a Blueprint member variable. | Supports type, default, category, and instance-editable settings. |
-| ModifyVariable | Changes a member variable and its Details metadata. | Type changes block while referenced; remove RepNotify before renaming. |
+| ModifyVariable | Changes a member variable and its Details metadata. | Unsupported references block type changes; supported constructor references require the applicable approvals. Remove RepNotify before renaming. |
 | RemoveVariable | Removes a member variable. | References block removal; force affects only local references. |
 | CreateMacro | Creates a macro with explicit exec or concrete data pins. | Requires a successful current compile; omitted signatures create no pins; use returned graph/tunnel GUIDs. |
 | ModifyMacroDetails | Edits a local ordinary or native MacroLibrary macro's category, tooltip, keywords and compact title. | Uses `Target.Kind: "Macro"`, `Name`, and `GraphGuid`; preserves signatures and does not save automatically; library presentation edits preserve loaded authored-graph consumers. |
@@ -173,7 +173,7 @@ For an `int32` `Health` declaration, this `ModifyVariable` call sets a default, 
 | Field | Applicable value or type | Effect |
 |---|---|---|
 | `BlueprintPath`, `VariableName` | Required strings; existing Blueprint and member name | Select the declaration. `VariableName` is the old name even when using `NewName`. |
-| `TypeName`, `DefaultValue`, `NewName` | Type syntax accepted by `AddVariable`; UE-text default; nonempty new name | Change type, declaration default, or name. Referenced variables cannot change type; RepNotify variables cannot be renamed here. Rename/type also reject references or dependencies that cannot be safely updated. |
+| `TypeName`, `DefaultValue`, `NewName` | Type syntax accepted by `AddVariable`; UE-text default; nonempty new name | Change type, declaration default, or name. Supported constructor references can migrate to a new type with the required reference-update and data-loss approvals; unsupported references block type changes. RepNotify variables cannot be renamed here. Rename/type also reject dependencies that cannot be safely updated. |
 | `bInstanceEditable`, `Category`, `Tooltip` | Boolean; category/tooltip strings | Control instance Details editing, category, and help text. Empty `Category` restores Unreal's default category; empty `Tooltip` removes its metadata. |
 | `bSaveGame`, `bTransient`, `bAdvancedDisplay` | Booleans | Select properties for SaveGame archives, exclude them from persistent serialization, or move them to advanced Details. `bSaveGame` does **not** create a save system; `bTransient` is a serialization flag. |
 | `bBlueprintReadOnly`, `bPrivate` | Booleans on owned member declarations | Restrict Blueprint Set usage or Blueprint access from other Blueprints. These are independent of `bInstanceEditable`; see the access example below. |
@@ -186,6 +186,7 @@ For an `int32` `Health` declaration, this `ModifyVariable` call sets a default, 
 | `bExposeToCinematics` | Properties animatable by the current Sequencer | Set Interp for Cinematics use; unavailable Sequencer capability returns a reason. |
 | `bMakeEditWidget` | Vector, Transform, and their arrays; Instance Editable required | Provide a property editing widget in the editor viewport. |
 | `bFieldNotify` | Members supported by the current Blueprint type and compiler | Set the FieldNotify declaration while preserving existing notification dependencies; disabling it can also remove other fields' dependencies on this field. |
+| `bExposeOnSpawn` | Member types supported by native creation nodes | Provide a variable input on creation nodes; preview and approve consumer updates, with separate approval for default, split-field or connection losses. |
 
 | Input | Result |
 |---|---|
@@ -211,13 +212,13 @@ ReadOnly keeps Blueprint reads but blocks variable Set nodes; it is **not deep i
 
 Move any default value you still need to a replacement variable **before** setting `bDeprecated: true`: Unreal does not serialize deprecated property values, so reopening the Blueprint may reset them. To retain an edit, call `SaveAsset` with `{"BlueprintPath":"/Game/Blueprints/BP_Player"}`.
 
-The four editor flags accept JSON `true`/`false` only. Omission preserves the current state; same-state requests report no change without creating a transaction. Edits apply to owned member declarations; inherited and native members can be queried. Inspect direction availability with `GetBlueprintDetails`:
+The five editor flags accept JSON `true`/`false` only. Omission preserves the current state; same-state requests report no change without creating a transaction. Edits apply to owned member declarations; inherited and native members can be queried. Inspect direction availability with `GetBlueprintDetails`:
 
 ```json
 {"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"MemberVariable","Name":"Health"}}
 ```
 
-Each flag in `Properties` contains `Current` (the declaration), `IsSet` (equal to the declaration for these four flags), `Effective` (the current compiled product, or `null` when unknown), `EffectiveReason`, `Editable`, and `Enable`/`Disable` with `Allowed`, `NoChange`, and `Reason`. `GetBlueprintOverview` also returns the four declaration booleans. A pending compilation or native Undo/Redo can leave `Current` different from `Effective`; Undo/Redo does not guarantee automatic recompilation.
+Each flag in `Properties` contains `Current` (the declaration), `IsSet` (equal to the declaration for the first four flags; metadata-key presence for ExposeOnSpawn), `Effective` (the current compiled product, or `null` when unknown), `EffectiveReason`, `Editable`, and `Enable`/`Disable` with `Allowed`, `NoChange`, and `Reason`. `GetBlueprintOverview` also returns the five declaration booleans. A pending compilation or native Undo/Redo can leave `Current` different from `Effective`; Undo/Redo does not guarantee automatic recompilation.
 
 For a Vector `HandleOffset`, enable instance editing and the viewport widget together:
 
@@ -227,6 +228,17 @@ For a Vector `HandleOffset`, enable instance editing and the viewport widget tog
 
 Setting `bInstanceEditable:false` or `bBlueprintReadOnly:true` clears `MakeEditWidget`; the response lists this implicit edit. Check whether the final combination is allowed before applying it.
 
+`bExposeOnSpawn` controls the variable input on creation nodes. Preview the change before approving consumer updates:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","bExposeOnSpawn":true,"bInstanceEditable":true,"bDryRun":true}
+```
+
+Inspect the nodes, pin changes and `Losses` in `EditorPropertyImpact.Consumers`. Remove `bDryRun` and pass `bApproveReferenceUpdates:true` to update consumers. Removing pins with defaults or connections, or changing to an incompatible type, also requires `bAllowPotentialDataLoss:true`. Compatible changes preserve pin identity, connections and explicit defaults. An approved incompatible-default loss uses the new type's native automatic default. Changing a declaration default preserves loaded derived-class overrides. Actor/Object creation nodes usually also require Instance Editable; legacy AddComponent nodes follow their native rules.
+
+Using `NewName` on an exposed variable lists `EditorPropertyImpact.RenameImpact` and creation-node changes. Candidate-name conflicts, unsupported references, unloaded derived classes or unknown rename handlers block the edit. Resolve the stated restriction and preview again.
+
+Undo or redo the rename, then compile normally to preserve loaded derived-class overrides. Later edits to derived defaults are not overwritten by the rename. This behavior applies while the plugin remains loaded; reloading it does not preserve the guarantee for earlier undo history.
 Preview FieldNotify edits that affect consumer Blueprints. For an existing Widget `Health` member:
 
 ```json

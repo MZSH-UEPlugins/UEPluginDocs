@@ -86,7 +86,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `GetUserDefinedEnum` | 查看 Enum 的条目、数值和显示名。 | 大型 Enum 可分页读取。 |
 | `ModifyUserDefinedEnum` | 添加、调整或删除 Enum 条目。 | 先使用 `bDryRun`；改变序列化含义时必须显式批准。 |
 | `AddVariable` | 为蓝图添加成员变量。 | 需要蓝图路径、变量名和 `TypeName`。 |
-| `ModifyVariable` | 修改成员变量的类型、默认值、名称、可编辑性、分类、提示及 Details 元数据。 | 被引用的变量不能改类型；带 RepNotify 的变量不能通过此工具改名。 |
+| `ModifyVariable` | 修改成员变量的类型、默认值、名称、可编辑性、分类、提示及 Details 元数据。 | 不支持的引用会阻止改类型；受支持的构造引用需要完成适用的批准。带 RepNotify 的变量不能通过此工具改名。 |
 | `RemoveVariable` | 删除成员变量。 | 有引用或无法安全恢复时会被阻止。 |
 | `CreateMacro` | 创建宏及显式执行、数据 Pin。 | 先成功编译蓝图；省略签名不会自动创建 exec Pin；使用返回的图与 Tunnel GUID。 |
 | `ModifyMacroDetails` | 修改普通蓝图或原生宏库本地宏的分类、提示、关键词和紧凑标题。 | 使用 `Target.Kind: "Macro"`、`Name` 和 `GraphGuid`；不改签名，不自动保存；宏库展示编辑保全已加载权威资产图中的消费者。 |
@@ -161,7 +161,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | 字段 | 适用值或类型 | 作用 |
 |---|---|---|
 | `BlueprintPath`、`VariableName` | 必填字符串；已有蓝图和成员名 | 指定声明。即使同时传 `NewName`，`VariableName` 仍是旧名称。 |
-| `TypeName`、`DefaultValue`、`NewName` | `AddVariable` 接受的类型语法；UE 文本默认值；非空新名称 | 修改类型、声明默认值或名称。变量已有引用时不能改类型；带 RepNotify 的变量不能通过此工具改名。无法安全更新的引用或依赖也会阻止改名、改类型。 |
+| `TypeName`、`DefaultValue`、`NewName` | `AddVariable` 接受的类型语法；UE 文本默认值；非空新名称 | 修改类型、声明默认值或名称。受支持的构造引用可在完成所需的引用更新和数据损失批准后迁移到新类型；不支持的引用会阻止改类型。带 RepNotify 的变量不能通过此工具改名。无法安全更新的依赖也会阻止改名、改类型。 |
 | `bInstanceEditable`、`Category`、`Tooltip` | 布尔值；分类和提示字符串 | 控制实例 Details 编辑、分类和提示。空 `Category` 恢复 Unreal 默认分类，空 `Tooltip` 删除其元数据。 |
 | `bSaveGame`、`bTransient`、`bAdvancedDisplay` | 布尔值 | 分别用于 SaveGame 归档筛选、排除持久序列化、移入 Details 高级区。`bSaveGame` **不会**创建存档系统；`bTransient` 是序列化标记。 |
 | `bBlueprintReadOnly`、`bPrivate` | 本蓝图声明的成员变量上的布尔值 | 限制蓝图 Set 用法或其他蓝图的访问；与 `bInstanceEditable` 相互独立。见下方访问限制示例。 |
@@ -174,6 +174,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `bExposeToCinematics` | 当前 Sequencer 可动画的属性 | 设置 Interp 标记，使属性可用于 Cinematics；Sequencer 能力不可用时返回原因。 |
 | `bMakeEditWidget` | Vector、Transform 及其数组；须启用 Instance Editable | 在编辑器视口中提供属性编辑控件。 |
 | `bFieldNotify` | 当前蓝图类型与编译器支持的成员 | 设置 FieldNotify 声明，保留已有通知依赖；关闭时可能同时删除其他字段对它的通知依赖。 |
+| `bExposeOnSpawn` | 原生生成节点支持的成员类型 | 生成节点提供变量输入；消费者更新先预览并批准，可能丢失默认值、拆分字段或连接时另需批准。 |
 
 | 输入方式 | 结果 |
 |---|---|
@@ -199,13 +200,13 @@ ReadOnly 保留蓝图读取，但阻止变量 Set 节点；它**不是深度不�
 
 设置 `bDeprecated: true` **之前**，先把仍需保留的默认值迁移到替代变量：Unreal 不会序列化弃用属性的值，重新打开蓝图后该值可能重置。需要保留修改时，用 `{"BlueprintPath":"/Game/Blueprints/BP_Player"}` 调用 `SaveAsset`。
 
-四个编辑器标记只接受 JSON `true`/`false`；省略字段保持原态，同值请求报告无变更且不创建事务。修改限于本蓝图声明的成员，继承或原生成员可查询。用 `GetBlueprintDetails` 查看方向是否允许：
+五个编辑器标记只接受 JSON `true`/`false`；省略字段保持原态，同值请求报告无变更且不创建事务。修改限于本蓝图声明的成员，继承或原生成员可查询。用 `GetBlueprintDetails` 查看方向是否允许：
 
 ```json
 {"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"MemberVariable","Name":"Health"}}
 ```
 
-`Properties` 中每个标记包含 `Current`（声明值）、`IsSet`（这四个标记中与声明值一致）、`Effective`（当前编译产物中的效果，无法判断时为 `null`）、`EffectiveReason`、`Editable`，以及 `Enable`/`Disable` 的 `Allowed`、`NoChange`、`Reason`。`GetBlueprintOverview` 也返回四个声明布尔值。蓝图待编译或刚执行原生 Undo/Redo 时，`Current` 与 `Effective` 可能不同；Undo/Redo 不保证自动重编译。
+`Properties` 中每个标记包含 `Current`（声明值）、`IsSet`（前四个标记与声明值一致；ExposeOnSpawn 表示元数据键是否存在）、`Effective`（当前编译产物中的效果，无法判断时为 `null`）、`EffectiveReason`、`Editable`，以及 `Enable`/`Disable` 的 `Allowed`、`NoChange`、`Reason`。`GetBlueprintOverview` 也返回五个声明布尔值。蓝图待编译或刚执行原生 Undo/Redo 时，`Current` 与 `Effective` 可能不同；Undo/Redo 不保证自动重编译。
 
 若 `HandleOffset` 是 Vector，可在同一请求启用实例编辑与视口控件：
 
@@ -215,6 +216,17 @@ ReadOnly 保留蓝图读取，但阻止变量 Set 节点；它**不是深度不�
 
 设置 `bInstanceEditable:false` 或 `bBlueprintReadOnly:true` 会清除 `MakeEditWidget`，响应会列出这项隐式修改。先检查最终组合是否允许，再提交请求。
 
+`bExposeOnSpawn` 控制生成节点上的变量输入。先预览，再批准影响到的消费者：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","bExposeOnSpawn":true,"bInstanceEditable":true,"bDryRun":true}
+```
+
+查看 `EditorPropertyImpact.Consumers` 中的节点、Pin 变化和 `Losses`，移除 `bDryRun` 并传 `bApproveReferenceUpdates:true` 才执行消费者更新。删除有默认值或连接的 Pin、改变不兼容的类型时，还须传 `bAllowPotentialDataLoss:true`。兼容修改保留 Pin 标识、连接和显式默认值；批准丢弃不兼容默认值后，Pin 使用新类型的原生自动默认值。已加载派生类的默认值覆写不会被声明默认值修改替换。Actor／Object 生成节点通常还要求 Instance Editable；旧 AddComponent 节点按其原生规则处理。
+
+对已暴露的变量使用 `NewName` 时，工具会列出 `EditorPropertyImpact.RenameImpact` 和构造节点的影响。候选名冲突、无法安全处理的引用、未加载的派生类或未知重命名处理器会阻止修改。先解决具体原因，再重新预览。
+
+改名后撤销或重做，再正常编译，可保留已加载派生类的变量覆写；后续对派生类默认值的编辑不会被这次改名覆盖。此行为限于插件当前加载期间；重载插件后，已有撤销历史中的覆写恢复不作保证。
 FieldNotify 修改涉及使用它的蓝图时，先预览影响。例如 Widget 中已有的 `Health`：
 
 ```json
