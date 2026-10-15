@@ -30,13 +30,13 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ## 功能概览
 
-当前版本注册 66 个工具：
+当前版本注册 69 个工具：
 
 | 能力 | 数量 | 工具 |
 |---|---:|---|
 | 发现与读取 | 7 | `ListBlueprints`、`GetBlueprintOverview`、`GetBlueprintDetails`、`ListBlueprintMembers`、`GetGraphDetail`、`SearchGraphNodes`、`GetCompileErrors` |
 | User Defined Struct 与 Enum | 6 | `CreateUserDefinedStruct`、`GetUserDefinedStruct`、`ModifyUserDefinedStruct`、`CreateUserDefinedEnum`、`GetUserDefinedEnum`、`ModifyUserDefinedEnum` |
-| 变量、函数、宏、事件与 Pin | 27 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`CreateMacro`、`ModifyMacroSignature`、`RenameMacro`、`RemoveMacro`、`ModifyMacroDetails`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`ModifyLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`RemoveInterface`、`ModifyClassSettings`、`AddEventDispatcher`、`RemoveEventDispatcher` |
+| 变量、函数、宏、事件与 Pin | 30 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`CreateMacro`、`ModifyMacroSignature`、`RenameMacro`、`RemoveMacro`、`ModifyMacroDetails`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`ModifySignalSignature`、`RenameSignal`、`RemoveCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`ModifyLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`RemoveInterface`、`ModifyClassSettings`、`AddEventDispatcher`、`RemoveEventDispatcher` |
 | 图表编辑与布局 | 4 | `ApplyGraphPatch`、`SetPinDefaults`、`FormatGraph`、`AddCommentBox` |
 | 组件与默认值 | 11 | `GetComponents`、`AddComponent`、`SetComponentProperties`、`RenameComponent`、`RemoveComponent`、`ReparentComponent`、`SetRootComponent`、`DuplicateComponent`、`GetComponentProperties`、`GetClassDefaults`、`SetClassDefaults` |
 | 资产生命周期与截图 | 11 | `CreateBlueprint`、`ReparentBlueprint`、`CompileBlueprint`、`SaveAsset`、`OpenAsset`、`CloseAsset`、`ReloadBlueprintFromDisk`、`DeleteAsset`、`RenameAsset`、`DuplicateAsset`、`CaptureGraphScreenshot` |
@@ -99,6 +99,9 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `RemoveFunction` | 删除用户函数。 | 有引用或无法安全恢复时会被阻止。 |
 | `CreateCustomEvent` | 在 Event Graph 中创建自定义事件。 | 目标必须是实际的 Event Graph。 |
 | `ModifyCustomEvent` | 修改自定义事件的编辑器调用、弃用和 RPC 声明属性。 | 使用 `Target.Kind: "CustomEvent"` 与 `NodeGuid`；只修改本蓝图可编辑的事件，遗漏字段保持原值。 |
+| `ModifySignalSignature` | 增删、改名、改类型、设置默认值或调整自定义事件与分发器输入顺序。 | 从 `ListBlueprintMembers` 复制 `Target` 和当前 `PinId`；默认预览，应用须批准引用更新。分发器只接受原生空默认值。 |
+| `RenameSignal` | 改名本地自定义事件或自有分发器，并维护已加载的精确调用与绑定引用。 | 使用稳定身份 Target 和 `NewName`；保留已有处理器选择。 |
+| `RemoveCustomEvent` | 安全删除本地可编辑自定义事件。 | 先显式删除真实调用和绑定引用；默认预览，不级联删除引用。 |
 | `ModifyFunctionDetails` | 修改本地函数的显示、编辑器、弃用属性，以及 Pure、Const、访问级别和 Exec 声明。 | 使用 `Target.Kind: "Function"`、`Name` 和 `FunctionGraphGuid`；声明字段默认预览，应用需批准引用更新，遗漏字段保持原值。 |
 | `AddEventNode` | 添加受支持的事件节点。 | 需指定蓝图和事件类型。 |
 | `AddBoundEvent` | 为组件或委托添加绑定事件。 | 组件和委托必须能被解析。 |
@@ -511,11 +514,39 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 目标必须是当前蓝图自身已有、且签名兼容的处理函数或事件。把 Create Event 的 `OutputDelegate` 连到 Bind 或 Unbind 的 `Delegate`；需要对象连接时也在同一 Patch 中提供。工具完成连接后选择目标并检查签名，失败时回滚整个 Patch，包括 Assign 的伴生事件。目标使用稳定 GUID 识别，GUID 失效时不会按同名目标回退。
 
-这五种分发器操作支持目标蓝图自身声明的标量分发器。`Delegate:<操作>:self:<声明GUID>` 标识在编译和保存后保持稳定；删除后同名重建会产生新 GUID，旧标识会被拒绝，应重新搜索。继承或跨蓝图目标，以及分发器签名修改和改名迁移仍待支持。
+这五种分发器操作支持目标蓝图自身声明的标量分发器。`Delegate:<操作>:self:<声明GUID>` 标识在编译和保存后保持稳定；删除后同名重建会产生新 GUID，旧标识会被拒绝，应重新搜索。节点创建仍不支持继承或跨蓝图目标。已有本地声明的签名与改名操作见下节。
 
+### 修改、改名与删除信号
+
+先调用 `ListBlueprintMembers`，用 `MemberKind: "CustomEvent"` 或 `"EventDispatcher"` 找到声明，复制返回的 `Target`。自定义事件使用 `{"Kind":"CustomEvent","NodeGuid":"<返回的 NodeGuid>"}`；分发器使用 `{"Kind":"EventDispatcher","Name":"OnSignal","DeclarationGuid":"<返回的声明 GUID>"}`。参数编辑使用 `Inputs` 中当前的 `PinId`；修改后重新读取，不用名称代替 GUID。
+
+`ModifySignalSignature` 每次执行一种操作：
+
+| Operation | 参数 | 用途 |
+|---|---|---|
+| `AddInput` | `PinName`、`TypeName`，可选 `DefaultValue` | 增加输入。 |
+| `RenamePin` | `PinId`、`PinName` | 改名参数并保留兼容连线。 |
+| `RemovePin` | `PinId` | 删除未连接的输入。 |
+| `ChangePinType` | `PinId`、`TypeName`，可选 `DefaultValue` | 修改未连接输入的类型。 |
+| `SetPinDefault` | `PinId`、显式字符串 `DefaultValue` | 设置声明默认值。 |
+| `MovePin` | `PinId`、零基 `NewIndex` | 调整声明顺序。 |
+
+例如预览一个本地事件的默认值修改：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Receiver","Target":{"Kind":"CustomEvent","NodeGuid":"<返回的 NodeGuid>"},"Operation":"SetPinDefault","PinId":"<Inputs 返回的 PinId>","DefaultValue":"23"}
+```
+
+检查返回的 `References` 和 `AffectedBlueprints` 后，在同一请求中加入 `bDryRun: false`、`bApproveReferenceUpdates: true` 应用。已有调用点的显式覆盖保留；已连接的输入仍从连线取值。删除或改类型前须显式断开声明、调用及伴生事件上的相关连接，包括拆分子 Pin。与已有 CreateDelegate 处理器不兼容的签名变更会被拒绝，工具不会修改处理器签名。
+
+CustomEvent 的硬对象、类和接口输入只接受空声明默认值，因为新建 Call 节点不会继承这些类型的非空值。此限制覆盖 `AddInput`、`ChangePinType`（包括省略默认值而沿用旧非空值）和 `SetPinDefault`；清空时显式传 `DefaultValue: ""`，具体 Call 节点的对象值用 `SetPinDefaults` 设置。其他已支持的 CustomEvent 类型仍可使用非空声明默认值。EventDispatcher 的 `AddInput`、`ChangePinType` 只接受省略或空默认值，`SetPinDefault` 必须传 `DefaultValue: ""`；`"0"`、`"false"` 等非空值也会被拒绝。改类型时如果沿用的旧默认值非空，请显式传空字符串。分发器声明中可读到默认值不代表 Call 节点会继承它；其他调用值请用已有 `SetPinDefaults` 设置在具体 Call 节点上。
+
+`RenameSignal` 使用同一 `Target` 和 `NewName`，默认预览。分发器改名后保留原 `DeclarationGuid`，下一次请求使用新 `Name`；CustomEvent 保留 `NodeGuid`。工具更新精确的已加载调用与绑定引用，保留原有处理器身份。继承、覆盖、接口实现及直接由委托签名驱动的接收事件不能在此修改。
+
+删除 CustomEvent 使用同一 Target 调用 `RemoveCustomEvent`，同样先预览再批准应用。删除分发器使用 `RemoveEventDispatcher` 的 `DispatcherName`，可附 `DeclarationGuid` 防止同名重建误匹配；此工具直接执行安全删除。两者都会拒绝仍有真实调用或绑定的声明，须先用 `ApplyGraphPatch` 显式移除这些引用。未知或未加载引用会阻止变更；不级联删除外部节点，也不自动重接执行链。支持普通 Undo/Redo；完成后显式 `SaveAsset` 保存声明及受影响资产。
 ### 修改本地函数显示、编辑器与声明属性
 
-`ListBlueprintMembers` 的函数 `Inputs`、`Outputs` 仍按名称字母顺序返回。每个函数参数额外包含 `DeclarationIndex`（其所属入口或结果 Terminal 声明数组中的零基下标）、`bIsReference` 和 `bIsConst`。下标属于各 Terminal，并非整个函数的唯一序号。`bIsReference`、`bIsConst` 表示声明的 raw 值。`bCompiledFlagsKnown=true` 时，还返回当前自有编译函数的 `bCompiledReference`、`bCompiledConst` 和 `bCompiledOutParm`；不可用时仅返回 `bCompiledFlagsKnown=false`，不把未知标志写成 false。查询不会触发编译，可先正常编译蓝图再读取。引用输入也可能带 OutParm，它仍属于逻辑输入组。原有分页、16 个 Pin 的签名上限及默认值截断规则保持有效；CustomEvent、EventDispatcher 返回字段保持原样。
+`ListBlueprintMembers` 的函数 `Inputs`、`Outputs` 仍按名称字母顺序返回。每个函数参数额外包含 `DeclarationIndex`（其所属入口或结果 Terminal 声明数组中的零基下标）、`bIsReference` 和 `bIsConst`。下标属于各 Terminal，并非整个函数的唯一序号。`bIsReference`、`bIsConst` 表示声明的 raw 值。`bCompiledFlagsKnown=true` 时，还返回当前自有编译函数的 `bCompiledReference`、`bCompiledConst` 和 `bCompiledOutParm`；不可用时仅返回 `bCompiledFlagsKnown=false`，不把未知标志写成 false。查询不会触发编译，可先正常编译蓝图再读取。引用输入也可能带 OutParm，它仍属于逻辑输入组。原有分页、16 个 Pin 的签名上限及默认值截断规则保持有效；CustomEvent、EventDispatcher 的输入还返回声明 `PinId`、`DeclarationIndex` 和稳定身份 `Target`，用于下方信号生命周期工具。
 
 用 `MemberKind: "Function"` 调用 `ListBlueprintMembers`，把函数的 `Name` 和 `FunctionGraphGuid` 放入 `Kind: "Function"` 的 `Target`。`NodeGuid` 标识入口节点，不能代替图 GUID。先用相同 Target 调用 `GetBlueprintDetails` 查看可用属性和编辑限制，再调用 `ModifyFunctionDetails`：
 
@@ -578,7 +609,7 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 - 支持 Windows、macOS 和 Linux Editor；不提供 Runtime/Shipping 模块。
 - 暂无“调用任意 Blueprint 函数并返回运行结果”的通用工具。
-- Custom Event 和 Event Dispatcher 的签名修改能力尚未达到普通函数签名修改的完整程度。
+- 信号生命周期工具只修改普通蓝图自有声明；继承、接口、覆盖或签名驱动的事件须回到来源修改。分发器仅支持原生空默认值，具体调用值用 `SetPinDefaults` 设置。
 - 某些 Blueprint Action 无法安全处理时，工具会直接拒绝操作。
 - 截图需要真实初始化的 Blueprint Graph Editor 控件。
 

@@ -2,7 +2,7 @@
 
 # MCPBlueprint User Guide
 
-MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **66 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
+MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **69 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
 
 ## Requirements and installation
 
@@ -57,7 +57,7 @@ Blueprint asset
 
 Edits are not saved automatically. Use `SaveAsset` when you want to keep a change. Destructive tools require extra confirmation or refuse the operation when references could be broken.
 
-## Complete feature matrix (66 tools)
+## Complete feature matrix (69 tools)
 
 The table is a quick guide. Live tools/list remains the source for the exact fields and constraints.
 
@@ -90,6 +90,9 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | RemoveFunction | Removes a declared function graph. | References and unsafe unloaded descendants block removal. |
 | CreateCustomEvent | Adds a Custom Event node. | Optional input parameters are supported. |
 | ModifyCustomEvent | Changes editor-callable, deprecation, and RPC declaration properties of a CustomEvent. | Use `Target.Kind: "CustomEvent"` and `NodeGuid`. Supports local editable events; omitted fields keep their values. |
+| ModifySignalSignature | Adds, removes, renames, retypes, defaults or reorders owned CustomEvent and EventDispatcher inputs. | Copy Target/current PinId from ListBlueprintMembers; preview by default. Dispatcher defaults accept only the native empty value. |
+| RenameSignal | Renames an owned signal and its exact loaded call/binding references. | Uses stable Target and NewName; retains handler selections. |
+| RemoveCustomEvent | Safely removes an editable local CustomEvent. | Explicitly remove real calls/bindings first; preview by default, with no cascading deletion. |
 | ModifyFunctionDetails | Changes local function presentation, editor and deprecation properties, plus Pure, Const, access and Exec declarations. | Use `Target.Kind: "Function"`, `Name`, and `FunctionGraphGuid`; declaration fields default to preview and applying requires reference approval. Omitted fields keep their values. |
 | AddEventNode | Adds an overridable engine event node. | Repeating the same event is safe. |
 | AddBoundEvent | Adds a bound event for an Actor component or Level Blueprint Actor. | Not for UMG WidgetTree events; use MCPUMG there. |
@@ -458,11 +461,39 @@ To use an existing function or Custom Event as a receiver, search with `Query="C
 
 The target must already belong to the current Blueprint and have a compatible signature. Connect Create Event's `OutputDelegate` to Bind or Unbind's `Delegate`; provide any required object connection in the same Patch. The tool selects the target and checks its signature after making the connections. A failure rolls back the entire Patch, including any Assign companion event. Targets use stable GUIDs; an invalid GUID never falls back to a target with the same name.
 
-These five dispatcher actions support scalar dispatchers declared in the target Blueprint itself. Their `Delegate:<operation>:self:<declarationGUID>` IDs survive compilation and saving. Deleting and recreating the same name produces a new GUID: old IDs are rejected, so search again. Inherited or cross-Blueprint targets and dispatcher signature or rename migration remain unsupported.
+These five dispatcher actions support scalar dispatchers declared in the target Blueprint itself. Their `Delegate:<operation>:self:<declarationGUID>` IDs survive compilation and saving. Deleting and recreating the same name produces a new GUID: old IDs are rejected, so search again. Node creation still excludes inherited or cross-Blueprint targets. Editing existing local declarations is covered below.
 
+### Edit, rename and remove signals
+
+Call `ListBlueprintMembers` with `MemberKind: "CustomEvent"` or `"EventDispatcher"` and copy the returned `Target`. CustomEvents use `{"Kind":"CustomEvent","NodeGuid":"<returned NodeGuid>"}`; dispatchers use `{"Kind":"EventDispatcher","Name":"OnSignal","DeclarationGuid":"<returned declaration GUID>"}`. Parameter edits use the current `PinId` from `Inputs`. Read it again after editing; names do not replace GUIDs.
+
+`ModifySignalSignature` performs one operation per request:
+
+| Operation | Parameters | Purpose |
+|---|---|---|
+| `AddInput` | `PinName`, `TypeName`, optional `DefaultValue` | Add an input. |
+| `RenamePin` | `PinId`, `PinName` | Rename a parameter while preserving compatible links. |
+| `RemovePin` | `PinId` | Remove an unconnected input. |
+| `ChangePinType` | `PinId`, `TypeName`, optional `DefaultValue` | Retype an unconnected input. |
+| `SetPinDefault` | `PinId`, explicit string `DefaultValue` | Set the declaration default. |
+| `MovePin` | `PinId`, zero-based `NewIndex` | Change declaration order. |
+
+For example, preview a local event default change:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Receiver","Target":{"Kind":"CustomEvent","NodeGuid":"<returned NodeGuid>"},"Operation":"SetPinDefault","PinId":"<PinId returned in Inputs>","DefaultValue":"23"}
+```
+
+Inspect `References` and `AffectedBlueprints`, then add `bDryRun: false` and `bApproveReferenceUpdates: true` to apply. Existing explicit caller overrides remain intact; connected inputs still take values from their links. Before removing or retyping an input, explicitly disconnect affected declaration, call and companion-event pins, including split child pins. Signature changes incompatible with a selected CreateDelegate handler are refused; handler signatures are never migrated.
+
+CustomEvent hard object, class and interface inputs accept only empty declaration defaults: new Call nodes do not inherit their non-empty values. This restriction covers `AddInput`, `ChangePinType` (including an omitted default that would retain an old non-empty value), and `SetPinDefault`; explicitly pass `DefaultValue: ""` to clear the default, and use `SetPinDefaults` on a specific Call node for an object value. Other supported CustomEvent types continue to accept non-empty defaults. EventDispatcher `AddInput` and `ChangePinType` accept only omitted or empty defaults; `SetPinDefault` requires `DefaultValue: ""`. Non-empty strings such as `"0"` and `"false"` are also refused. If a type edit would inherit an old non-empty default, explicitly supply an empty string. A readable dispatcher declaration default does not mean Call nodes inherit it. Use the existing `SetPinDefaults` tool on a specific Call node for other values.
+
+`RenameSignal` takes the same `Target` and `NewName`, with preview as the default. A dispatcher keeps its original `DeclarationGuid`; use its new `Name` afterward. A CustomEvent keeps its `NodeGuid`. Exact loaded calls and bindings are updated while retaining handler identity. Inherited, overridden, interface-implementation and directly signature-driven receiver events must be edited at their source.
+
+Use the same Target with `RemoveCustomEvent`, preview, then approve application. `RemoveEventDispatcher` takes `DispatcherName` and an optional expected `DeclarationGuid` to guard against a same-name replacement; this tool executes safe deletion directly. Both refuse declarations with real calls or bindings. Explicitly remove those references with `ApplyGraphPatch` first. Unknown or unloaded references block mutation; external nodes are not deleted in a cascade and execution chains are not rewired. Normal Undo/Redo is supported. Save the declaration and affected assets explicitly with `SaveAsset` when finished.
 ### Change local function presentation, editor and declaration properties
 
-`ListBlueprintMembers` returns function `Inputs` and `Outputs` in alphabetical order. Each function pin also includes `DeclarationIndex` (the zero-based position in its own entry or result terminal declaration array), `bIsReference` and `bIsConst`. The index is local to each terminal, not a unique sequence across the whole function. `bIsReference` and `bIsConst` are raw declaration flags. When `bCompiledFlagsKnown=true`, `bCompiledReference`, `bCompiledConst`, and `bCompiledOutParm` describe the current owned compiled function. Unavailable metadata returns only `bCompiledFlagsKnown=false`, without replacing unknown flags with false. The query never compiles; compile the Blueprint normally before reading when needed. Reference inputs can also carry OutParm while remaining logical inputs. Existing pagination, 16-pin signature limits and default-value truncation remain in effect. CustomEvent and EventDispatcher results retain their existing fields.
+`ListBlueprintMembers` returns function `Inputs` and `Outputs` in alphabetical order. Each function pin also includes `DeclarationIndex` (the zero-based position in its own entry or result terminal declaration array), `bIsReference` and `bIsConst`. The index is local to each terminal, not a unique sequence across the whole function. `bIsReference` and `bIsConst` are raw declaration flags. When `bCompiledFlagsKnown=true`, `bCompiledReference`, `bCompiledConst`, and `bCompiledOutParm` describe the current owned compiled function. Unavailable metadata returns only `bCompiledFlagsKnown=false`, without replacing unknown flags with false. The query never compiles; compile the Blueprint normally before reading when needed. Reference inputs can also carry OutParm while remaining logical inputs. Existing pagination, 16-pin signature limits and default-value truncation remain in effect. CustomEvent and EventDispatcher inputs also return declaration `PinId`, `DeclarationIndex`, and a stable `Target` for the signal lifecycle tools below.
 
 Call `ListBlueprintMembers` with `MemberKind: "Function"`. Copy the function's `Name` and `FunctionGraphGuid` into a `Target` with `Kind: "Function"`; `NodeGuid` identifies the entry node and cannot replace the graph GUID. Use that target with `GetBlueprintDetails` to inspect supported values and editing restrictions, then call `ModifyFunctionDetails`:
 
@@ -501,7 +532,7 @@ Call `OpenAsset` before `CaptureGraphScreenshot`. You can capture the full graph
 In **Project Settings → Plugins → MCP Blueprint**, configure Port, Auto Start, Auto Compile After Modify, request timeout, and compile timeout.
 
 - The plugin is editor-only; there is no generic arbitrary Blueprint runtime-invocation tool.
-- Custom Event and Event Dispatcher signature mutation is less complete than ordinary function signatures.
+- Signal lifecycle edits require an ordinary Blueprint-owned declaration; inherited, overridden, interface, or signature-driven events must be edited at their source. Dispatcher defaults support only the native empty value; use `SetPinDefaults` for specific call values.
 - Some unsafe actions are refused instead of being partially applied.
 - Compilation is not persistence: save explicitly.
 - If a tool is missing, refresh `tools/list`. If an edit is refused, read the reason before trying again.
