@@ -257,7 +257,7 @@ UE 5.2 的 Widget 不允许对 ReadOnly 成员启用 FieldNotify；5.2 MVVM 还�
 }
 ```
 
-查看默认 dry-run 返回的影响范围后，在同一请求中设置 `bDryRun=false` 和 `bApproveReferenceUpdates=true` 执行移动。移到当前位置不会产生变更。`MovePin` 不接受重命名、类型、默认值或参数标志修改，也不需要潜在数据丢失批准。移动保留参数身份、类型、默认值、标志和连线，并更新同蓝图普通调用、递归调用及支持的外部普通调用。输出参数会在所有匹配的 Result 声明中同步排序，各 Result 保留自己的字面量和 Pin 身份；Result 签名不一致时拒绝移动。可用正常 Undo/Redo 撤销或重做，完成后自行保存受影响资产。派生、覆写及委托绑定函数的修改暂不支持。
+查看默认 dry-run 返回的影响范围后，在同一请求中设置 `bDryRun=false` 和 `bApproveReferenceUpdates=true` 执行移动。移到当前位置不会产生变更。`MovePin` 不接受重命名、类型、默认值或参数标志修改，也不需要潜在数据丢失批准。移动保留参数身份、类型、默认值、标志和连线，并更新同蓝图普通调用、递归调用及支持的外部普通调用。输出参数会在所有匹配的 Result 声明中同步排序，各 Result 保留自己的字面量和 Pin 身份；Result 签名不一致时拒绝移动。可用正常 Undo/Redo 撤销或重做，完成后自行保存受影响资产。使用 `MovePin` 时，从原始基类的函数声明发起。支持已加载且编译完成的普通蓝图派生类，包括函数图覆写、仅继承函数的后代、普通调用和父函数调用。不支持直接编辑覆写图。目标函数或其任一覆写被 CreateDelegate 绑定时，会阻止移动；绑定到其他函数的稳定委托保留所选函数及连线。其他签名操作仍遵循原有的派生与覆写限制。
 
 用 `Operation="SetPinFlags"` 修改参数声明的引用与 const 标志，必须同时提供 `bIsReference` 和 `bIsConst` 两个布尔值。用 Entry 的 `PinId` 选择输入，或用任一 Result 的 `PinId` 选择输出；输出会按参数名同步所有 Result，保留各自的 Pin 身份。
 
