@@ -30,13 +30,13 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ## 功能概览
 
-当前版本注册 60 个工具：
+当前版本注册 61 个工具：
 
 | 能力 | 数量 | 工具 |
 |---|---:|---|
 | 发现与读取 | 7 | `ListBlueprints`、`GetBlueprintOverview`、`GetBlueprintDetails`、`ListBlueprintMembers`、`GetGraphDetail`、`SearchGraphNodes`、`GetCompileErrors` |
 | User Defined Struct 与 Enum | 6 | `CreateUserDefinedStruct`、`GetUserDefinedStruct`、`ModifyUserDefinedStruct`、`CreateUserDefinedEnum`、`GetUserDefinedEnum`、`ModifyUserDefinedEnum` |
-| 变量、函数、宏、事件与 Pin | 21 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`CreateMacro`、`ModifyMacroDetails`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`AddEventDispatcher`、`RemoveEventDispatcher` |
+| 变量、函数、宏、事件与 Pin | 22 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`CreateMacro`、`ModifyMacroDetails`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`ModifyLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`AddEventDispatcher`、`RemoveEventDispatcher` |
 | 图表编辑与布局 | 4 | `ApplyGraphPatch`、`SetPinDefaults`、`FormatGraph`、`AddCommentBox` |
 | 组件与默认值 | 11 | `GetComponents`、`AddComponent`、`SetComponentProperties`、`RenameComponent`、`RemoveComponent`、`ReparentComponent`、`SetRootComponent`、`DuplicateComponent`、`GetComponentProperties`、`GetClassDefaults`、`SetClassDefaults` |
 | 资产生命周期与截图 | 11 | `CreateBlueprint`、`ReparentBlueprint`、`CompileBlueprint`、`SaveAsset`、`OpenAsset`、`CloseAsset`、`ReloadBlueprintFromDisk`、`DeleteAsset`、`RenameAsset`、`DuplicateAsset`、`CaptureGraphScreenshot` |
@@ -66,7 +66,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | 蓝图父类 | Blueprint 类继承的父类；用 `ReparentBlueprint`。 | 组件树中的父组件关系。 |
 | 组件父子级 | 同一个 Actor Blueprint 的 SceneComponent 附着层级；用 `ReparentComponent`，本地根组件改用 `SetRootComponent`。 | Blueprint 的类继承关系。 |
 
-## 60 个工具逐项功能总表
+## 61 个工具逐项功能总表
 
 普通编辑工具只标脏，不会静默保存；需要保留改动时使用 `SaveAsset`。下表说明每个工具的用途和用户需要注意的边界。
 
@@ -100,6 +100,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `AddEventNode` | 添加受支持的事件节点。 | 需指定蓝图和事件类型。 |
 | `AddBoundEvent` | 为组件或委托添加绑定事件。 | 组件和委托必须能被解析。 |
 | `AddLocalVariable` | 在函数图中添加局部变量。 | 需要函数名、变量名和类型。 |
+| `ModifyLocalVariable` | 修改局部变量的名称、类型、默认值、分类或提示，并更新精确匹配的 Get/Set 引用，包含折叠图。 | 从 `ListBlueprintMembers` 复制 `Target`；默认只预览，应用需批准引用更新，提供 `TypeName` 时还需批准潜在数据损失。 |
 | `RemoveLocalVariable` | 删除函数局部变量。 | 有引用或无法安全恢复时会被阻止。 |
 | `AddNodePin` | 为支持可变 Pin 的节点增加 Pin。 | 先从图表详情取得目标节点标识。 |
 | `RemoveNodePin` | 删除节点上可编辑的用户 Pin。 | 需要准确定位目标 Pin。 |
@@ -357,6 +358,17 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 使用插件返回的资产路径。大型图请分页查看，避免一次返回过多内容。
 
+## 编辑函数局部变量
+
+1. 用 `ListBlueprintMembers` 找到局部变量，复制其完整 `Target`。`FunctionGraphGuid` 标识函数图，`VarGuid` 标识声明；可选 `Name` 若提供，必须与当前名称完全一致。
+2. 将资产路径放入 `BlueprintPath`，把复制的对象放入 `Target`，再提供至少一个字段：`NewName`、`TypeName`、`DefaultValue`、`Category`、`Tooltip`。例如，提供 `DefaultValue: ""` 预览清空默认值，或同时提供 `NewName: "TemporaryScore"` 和 `Category: "Calculation"` 预览改名与分类。
+3. `bDryRun` 默认 `true`。预览会列出引用及可能断开的连线；`MaxResults` 为 1–100，默认 50，只限制显示行数。
+4. 应用同一请求时显式设置 `bDryRun: false`、`bApproveReferenceUpdates: true`。只要提供 `TypeName`，还要设置 `bAllowPotentialDataLoss: true`。需要保存时调用 `SaveAsset`。
+
+省略的字段保持原值。真实改型且未提供 `DefaultValue` 时会清空默认值；相同类型不会误清。空分类恢复引擎默认分类，空提示移除提示元数据。同名成员、其他函数的同名局部变量不会随目标改名；与直接子蓝图成员冲突的新名称会被拒绝。
+
+非空默认值支持数值、布尔、枚举、Name、字符串、安全数学结构，以及元素同样安全的 Array/Set/Map。顶层硬对象或类引用须已在内存中，并满足路径、类型和真实函数入口的访问权限；跨包私有对象会被拒绝。顶层软引用按其类型规则处理。非空 Text、嵌套对象/软引用、含对象的结构、接口或委托值，以及无法安全处理的原生结构会被拒绝。空默认值用于恢复类型初值；改名、分类和提示不会重新导入未修改的默认值。
+
 ## 安全添加图表逻辑
 
 使用 Unreal 英文动作名搜索，例如 `Branch`、`For Loop`、`For Each Loop`、`Switch on Int`、`Switch on Name`、`Switch on String`、`Add`、`Subtract`、`Multiply` 或 `Divide`。
@@ -369,7 +381,7 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 - 通过节点标识和图坐标定位的 `MoveNodes`。
 - 可选的 `PinDefaults`、`PromotedType`、布局范围和布局风格。
 
-整个 Patch 只使用自己的事务，失败时会检查 Undo 记录归属并尝试恢复。`ApplyGraphPatch`、`ModifyVariable` 和 `ModifyFunctionSignature` 的恢复响应带有 `RecoveryContractVersion: 2`，仍作为错误返回。查看以下字段后再决定下一步：
+整个 Patch 只使用自己的事务，失败时会检查 Undo 记录归属并尝试恢复。`ApplyGraphPatch`、`ModifyVariable`、`ModifyLocalVariable` 和 `ModifyFunctionSignature` 的恢复响应带有 `RecoveryContractVersion: 2`，仍作为错误返回。查看以下字段后再决定下一步：
 
 | 字段 | 含义 |
 |---|---|

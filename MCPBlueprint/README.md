@@ -2,7 +2,7 @@
 
 # MCPBlueprint User Guide
 
-MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **60 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
+MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **61 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
 
 ## Requirements and installation
 
@@ -57,7 +57,7 @@ Blueprint asset
 
 Edits are not saved automatically. Use `SaveAsset` when you want to keep a change. Destructive tools require extra confirmation or refuse the operation when references could be broken.
 
-## Complete feature matrix (60 tools)
+## Complete feature matrix (61 tools)
 
 The table is a quick guide. Live tools/list remains the source for the exact fields and constraints.
 
@@ -91,6 +91,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | AddEventNode | Adds an overridable engine event node. | Repeating the same event is safe. |
 | AddBoundEvent | Adds a bound event for an Actor component or Level Blueprint Actor. | Not for UMG WidgetTree events; use MCPUMG there. |
 | AddLocalVariable | Adds a variable scoped to one function. | The function must already exist. |
+| ModifyLocalVariable | Edits one local declaration's name, type, default, category or tooltip and its exact Get/Set references, including collapsed graphs. | Copy its `Target` from `ListBlueprintMembers`; preview is the default. Apply requires reference approval, and supplying `TypeName` also requires data-loss approval. |
 | RemoveLocalVariable | Removes an unused local variable. | Referenced locals cannot be removed. |
 | AddNodePin | Adds optional pins to supported nodes. | Supports Sequence, container makers, and Switch nodes. |
 | RemoveNodePin | Removes one optional node pin. | Required or non-removable pins are refused. |
@@ -132,7 +133,7 @@ Call SearchGraphNodes first and use only returned `SpawnerId` values. A patch ca
 
 Start with `bDryRun=true`. Inspect normalized operations and every blocker; dry-run may explicitly say that Action Registry nodes, generated pins, type promotion, or exact post-layout state cannot be proven without mutation. Apply the same planned patch once. The write executes in one transaction and attempts automatic rollback on failure. If recovery cannot be proven, the response reports that explicitly; stop and read the graph back before any retry. Then call GetGraphDetail, compile, and explicitly save only when persistence is wanted. Use the default Auto layout for normal authored logic; use explicit positions or `LayoutScope=None` only for a real fixed-layout requirement.
 
-Recovery responses from `ApplyGraphPatch`, `ModifyVariable`, and `ModifyFunctionSignature` use `RecoveryContractVersion: 2` and remain errors. Check these fields before deciding what to do next:
+Recovery responses from `ApplyGraphPatch`, `ModifyVariable`, `ModifyLocalVariable`, and `ModifyFunctionSignature` use `RecoveryContractVersion: 2` and remain errors. Check these fields before deciding what to do next:
 
 | Field | Meaning |
 |---|---|
@@ -278,6 +279,17 @@ Read GetClassDefaults, inspect the returned UE-text property map, apply supporte
 ### ReparentBlueprint: parent class
 
 `NewParentClassPath` accepts a native class path, a unique loaded class name, or another Blueprint class. Preview the change first. If the new parent changes the class hierarchy, the tool asks for explicit data-loss approval. A parent that cannot compile is rejected and the problem is reported.
+
+## Edit function-local variables
+
+1. Find the local with `ListBlueprintMembers` and copy its complete `Target`. `FunctionGraphGuid` identifies the function graph and `VarGuid` identifies the declaration. If supplied, `Name` must exactly match its current name.
+2. Supply `BlueprintPath`, the copied `Target`, and at least one of `NewName`, `TypeName`, `DefaultValue`, `Category`, or `Tooltip`. For example, `DefaultValue: ""` previews clearing the default; `NewName: "TemporaryScore"` together with `Category: "Calculation"` previews a rename and category change.
+3. `bDryRun` defaults to `true`. The preview lists references and potentially removed links. `MaxResults` accepts 1–100, defaults to 50, and limits displayed rows only.
+4. Apply the same request with explicit `bDryRun: false` and `bApproveReferenceUpdates: true`. Whenever `TypeName` is supplied, also set `bAllowPotentialDataLoss: true`. Call `SaveAsset` to keep the change on disk.
+
+Omitted fields keep their values. An actual type change clears an omitted default; supplying the same type preserves it. Empty Category restores the engine default category, and empty Tooltip removes its metadata. Same-name members and locals in other functions keep their identities. A new name conflicting with a direct child's member is refused.
+
+Nonempty defaults support numbers, booleans, enums, Name, strings, safe mathematical structs, and Array/Set/Map values whose elements are equally safe. Top-level hard object/class references must already be resident and satisfy path, type, and the actual function entry's access rules. Private references across packages are refused; top-level soft references follow their type rules. Nonempty Text, nested object/soft references, object-bearing structs, interface/delegate values, and unaudited native structs are refused. An empty default restores the type's initialized value. Name, category, and tooltip edits do not reimport an unchanged default.
 
 ## Tutorial: create a calculation function
 
