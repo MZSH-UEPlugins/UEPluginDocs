@@ -433,7 +433,16 @@ Declare `OnSignal` with an input such as `Payload:int` using `AddEventDispatcher
 
 Create a receiver with a matching input signature using `CreateCustomEvent`, then create the searched actions with `ApplyGraphPatch`. Connect the receiver's `@<NodeGuid>.OutputDelegate` to the Bind or Unbind `Delegate` pin. Connect the initiating event's `then` to Bind's `execute`, and Bind's `then` to Call's `execute`. Supply Call's `Payload` through `PinDefaults` or a data connection. Read `GetGraphDetail` to verify the wiring and compile result, then call `SaveAsset`.
 
-These four actions support scalar dispatchers declared in the target Blueprint itself. Their `Delegate:<operation>:self:<declarationGUID>` IDs survive compilation and saving. Deleting and recreating the same name produces a new GUID: old IDs are rejected, so search again. Assign, CreateDelegate, inherited or cross-Blueprint targets, and dispatcher signature or rename migration remain unsupported.
+`Assign` creates a dispatcher node and a matching Custom Event with the delegate pins already connected. It adds a receiver while keeping existing bindings. To wire its event body in the same `ApplyGraphPatch`, set `EventTempId` on the Assign node object, for example `{"TempId":"assign","SpawnerId":"<Assign ID returned by search>","EventTempId":"receive"}`. Use `receive.then` for the body execution input and `receive.Payload` for its data input. `EventTempId` shares one unique namespace with all node `TempId` values. The result's `NodeGuids` includes both aliases, and `CreatedNodeCount` includes the companion event. Omitting the alias still creates the companion event. Assign requires a graph that supports events; function and macro graphs reject it.
+
+To use an existing function or Custom Event as a receiver, search with `Query="CreateDelegate"` and create a Create Event node using the returned `Native:K2Node_CreateDelegate` ID. Set the required `DelegateTarget` on that node object:
+
+- Function: `{"Kind":"Function","Name":"ExistingHandler","FunctionGraphGuid":"<FunctionGraphGuid from ListBlueprintMembers>"}`.
+- Custom Event: `{"Kind":"CustomEvent","NodeGuid":"<NodeGuid of the existing Custom Event>"}`.
+
+The target must already belong to the current Blueprint and have a compatible signature. Connect Create Event's `OutputDelegate` to Bind or Unbind's `Delegate`; provide any required object connection in the same Patch. The tool selects the target and checks its signature after making the connections. A failure rolls back the entire Patch, including any Assign companion event. Targets use stable GUIDs; an invalid GUID never falls back to a target with the same name.
+
+These five dispatcher actions support scalar dispatchers declared in the target Blueprint itself. Their `Delegate:<operation>:self:<declarationGUID>` IDs survive compilation and saving. Deleting and recreating the same name produces a new GUID: old IDs are rejected, so search again. Inherited or cross-Blueprint targets and dispatcher signature or rename migration remain unsupported.
 
 ### Change local function presentation, editor and declaration properties
 

@@ -486,7 +486,16 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 用 `CreateCustomEvent` 创建输入签名相同的接收事件，再用 `ApplyGraphPatch` 创建搜索返回的节点。把接收事件的 `@<NodeGuid>.OutputDelegate` 连到 Bind 或 Unbind 的 `Delegate` Pin；把发起事件的 `then` 连到 Bind 的 `execute`，再把 Bind 的 `then` 连到 Call 的 `execute`。Call 的 `Payload` 可以通过 `PinDefaults` 设置，也可以连接数据来源。完成后用 `GetGraphDetail` 核对连线和编译结果，使用 `SaveAsset` 保存。
 
-这四种操作当前只支持目标蓝图自身声明的标量分发器。`Delegate:<操作>:self:<声明GUID>` 标识在编译和保存后保持稳定；删除后同名重建会产生新 GUID，旧标识会被拒绝，应重新搜索。Assign、CreateDelegate、继承或跨蓝图目标，以及分发器签名修改和改名迁移仍待支持。
+`Assign` 会创建分发器节点和一个签名匹配的 Custom Event，并自动连接委托 Pin；它添加接收事件，保留已有绑定。需要在同一次 `ApplyGraphPatch` 中连接事件体时，在 Assign 的节点对象中指定 `EventTempId`，例如 `{"TempId":"assign","SpawnerId":"<搜索返回的 Assign ID>","EventTempId":"receive"}`。随后用 `receive.then` 连接事件体执行输入，用 `receive.Payload` 连接数据输入。`EventTempId` 与所有节点的 `TempId` 共用唯一名称空间；结果 `NodeGuids` 返回这两个别名，`CreatedNodeCount` 包含伴生事件。不指定别名也会创建伴生事件。Assign 需要支持事件的图，不能放入函数图或宏图。
+
+要把已有函数或 Custom Event 作为接收者，可搜索 `Query="CreateDelegate"`，使用返回的 `Native:K2Node_CreateDelegate` ID 创建 Create Event 节点。在该节点对象中填写必需的 `DelegateTarget`：
+
+- 函数：`{"Kind":"Function","Name":"ExistingHandler","FunctionGraphGuid":"<ListBlueprintMembers 返回的 FunctionGraphGuid>"}`。
+- Custom Event：`{"Kind":"CustomEvent","NodeGuid":"<已有 Custom Event 的 NodeGuid>"}`。
+
+目标必须是当前蓝图自身已有、且签名兼容的处理函数或事件。把 Create Event 的 `OutputDelegate` 连到 Bind 或 Unbind 的 `Delegate`；需要对象连接时也在同一 Patch 中提供。工具完成连接后选择目标并检查签名，失败时回滚整个 Patch，包括 Assign 的伴生事件。目标使用稳定 GUID 识别，GUID 失效时不会按同名目标回退。
+
+这五种分发器操作支持目标蓝图自身声明的标量分发器。`Delegate:<操作>:self:<声明GUID>` 标识在编译和保存后保持稳定；删除后同名重建会产生新 GUID，旧标识会被拒绝，应重新搜索。继承或跨蓝图目标，以及分发器签名修改和改名迁移仍待支持。
 
 ### 修改本地函数显示、编辑器与声明属性
 
