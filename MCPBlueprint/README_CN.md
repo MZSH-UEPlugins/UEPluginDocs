@@ -178,6 +178,17 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `bMakeEditWidget` | Vector、Transform 及其数组；须启用 Instance Editable | 在编辑器视口中提供属性编辑控件。 |
 | `bFieldNotify` | 当前蓝图类型与编译器支持的成员 | 设置 FieldNotify 声明，保留已有通知依赖；关闭时可能同时删除其他字段对它的通知依赖。 |
 | `bExposeOnSpawn` | 原生生成节点支持的成员类型 | 生成节点提供变量输入；消费者更新先预览并批准，可能丢失默认值、拆分字段或连接时另需批准。 |
+| `Replication` | `None`、`Replicated` 或 `RepNotify` | 修改本蓝图成员的原生复制标记；Set、Map 不能启用复制。`None` 同时清除通知关联并将条件恢复为 `COND_None`。 |
+| `ReplicationCondition` | 当前引擎枚举名称，例如 `COND_OwnerOnly` | 仅在最终状态启用复制时可设置；可用值见 Details 中的 `AllowedValues`。隐藏值和 `COND_Max` 不接受。 |
+| `RepNotifyFunction` | 本蓝图已有的零参数、无返回值函数名称 | `RepNotify` 可显式关联该函数；省略时保留有效关联，否则自动创建 `OnRep_<变量名>`。关闭通知会保留函数体。 |
+
+复制变更会编译声明蓝图、必要的派生蓝图，以及实际受影响的已加载 Setter 消费者；请求需传入 `bApproveReferenceUpdates: true`，并启用自动编译。未加载的依赖会阻止修改，继承声明只能读取。`GetBlueprintDetails` 的三个复制字段同时提供声明值 `Current` 和已编译值 `Compiled`；读取 `Compiled` 前检查 `CompiledKnown`。例如，为 `Health` 启用仅拥有者通知：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","Replication":"RepNotify","ReplicationCondition":"COND_OwnerOnly","bApproveReferenceUpdates":true}
+```
+
+这里设置变量声明；网络运行仍需 Actor 复制及相应网络配置。已关联的通知函数不能直接改名、改签名或删除，须先通过 `ModifyVariable` 解除关联。需要保留普通复制时改为 `Replicated`；完全关闭时改为 `None`，已有通知函数体均保留。
 
 | 输入方式 | 结果 |
 |---|---|

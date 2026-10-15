@@ -190,6 +190,17 @@ For an `int32` `Health` declaration, this `ModifyVariable` call sets a default, 
 | `bMakeEditWidget` | Vector, Transform, and their arrays; Instance Editable required | Provide a property editing widget in the editor viewport. |
 | `bFieldNotify` | Members supported by the current Blueprint type and compiler | Set the FieldNotify declaration while preserving existing notification dependencies; disabling it can also remove other fields' dependencies on this field. |
 | `bExposeOnSpawn` | Member types supported by native creation nodes | Provide a variable input on creation nodes; preview and approve consumer updates, with separate approval for default, split-field or connection losses. |
+| `Replication` | `None`, `Replicated`, or `RepNotify` | Set native replication flags on owned members; Set and Map cannot enable replication. `None` also clears the notification association and resets the condition to `COND_None`. |
+| `ReplicationCondition` | An enum name from the current engine, such as `COND_OwnerOnly` | Requires replication enabled in the final state; see `AllowedValues` in Details. Hidden values and `COND_Max` are rejected. |
+| `RepNotifyFunction` | An existing owned function with no parameters or return value | Explicitly associate it with `RepNotify`. Omission retains a valid association or creates `OnRep_<variable name>`. Disabling notification retains the function body. |
+
+Replication changes compile the declaring Blueprint, required descendants, and affected loaded Setter consumers. Pass `bApproveReferenceUpdates: true` and keep automatic compilation enabled. Unloaded dependencies block the edit; inherited declarations are read-only. The three replication properties in `GetBlueprintDetails` expose declaration values as `Current` and compiled values as `Compiled`; check `CompiledKnown` before reading the latter. For example, enable owner-only notification for `Health`:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","VariableName":"Health","Replication":"RepNotify","ReplicationCondition":"COND_OwnerOnly","bApproveReferenceUpdates":true}
+```
+
+This configures the variable declaration; network execution still requires Actor replication and the appropriate network setup. An associated notification function cannot be renamed, have its signature changed, or be deleted until you detach it with `ModifyVariable`. Use `Replicated` to retain replication without notification, or `None` to disable replication. Both retain the existing notification function body.
 
 | Input | Result |
 |---|---|
