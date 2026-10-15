@@ -30,13 +30,13 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ## 功能概览
 
-当前版本注册 61 个工具：
+当前版本注册 63 个工具：
 
 | 能力 | 数量 | 工具 |
 |---|---:|---|
 | 发现与读取 | 7 | `ListBlueprints`、`GetBlueprintOverview`、`GetBlueprintDetails`、`ListBlueprintMembers`、`GetGraphDetail`、`SearchGraphNodes`、`GetCompileErrors` |
 | User Defined Struct 与 Enum | 6 | `CreateUserDefinedStruct`、`GetUserDefinedStruct`、`ModifyUserDefinedStruct`、`CreateUserDefinedEnum`、`GetUserDefinedEnum`、`ModifyUserDefinedEnum` |
-| 变量、函数、宏、事件与 Pin | 22 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`CreateMacro`、`ModifyMacroDetails`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`ModifyLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`AddEventDispatcher`、`RemoveEventDispatcher` |
+| 变量、函数、宏、事件与 Pin | 24 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`CreateMacro`、`ModifyMacroDetails`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`ModifyLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`RemoveInterface`、`ModifyClassSettings`、`AddEventDispatcher`、`RemoveEventDispatcher` |
 | 图表编辑与布局 | 4 | `ApplyGraphPatch`、`SetPinDefaults`、`FormatGraph`、`AddCommentBox` |
 | 组件与默认值 | 11 | `GetComponents`、`AddComponent`、`SetComponentProperties`、`RenameComponent`、`RemoveComponent`、`ReparentComponent`、`SetRootComponent`、`DuplicateComponent`、`GetComponentProperties`、`GetClassDefaults`、`SetClassDefaults` |
 | 资产生命周期与截图 | 11 | `CreateBlueprint`、`ReparentBlueprint`、`CompileBlueprint`、`SaveAsset`、`OpenAsset`、`CloseAsset`、`ReloadBlueprintFromDisk`、`DeleteAsset`、`RenameAsset`、`DuplicateAsset`、`CaptureGraphScreenshot` |
@@ -105,6 +105,8 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `AddNodePin` | 为支持可变 Pin 的节点增加 Pin。 | 先从图表详情取得目标节点标识。 |
 | `RemoveNodePin` | 删除节点上可编辑的用户 Pin。 | 需要准确定位目标 Pin。 |
 | `AddInterface` | 为蓝图添加接口。 | 使用接口类路径。 |
+| `RemoveInterface` | 移除直接实现的接口并保留函数与事件实现体。 | 必须提供完整接口类路径；继承接口不可移除。 |
+| `ModifyClassSettings` | 修改或清空普通蓝图的显示名、描述与分类。 | 省略字段保留原值，不修改实例默认值。 |
 | `AddEventDispatcher` | 添加事件分发器。 | 指定名称和签名。 |
 | `RemoveEventDispatcher` | 删除事件分发器。 | 有引用或无法安全恢复时会被阻止。 |
 | `ApplyGraphPatch` | 在一次操作中创建、连线、断线、删除、移动节点，设置默认值并布局。 | 先搜索节点；支持 dry-run；失败时会尝试回滚。 |
@@ -583,7 +585,21 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 ### 读取蓝图类设置
 
-普通蓝图可用 `GetBlueprintDetails` 与 `Target: {"Kind":"ClassSettings"}` 读取资产声明的 `DisplayName`、`Description`、`Category` 原始值，包括空字符串。该 Target 只接受 `Kind`，不要附加成员名称或 GUID。每个字段返回 `Current`、`Editable: false` 与 `Reason`，说明当前工具尚未开放类设置修改；`CoverageComplete` 保持 false。查询直接读取蓝图声明，不编译或创建 CDO，也不读取实例默认值。
+普通蓝图可用 `GetBlueprintDetails` 与 `Target: {"Kind":"ClassSettings"}` 读取资产声明的 `DisplayName`、`Description`、`Category` 原始值，包括空字符串。该 Target 只接受 `Kind`，不要附加成员名称或 GUID。三个字段返回 `Current`、`Editable: true` 与 `Reason`；`CoverageComplete` 保持 false，表示当前只开放这三个展示字段。查询不编译或创建 CDO，也不读取实例默认值。
+
+调用 `ModifyClassSettings` 时直接传入 `BlueprintPath` 和要修改的字符串，不需要 `Target`。省略字段保留原值，空字符串清除该字段，空格和换行按原样保存。相同值不会创建事务；未提供任何展示字段会被拒绝。工具编译修改但不保存资产，完成后调用 `SaveAsset`。
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Receiver","DisplayName":"Signal Receiver","Description":"Receives signal payloads.","Category":"Signals|Local"}
+```
+
+要移除当前蓝图直接实现的接口，先从 `GetBlueprintOverview` 的 `Interfaces` 复制完整接口类路径，再调用 `RemoveInterface`：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Receiver","InterfacePath":"/Game/Interfaces/BPI_Signal.BPI_Signal_C"}
+```
+
+工具保留接口函数体，将已实现的接口事件转换为保留连线的本地 Custom Event，并编译修改。接口消息在移除后不再向该蓝图分发；保留的函数和事件可作为本地实现调用。继承接口须到声明它的父蓝图修改，短名称和非接口类路径会被拒绝。目标接口已不在当前蓝图中时返回无变化。此操作只提供保留实现体模式，不保存资产；需要持久化时再调用 `SaveAsset`。
 
 ### 创建与使用宏
 

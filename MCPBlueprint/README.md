@@ -2,7 +2,7 @@
 
 # MCPBlueprint User Guide
 
-MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **61 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
+MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **63 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
 
 ## Requirements and installation
 
@@ -57,7 +57,7 @@ Blueprint asset
 
 Edits are not saved automatically. Use `SaveAsset` when you want to keep a change. Destructive tools require extra confirmation or refuse the operation when references could be broken.
 
-## Complete feature matrix (61 tools)
+## Complete feature matrix (63 tools)
 
 The table is a quick guide. Live tools/list remains the source for the exact fields and constraints.
 
@@ -96,6 +96,8 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | AddNodePin | Adds optional pins to supported nodes. | Supports Sequence, container makers, and Switch nodes. |
 | RemoveNodePin | Removes one optional node pin. | Required or non-removable pins are refused. |
 | AddInterface | Adds a Blueprint Interface. | Repeating an implemented interface is safe. |
+| RemoveInterface | Removes a directly implemented interface while retaining function and event bodies. | Requires the full interface class path; inherited interfaces cannot be removed. |
+| ModifyClassSettings | Changes or clears an ordinary Blueprint's display name, description and category. | Omitted fields keep their values; instance defaults are unaffected. |
 | AddEventDispatcher | Adds an Event Dispatcher. | Optional input signature; repeating it is safe. |
 | RemoveEventDispatcher | Removes a declared Event Dispatcher. | References and unsafe unloaded descendants block removal. |
 | ApplyGraphPatch | Applies one atomic graph edit. | Use legal SpawnerIds; start with dry-run; maximum 60 operations. |
@@ -497,7 +499,21 @@ For questions or feedback, use the [contact page](https://mengzhishanghun.github
 
 ### Read Blueprint class settings
 
-For an ordinary Blueprint, call `GetBlueprintDetails` with `Target: {"Kind":"ClassSettings"}` to read the asset's raw `DisplayName`, `Description` and `Category`, including empty strings. This target accepts only `Kind`; do not include member names or GUIDs. The fields return `Current`, `Editable: false` and a `Reason` stating that this tool does not currently expose class-setting changes. `CoverageComplete` remains false. This reads the Blueprint declaration, without compiling it or creating a CDO; it does not read instance defaults.
+For an ordinary Blueprint, call `GetBlueprintDetails` with `Target: {"Kind":"ClassSettings"}` to read the asset's raw `DisplayName`, `Description` and `Category`, including empty strings. This target accepts only `Kind`; do not include member names or GUIDs. These three fields return `Current`, `Editable: true` and a `Reason`. `CoverageComplete` remains false because only these presentation fields are exposed. The query does not compile, create a CDO or read instance defaults.
+
+Call `ModifyClassSettings` with `BlueprintPath` and the strings to change, without a `Target`. Omitted fields keep their values; empty strings clear them. Spaces and line breaks are preserved. Same-value requests create no transaction; requests without any presentation field are rejected. The tool compiles the edit but does not save the asset. Call `SaveAsset` when ready.
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Receiver","DisplayName":"Signal Receiver","Description":"Receives signal payloads.","Category":"Signals|Local"}
+```
+
+To remove an interface directly implemented by the current Blueprint, copy its full class path from `GetBlueprintOverview`'s `Interfaces`, then call `RemoveInterface`:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Receiver","InterfacePath":"/Game/Interfaces/BPI_Signal.BPI_Signal_C"}
+```
+
+The tool preserves interface function bodies, converts implemented interface events to local Custom Events with their connections, and compiles the edit. Interface messages no longer dispatch to this Blueprint after removal; the retained functions and events remain callable as local implementations. Edit inherited interfaces in the declaring parent Blueprint. Short names and non-interface class paths are rejected. An interface already absent from the current Blueprint returns no change. Only the preserve-implementations mode is available. The tool does not save; call `SaveAsset` to persist the edit.
 
 ### Create and use macros
 
