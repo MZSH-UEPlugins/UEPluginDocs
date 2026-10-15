@@ -96,7 +96,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `RemoveFunction` | 删除用户函数。 | 有引用或无法安全恢复时会被阻止。 |
 | `CreateCustomEvent` | 在 Event Graph 中创建自定义事件。 | 目标必须是实际的 Event Graph。 |
 | `ModifyCustomEvent` | 修改自定义事件的编辑器调用、弃用和 RPC 声明属性。 | 使用 `Target.Kind: "CustomEvent"` 与 `NodeGuid`；只修改本蓝图可编辑的事件，遗漏字段保持原值。 |
-| `ModifyFunctionDetails` | 修改本地函数的显示名、提示、分类、搜索关键词、紧凑标题、编辑器调用与弃用属性。 | 使用 `Target.Kind: "Function"`、`Name` 和 `ListBlueprintMembers` 返回的 `FunctionGraphGuid`；遗漏字段保持原值。 |
+| `ModifyFunctionDetails` | 修改本地函数的显示、编辑器、弃用属性，以及 Pure、Const、访问级别和 Exec 声明。 | 使用 `Target.Kind: "Function"`、`Name` 和 `FunctionGraphGuid`；声明字段默认预览，应用需批准引用更新，遗漏字段保持原值。 |
 | `AddEventNode` | 添加受支持的事件节点。 | 需指定蓝图和事件类型。 |
 | `AddBoundEvent` | 为组件或委托添加绑定事件。 | 组件和委托必须能被解析。 |
 | `AddLocalVariable` | 在函数图中添加局部变量。 | 需要函数名、变量名和类型。 |
@@ -488,7 +488,7 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 这四种操作当前只支持目标蓝图自身声明的标量分发器。`Delegate:<操作>:self:<声明GUID>` 标识在编译和保存后保持稳定；删除后同名重建会产生新 GUID，旧标识会被拒绝，应重新搜索。Assign、CreateDelegate、继承或跨蓝图目标，以及分发器签名修改和改名迁移仍待支持。
 
-### 修改本地函数显示与编辑器属性
+### 修改本地函数显示、编辑器与声明属性
 
 `ListBlueprintMembers` 的函数 `Inputs`、`Outputs` 仍按名称字母顺序返回。每个函数参数额外包含 `DeclarationIndex`（其所属入口或结果 Terminal 声明数组中的零基下标）、`bIsReference` 和 `bIsConst`。下标属于各 Terminal，并非整个函数的唯一序号。`bIsReference`、`bIsConst` 表示声明的 raw 值。`bCompiledFlagsKnown=true` 时，还返回当前自有编译函数的 `bCompiledReference`、`bCompiledConst` 和 `bCompiledOutParm`；不可用时仅返回 `bCompiledFlagsKnown=false`，不把未知标志写成 false。查询不会触发编译，可先正常编译蓝图再读取。引用输入也可能带 OutParm，它仍属于逻辑输入组。原有分页、16 个 Pin 的签名上限及默认值截断规则保持有效；CustomEvent、EventDispatcher 返回字段保持原样。
 
@@ -500,7 +500,15 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 `DisplayName` 修改调用节点标题；`Tooltip` 提供函数提示；`Category` 控制菜单分类；`Keywords` 便于动作搜索；`CompactTitle` 设置紧凑调用节点标题。`bCallInEditor` 仅声明函数可从编辑器调用，不执行函数。`bDeprecated` 标记函数使用已弃用，启用该标记时 `DeprecationMessage` 提供替代建议。可用新显示名、分类或关键词调用 `SearchGraphNodes` 查找调用动作。
 
-遗漏字段保持原值；空文本清除对应内容，空 `Category` 恢复 Unreal 默认分类。分类、关键词与紧凑标题会去除首尾空白。清除 `CompactTitle` 会恢复普通调用标题并保留关键词。弃用函数只有在 Blueprint Editor 中启用显示弃用函数的设置（`bExposeDeprecatedFunctions`）后，才会出现在动作搜索中。工具会编译蓝图，需要保留修改时调用 `SaveAsset`；无实际变化的请求会被拒绝。重写／接口实现、RepNotify、构造和其他受保护函数只读。此工具不修改 Pure、Const、访问级别、签名或 RPC 声明。
+遗漏字段保持原值；空文本清除对应内容，空 `Category` 恢复 Unreal 默认分类。分类、关键词与紧凑标题会去除首尾空白。清除 `CompactTitle` 会恢复普通调用标题并保留关键词。弃用函数只有在 Blueprint Editor 中启用显示弃用函数的设置（`bExposeDeprecatedFunctions`）后，才会出现在动作搜索中。仅修改上述显示与编辑器属性时，工具保留原有直接应用行为，无实际变化会被拒绝。重写／接口实现、RepNotify、构造和其他受保护函数只读。
+
+声明字段为 JSON 布尔值 `bPure`、`bConst`、`bExec`，以及 `Access: "Public" | "Protected" | "Private"`。包含任一声明字段的请求默认只预览，也可与显示属性一起提交。确认影响后，添加 `bDryRun: false` 和 `bApproveReferenceUpdates: true` 应用；完全相同的声明请求返回 `bNoOp: true`，不修改或编译。例如，先预览把函数设为 Pure：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"Function","Name":"CalculateScore","FunctionGraphGuid":"<ListBlueprintMembers 返回的 FunctionGraphGuid>"},"bPure":true}
+```
+
+从非 Pure 改为 Pure 时，受支持的普通调用链由 Unreal 原生逻辑旁路执行引脚，数据连接保持不变。反向修改若仍有已连接的数据输出且没有可证明的执行位置，会在写入前拒绝；先明确连接执行路径。作为 `CreateDelegate` 目标的函数不能设为 Pure；访问级别也不能使现有调用或目标委托的所属上下文失去访问权限。Const 由原生编译器校验，静态函数不支持修改 Const。Exec 控制原生命令调用资格，工具本身不执行函数。应用成功后用 `SaveAsset` 保存；参数签名与 RPC 声明仍使用对应专用工具。
 
 ### 修改自定义事件属性与 RPC
 

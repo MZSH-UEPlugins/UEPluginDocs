@@ -87,7 +87,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | RemoveFunction | Removes a declared function graph. | References and unsafe unloaded descendants block removal. |
 | CreateCustomEvent | Adds a Custom Event node. | Optional input parameters are supported. |
 | ModifyCustomEvent | Changes editor-callable, deprecation, and RPC declaration properties of a CustomEvent. | Use `Target.Kind: "CustomEvent"` and `NodeGuid`. Supports local editable events; omitted fields keep their values. |
-| ModifyFunctionDetails | Changes a local function's display name, tooltip, category, keywords, compact title, editor-call and deprecation details. | Use `Target.Kind: "Function"`, `Name`, and `FunctionGraphGuid` from `ListBlueprintMembers`; omitted fields keep their values. |
+| ModifyFunctionDetails | Changes local function presentation, editor and deprecation properties, plus Pure, Const, access and Exec declarations. | Use `Target.Kind: "Function"`, `Name`, and `FunctionGraphGuid`; declaration fields default to preview and applying requires reference approval. Omitted fields keep their values. |
 | AddEventNode | Adds an overridable engine event node. | Repeating the same event is safe. |
 | AddBoundEvent | Adds a bound event for an Actor component or Level Blueprint Actor. | Not for UMG WidgetTree events; use MCPUMG there. |
 | AddLocalVariable | Adds a variable scoped to one function. | The function must already exist. |
@@ -435,7 +435,7 @@ Create a receiver with a matching input signature using `CreateCustomEvent`, the
 
 These four actions support scalar dispatchers declared in the target Blueprint itself. Their `Delegate:<operation>:self:<declarationGUID>` IDs survive compilation and saving. Deleting and recreating the same name produces a new GUID: old IDs are rejected, so search again. Assign, CreateDelegate, inherited or cross-Blueprint targets, and dispatcher signature or rename migration remain unsupported.
 
-### Change local function presentation and editor properties
+### Change local function presentation, editor and declaration properties
 
 `ListBlueprintMembers` returns function `Inputs` and `Outputs` in alphabetical order. Each function pin also includes `DeclarationIndex` (the zero-based position in its own entry or result terminal declaration array), `bIsReference` and `bIsConst`. The index is local to each terminal, not a unique sequence across the whole function. `bIsReference` and `bIsConst` are raw declaration flags. When `bCompiledFlagsKnown=true`, `bCompiledReference`, `bCompiledConst`, and `bCompiledOutParm` describe the current owned compiled function. Unavailable metadata returns only `bCompiledFlagsKnown=false`, without replacing unknown flags with false. The query never compiles; compile the Blueprint normally before reading when needed. Reference inputs can also carry OutParm while remaining logical inputs. Existing pagination, 16-pin signature limits and default-value truncation remain in effect. CustomEvent and EventDispatcher results retain their existing fields.
 
@@ -447,7 +447,15 @@ Call `ListBlueprintMembers` with `MemberKind: "Function"`. Copy the function's `
 
 `DisplayName` changes call-node titles; `Tooltip` describes the function; `Category` groups it in menus; `Keywords` helps action search; `CompactTitle` selects a compact call-node title. `bCallInEditor` exposes an editor-callable declaration and does not execute the function. `bDeprecated` marks usage deprecated, and `DeprecationMessage` supplies guidance while that flag is enabled. Use `SearchGraphNodes` with the new title, category, or keywords to find the call action.
 
-Omit a field to preserve it. Empty text clears it; an empty `Category` resets to Unreal's default category. Category, keywords, and compact title trim surrounding whitespace. Clearing `CompactTitle` preserves keywords and restores the ordinary call-node title. Deprecated functions appear in action search only when the Blueprint Editor setting to expose deprecated functions (`bExposeDeprecatedFunctions`) is enabled. The tool compiles the Blueprint; use `SaveAsset` to keep the changes. Requests with no effective change are rejected. Override/interface implementations, RepNotify, construction and other protected functions are read-only. This tool does not change purity, constness, access, signatures, or RPC declarations.
+Omit a field to preserve it. Empty text clears it; an empty `Category` resets to Unreal's default category. Category, keywords, and compact title trim surrounding whitespace. Clearing `CompactTitle` preserves keywords and restores the ordinary call-node title. Deprecated functions appear in action search only when the Blueprint Editor setting to expose deprecated functions (`bExposeDeprecatedFunctions`) is enabled. Requests containing only the presentation and editor properties above retain their direct-apply behavior and reject no effective change. Override/interface implementations, RepNotify, construction and other protected functions are read-only.
+
+Declaration fields are JSON booleans `bPure`, `bConst`, `bExec`, and `Access: "Public" | "Protected" | "Private"`. A request containing any declaration field defaults to preview and can also include presentation properties. After reviewing its impact, add `bDryRun: false` and `bApproveReferenceUpdates: true` to apply. An identical declaration request returns `bNoOp: true` without modifying or compiling. For example, preview making a function Pure:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Player","Target":{"Kind":"Function","Name":"CalculateScore","FunctionGraphGuid":"<FunctionGraphGuid from ListBlueprintMembers>"},"bPure":true}
+```
+
+When changing from impure to Pure, Unreal's native logic bypasses execution pins in supported ordinary call chains while preserving data connections. The reverse change is refused before mutation when connected data outputs have no proven execution position; establish the execution path first. A `CreateDelegate` target cannot become Pure, and access changes cannot invalidate an existing caller or target delegate owner's context. Const is checked by the native compiler and cannot be edited on static functions. Exec controls eligibility for native command dispatch; the tool does not execute the function. Call `SaveAsset` after a successful apply. Use the dedicated tools for parameter signatures and RPC declarations.
 
 ### Change CustomEvent properties and RPC declarations
 
