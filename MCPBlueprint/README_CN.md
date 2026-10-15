@@ -30,13 +30,13 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 ## 功能概览
 
-当前版本注册 63 个工具：
+当前版本注册 66 个工具：
 
 | 能力 | 数量 | 工具 |
 |---|---:|---|
 | 发现与读取 | 7 | `ListBlueprints`、`GetBlueprintOverview`、`GetBlueprintDetails`、`ListBlueprintMembers`、`GetGraphDetail`、`SearchGraphNodes`、`GetCompileErrors` |
 | User Defined Struct 与 Enum | 6 | `CreateUserDefinedStruct`、`GetUserDefinedStruct`、`ModifyUserDefinedStruct`、`CreateUserDefinedEnum`、`GetUserDefinedEnum`、`ModifyUserDefinedEnum` |
-| 变量、函数、宏、事件与 Pin | 24 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`CreateMacro`、`ModifyMacroDetails`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`ModifyLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`RemoveInterface`、`ModifyClassSettings`、`AddEventDispatcher`、`RemoveEventDispatcher` |
+| 变量、函数、宏、事件与 Pin | 27 | `AddVariable`、`ModifyVariable`、`RemoveVariable`、`CreateFunction`、`CreateMacro`、`ModifyMacroSignature`、`RenameMacro`、`RemoveMacro`、`ModifyMacroDetails`、`RenameFunction`、`ModifyFunctionSignature`、`ModifyFunctionDetails`、`RemoveFunction`、`CreateCustomEvent`、`ModifyCustomEvent`、`AddEventNode`、`AddBoundEvent`、`AddLocalVariable`、`ModifyLocalVariable`、`RemoveLocalVariable`、`AddNodePin`、`RemoveNodePin`、`AddInterface`、`RemoveInterface`、`ModifyClassSettings`、`AddEventDispatcher`、`RemoveEventDispatcher` |
 | 图表编辑与布局 | 4 | `ApplyGraphPatch`、`SetPinDefaults`、`FormatGraph`、`AddCommentBox` |
 | 组件与默认值 | 11 | `GetComponents`、`AddComponent`、`SetComponentProperties`、`RenameComponent`、`RemoveComponent`、`ReparentComponent`、`SetRootComponent`、`DuplicateComponent`、`GetComponentProperties`、`GetClassDefaults`、`SetClassDefaults` |
 | 资产生命周期与截图 | 11 | `CreateBlueprint`、`ReparentBlueprint`、`CompileBlueprint`、`SaveAsset`、`OpenAsset`、`CloseAsset`、`ReloadBlueprintFromDisk`、`DeleteAsset`、`RenameAsset`、`DuplicateAsset`、`CaptureGraphScreenshot` |
@@ -89,6 +89,9 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `ModifyVariable` | 修改成员变量的类型、默认值、名称、可编辑性、分类、提示及 Details 元数据。 | 不支持的引用会阻止改类型；受支持的构造引用需要完成适用的批准。带 RepNotify 的变量不能通过此工具改名。 |
 | `RemoveVariable` | 删除成员变量。 | 有引用或无法安全恢复时会被阻止。 |
 | `CreateMacro` | 创建宏及显式执行、数据 Pin。 | 先成功编译蓝图；省略签名不会自动创建 exec Pin；使用返回的图与 Tunnel GUID。 |
+| `ModifyMacroSignature` | 修改普通自有宏或宏库的输入、输出参数。 | 默认预览；使用宏 Name/GraphGuid 和声明 PinId；已连接参数不能删除或改类型，未知或未加载引用阻止修改。 |
+| `RenameMacro` | 原生改名并保留宏 GraphGuid 和已加载实例身份。 | 默认预览，应用需批准引用更新；宏库保留原生旧名重定向。 |
+| `RemoveMacro` | 删除没有实例引用的普通自有宏或宏库声明。 | 任一本地或外部实例会拒绝并返回位置；先显式移除实例，不级联删除外部节点。 |
 | `ModifyMacroDetails` | 修改普通蓝图或原生宏库本地宏的分类、提示、关键词和紧凑标题。 | 使用 `Target.Kind: "Macro"`、`Name` 和 `GraphGuid`；不改签名，不自动保存；宏库展示编辑保全已加载权威资产图中的消费者。 |
 | `CreateFunction` | 创建蓝图函数及其参数。 | 需要蓝图路径、函数名和参数定义。 |
 | `RenameFunction` | 重命名用户函数，并更新可安全更新的引用。 | 先使用 dry-run；更新引用必须显式批准。 |
@@ -637,4 +640,29 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 返回 `GraphGuid`、`EntryNodeGuid`、`ExitNodeGuid` 和真实 Pin 详情。Inputs 对应入口 Tunnel 的输出 Pin；Outputs 对应出口 Tunnel 的输入 Pin。使用 `ApplyGraphPatch` 连接宏内部逻辑；`GetGraphDetail` 也会返回 `GraphGuid`。
 
-在实际消费图中调用 `SearchGraphNodes` 获得精确宏 `SpawnerId`，通过 `ApplyGraphPatch` 放置并连线，再编译消费蓝图。普通蓝图中的宏仅在本蓝图使用；宏库可用性遵循原生父类和官方 ActionFilter。现有图上下文检查会拒绝自递归及函数中使用 latent 宏。本工具不修改已有宏签名，不提供宏重命名或删除传播。宏库与消费蓝图都需明确 `SaveAsset` 保存。
+在实际消费图中调用 `SearchGraphNodes` 获得精确宏 `SpawnerId`，通过 `ApplyGraphPatch` 放置并连线，再编译消费蓝图。普通蓝图中的宏仅在本蓝图使用；宏库可用性遵循原生父类和官方 ActionFilter。现有图上下文检查会拒绝自递归及函数中使用 latent 宏。`CreateMacro` 只负责新建；已有宏的编辑见下方生命周期工具。宏库与消费蓝图都需明确 `SaveAsset` 保存。
+
+### 修改、重命名与删除已有宏
+
+普通蓝图中的自有宏和原生宏库共用以下流程。先编译声明方及已加载的消费者，再以 `Target: {"Kind":"Macro","Name":"Relay","GraphGuid":"<返回的 GUID>"}` 查询 `GetBlueprintDetails`。返回的 `Inputs`、`Outputs` 包含声明 `PinId`、实际类型、默认值及从零开始的 `Index`；输入对应入口 Tunnel，输出对应出口 Tunnel。
+
+`ModifyMacroSignature` 每次执行一种 `Operation`：
+
+| Operation | 需要的附加字段 |
+|---|---|
+| `AddInput`、`AddOutput` | `PinName`、`TypeName`；执行参数使用 `exec`，数据参数使用具体类型。 |
+| `RenamePin` | 当前声明 `PinId` 和新的 `PinName`。 |
+| `RemovePin` | 当前声明 `PinId`。 |
+| `ChangePinType` | 当前声明 `PinId` 和 `TypeName`。 |
+| `MovePin` | 当前声明 `PinId` 和最终 `NewIndex`；顺序包含所在 Tunnel 的执行参数。 |
+| `SetPinDefault` | 当前数据参数声明 `PinId` 和显式字符串 `DefaultValue`。 |
+
+例如先预览参数改名：
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Macros","Target":{"Kind":"Macro","Name":"Relay","GraphGuid":"<返回的 GUID>"},"Operation":"RenamePin","PinId":"<Inputs 中的 PinId>","PinName":"Amount"}
+```
+
+这三个工具都默认 `bDryRun: true`。检查预览中的 `Instances` 和 `AffectedBlueprints`，应用时添加 `bDryRun: false`、`bApproveReferenceUpdates: true`。签名修改只接受该操作列出的附加字段；省略 `DefaultValue` 不能设置默认值。删参或改类型遇到声明内部或实例上的连线会拒绝，先显式断开再提交；类型变化会按原生规则重置默认值，修改后读取真实结果。参数改名和重建会更新已加载实例，未受影响的连线及实例覆盖默认值保留；未知或未加载引用会在修改前阻止操作。
+
+`RenameMacro` 使用同一 Target 和 `NewName`。成功后用新 `Name` 与原 `GraphGuid` 继续查询或修改；宏库旧名的原生重定向可以保留。`RemoveMacro` 使用同一 Target；有实例时返回拒绝及实例所在蓝图、图 GUID、节点 GUID。先显式移除所有本地、外部实例并编译，再预览和删除声明。移除实例本身会改变执行语义，工具不会补执行链，也不会级联删除外部节点。修改可正常 Undo/Redo；相关蓝图需要编译时先编译，再进行下一次编辑。完成后显式保存声明方和受影响消费者。

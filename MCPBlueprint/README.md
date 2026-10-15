@@ -2,7 +2,7 @@
 
 # MCPBlueprint User Guide
 
-MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **63 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
+MCPBlueprint is an editor-only MCP server for discovering and safely editing Unreal Engine Blueprints. This guide covers the **66 tools registered by the current module**. The live editor tools/list response is authoritative for the exact runtime schema.
 
 ## Requirements and installation
 
@@ -57,7 +57,7 @@ Blueprint asset
 
 Edits are not saved automatically. Use `SaveAsset` when you want to keep a change. Destructive tools require extra confirmation or refuse the operation when references could be broken.
 
-## Complete feature matrix (63 tools)
+## Complete feature matrix (66 tools)
 
 The table is a quick guide. Live tools/list remains the source for the exact fields and constraints.
 
@@ -80,6 +80,9 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | ModifyVariable | Changes a member variable and its Details metadata. | Unsupported references block type changes; supported constructor references require the applicable approvals. Remove RepNotify before renaming. |
 | RemoveVariable | Removes a member variable. | References block removal; force affects only local references. |
 | CreateMacro | Creates a macro with explicit exec or concrete data pins. | Requires a successful current compile; omitted signatures create no pins; use returned graph/tunnel GUIDs. |
+| ModifyMacroSignature | Edits input/output parameters of an owned ordinary or library macro. | Preview by default; uses macro Name/GraphGuid and declaration PinId. Connected-pin removal/type changes and unknown or unloaded references are refused. |
+| RenameMacro | Renames natively while preserving GraphGuid and loaded instance identities. | Preview by default; apply requires reference approval. Library macros retain native old-name redirectors. |
+| RemoveMacro | Removes an unreferenced owned ordinary or library macro. | Any local/external instance refuses deletion and reports its location; remove instances explicitly first. No cascading external-node deletion. |
 | ModifyMacroDetails | Edits a local ordinary or native MacroLibrary macro's category, tooltip, keywords and compact title. | Uses `Target.Kind: "Macro"`, `Name`, and `GraphGuid`; preserves signatures and does not save automatically; library presentation edits preserve loaded authored-graph consumers. |
 | CreateFunction | Creates a function graph with inputs and outputs. | Can create pure functions or overrides. |
 | RenameFunction | Renames a declared function and safe loaded callers. | Dry-run by default; applying needs explicit reference approval and unsafe bindings block it. |
@@ -552,3 +555,28 @@ Compile the new asset with `CompileBlueprint` before `CreateMacro`. Creation req
 The response includes `GraphGuid`, `EntryNodeGuid`, `ExitNodeGuid` and actual pin details. Inputs appear as output pins on the entry tunnel; outputs appear as input pins on the exit tunnel. Connect the macro body through `ApplyGraphPatch`. `GetGraphDetail` also returns `GraphGuid`.
 
 Use `SearchGraphNodes` in the intended consumer graph to obtain the exact macro `SpawnerId`, then place and connect it with `ApplyGraphPatch` and compile the consumer. Ordinary Blueprint macros are local; macro-library availability follows its native parent and Unreal's action filtering. Self-recursion and latent macro use in a function are rejected by the existing graph-context checks. Editing existing macro signatures, renaming or deleting macros is outside this creation tool. Save the library and consumer explicitly with `SaveAsset`.
+
+### Edit, rename, and remove existing macros
+
+Owned ordinary Blueprint macros and native MacroLibrary macros use the same workflow. Compile the declaration and loaded consumers, then query `GetBlueprintDetails` with `Target: {"Kind":"Macro","Name":"Relay","GraphGuid":"<returned GUID>"}`. Its `Inputs` and `Outputs` include declaration `PinId`, actual type, default, and zero-based `Index`. Inputs belong to the entry tunnel; outputs belong to the exit tunnel.
+
+`ModifyMacroSignature` accepts one `Operation` per call:
+
+| Operation | Additional fields |
+|---|---|
+| `AddInput`, `AddOutput` | `PinName`, `TypeName`; use `exec` for execution parameters or a concrete data type. |
+| `RenamePin` | Current declaration `PinId` and new `PinName`. |
+| `RemovePin` | Current declaration `PinId`. |
+| `ChangePinType` | Current declaration `PinId` and `TypeName`. |
+| `MovePin` | Current declaration `PinId` and final `NewIndex`, including execution parameters in that tunnel's order. |
+| `SetPinDefault` | Current data-parameter declaration `PinId` and explicit string `DefaultValue`. |
+
+For example, preview a parameter rename:
+
+```json
+{"BlueprintPath":"/Game/Blueprints/BP_Macros","Target":{"Kind":"Macro","Name":"Relay","GraphGuid":"<returned GUID>"},"Operation":"RenamePin","PinId":"<PinId from Inputs>","PinName":"Amount"}
+```
+
+All three tools default to `bDryRun: true`. Inspect `Instances` and `AffectedBlueprints`, then add `bDryRun: false` and `bApproveReferenceUpdates: true` to apply. Signature edits accept only the additional fields listed for their operation; setting a default requires an explicit `DefaultValue`. Removal or type changes refuse connected declaration or instance pins; disconnect them explicitly first. Type changes reset defaults through native rules; read the actual result afterward. Native parameter renaming and reconstruction update loaded instances while preserving unaffected connections and instance default overrides. Unknown or unloaded references block the edit before mutation.
+
+`RenameMacro` takes the same Target and `NewName`. Use the new `Name` with the original `GraphGuid` afterward; library old-name redirectors may remain. `RemoveMacro` takes the same Target. Referenced macros refuse deletion and report the Blueprint, graph GUID, and node GUID of each instance. Explicitly remove all local/external instances and compile before previewing and deleting the declaration. Removing instances changes execution semantics; the tool does not rebuild execution chains or cascade deletion to external nodes. Normal Undo/Redo is supported; compile pending assets before the next edit. Save the declaration and affected consumers explicitly when finished.
