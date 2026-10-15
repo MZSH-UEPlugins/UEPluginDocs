@@ -240,7 +240,7 @@ UE 5.2 的 Widget 不允许对 ReadOnly 成员启用 FieldNotify；5.2 MVVM 还�
 
 ### 2. `ModifyFunctionSignature`：函数参数不是普通节点 Pin
 
-使用 `GetGraphDetail` 找到函数图及 Entry/Result 的所需标识；不要用显示名称代替这些标识。选择一个操作：`AddInput`、`AddOutput`、`RenamePin`、`RemovePin`、`ChangePinType` 或 `MovePin`。默认 `bDryRun=true`；更新引用时必须设置 `bApproveReferenceUpdates=true`。删除参数或改参数类型还须设置 `bAllowPotentialDataLoss=true`。工具会处理可安全更新的调用点，失败时尝试回滚；不会自动保存。
+使用 `GetGraphDetail` 找到函数图及 Entry/Result 的所需标识；不要用显示名称代替这些标识。选择一个操作：`AddInput`、`AddOutput`、`RenamePin`、`RemovePin`、`ChangePinType` 、`MovePin` 或 `SetPinFlags`。默认 `bDryRun=true`；更新引用时必须设置 `bApproveReferenceUpdates=true`。删除参数、改参数类型或设置参数标志还须设置 `bAllowPotentialDataLoss=true`。工具会处理可安全更新的调用点，失败时尝试回滚；不会自动保存。
 
 用 `Operation="MovePin"` 调整参数在输入组或输出组内的位置。从 `GetGraphDetail` 的函数 Entry 或 Result 取得参数 `PinId`，再指定 `NewIndex`，表示移动后在该组内从 0 开始的位置。例如输入为 `[A, B, Depth]`，把 `A` 移到 `NewIndex=2` 后得到 `[B, Depth, A]`。Exec 和 self Pin 不计入索引。`ListBlueprintMembers` 按名称显示参数，其中的 `DeclarationIndex` 表示参数在签名中的实际位置。
 
@@ -259,6 +259,23 @@ UE 5.2 的 Widget 不允许对 ReadOnly 成员启用 FieldNotify；5.2 MVVM 还�
 
 查看默认 dry-run 返回的影响范围后，在同一请求中设置 `bDryRun=false` 和 `bApproveReferenceUpdates=true` 执行移动。移到当前位置不会产生变更。`MovePin` 不接受重命名、类型、默认值或参数标志修改，也不需要潜在数据丢失批准。移动保留参数身份、类型、默认值、标志和连线，并更新同蓝图普通调用、递归调用及支持的外部普通调用。输出参数会在所有匹配的 Result 声明中同步排序，各 Result 保留自己的字面量和 Pin 身份；Result 签名不一致时拒绝移动。可用正常 Undo/Redo 撤销或重做，完成后自行保存受影响资产。派生、覆写及委托绑定函数的修改暂不支持。
 
+用 `Operation="SetPinFlags"` 修改参数声明的引用与 const 标志，必须同时提供 `bIsReference` 和 `bIsConst` 两个布尔值。用 Entry 的 `PinId` 选择输入，或用任一 Result 的 `PinId` 选择输出；输出会按参数名同步所有 Result，保留各自的 Pin 身份。
+
+```json
+{
+  "BlueprintPath": "/Game/Blueprints/BP_Calculator",
+  "FunctionName": "Evaluate",
+  "FunctionGraphGuid": "<函数图 GUID>",
+  "Operation": "SetPinFlags",
+  "PinId": "<Entry 或 Result 的 Pin GUID>",
+  "bIsReference": true,
+  "bIsConst": true
+}
+```
+
+先查看默认 dry-run，再在同一请求中设置 `bDryRun=false`、`bApproveReferenceUpdates=true` 和 `bAllowPotentialDataLoss=true`。修改标志会清空所选参数的声明默认值。保存时，UE 可能将 Pin 当前的默认值同步回声明，例如整数输出的 `0`。两个标志都与当前值相同时，不清默认值，也不产生事务，Apply 仍需要上述批准。调用点的显式值和连线不会因批准而被清除。可写 ref 输入需要接到有效变量，单靠字面量无法通过编译；工具会拒绝或回滚不可编译的修改，不会替你补变量或改连线。原生声明若强制要求 const，与 `bIsConst=false` 冲突的请求会被拒绝。
+
+`SetPinFlags` 不接受 `PinName`、`TypeName`、`NewIndex` 或 `DefaultValue`，其他操作也不接受这两个 flags 字段。数组即使声明的 `bIsReference=false`，仍可能隐式按引用传递；输出声明的 raw ref 也不保证编译后具有引用标志。修改成功后可正常 Undo/Redo，并自行保存受影响资产。
 ### 3. `SetPinDefaults`：只改未连接输入 Pin 的字面量
 
 从 `GetGraphDetail` 取得目标节点标识，传入非空 `PinDefaults` 映射，例如 `{\"Duration\": \"2.0\", \"InString\": \"Hello\"}`。对象/Class Pin 需要完整对象路径。该工具不改变节点、连线或图结构；若输入 Pin 已连接，运行时会忽略它的默认值。结构变化请改用 `ApplyGraphPatch`。
@@ -456,7 +473,7 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 
 ### 修改本地函数显示与编辑器属性
 
-`ListBlueprintMembers` 的函数 `Inputs`、`Outputs` 仍按名称字母顺序返回。每个函数参数额外包含 `DeclarationIndex`（其所属入口或结果 Terminal 声明数组中的零基下标）、`bIsReference` 和 `bIsConst`。下标属于各 Terminal，并非整个函数的唯一序号。原有分页、16 个 Pin 的签名上限及默认值截断规则保持有效；CustomEvent、EventDispatcher 返回字段保持原样。
+`ListBlueprintMembers` 的函数 `Inputs`、`Outputs` 仍按名称字母顺序返回。每个函数参数额外包含 `DeclarationIndex`（其所属入口或结果 Terminal 声明数组中的零基下标）、`bIsReference` 和 `bIsConst`。下标属于各 Terminal，并非整个函数的唯一序号。`bIsReference`、`bIsConst` 表示声明的 raw 值。`bCompiledFlagsKnown=true` 时，还返回当前自有编译函数的 `bCompiledReference`、`bCompiledConst` 和 `bCompiledOutParm`；不可用时仅返回 `bCompiledFlagsKnown=false`，不把未知标志写成 false。查询不会触发编译，可先正常编译蓝图再读取。引用输入也可能带 OutParm，它仍属于逻辑输入组。原有分页、16 个 Pin 的签名上限及默认值截断规则保持有效；CustomEvent、EventDispatcher 返回字段保持原样。
 
 用 `MemberKind: "Function"` 调用 `ListBlueprintMembers`，把函数的 `Name` 和 `FunctionGraphGuid` 放入 `Kind: "Function"` 的 `Target`。`NodeGuid` 标识入口节点，不能代替图 GUID。先用相同 Target 调用 `GetBlueprintDetails` 查看可用属性和编辑限制，再调用 `ModifyFunctionDetails`：
 

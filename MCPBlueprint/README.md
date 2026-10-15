@@ -252,7 +252,7 @@ UE 5.2 Widgets cannot enable FieldNotify on ReadOnly members. UE 5.2 MVVM also r
 
 ### ModifyFunctionSignature: function signature pins
 
-Address the declaration with FunctionName plus stable FunctionGraphGuid, and a declared parameter only by stable PinId. Submit exactly one operation. Dry-run is default; apply requires reference approval, and remove/type change also requires potential-data-loss approval. The tool scans callers, rejects unsafe override/interface/RepNotify/delegate/AnimGraph cases, updates ordinary calls transactionally, compiles affected Blueprints, and never saves automatically.
+Address the declaration with FunctionName plus stable FunctionGraphGuid, and a declared parameter only by stable PinId. Submit exactly one operation. Dry-run is default; apply requires reference approval, and remove/type/flag changes also require potential-data-loss approval. The tool scans callers, rejects unsafe override/interface/RepNotify/delegate/AnimGraph cases, updates ordinary calls transactionally, compiles affected Blueprints, and never saves automatically.
 
 Use `Operation="MovePin"` to reorder a parameter within its input or output group. Get its `PinId` from the function Entry or a Result in `GetGraphDetail`, then provide `NewIndex`, the final zero-based position in that group. For inputs `[A, B, Depth]`, moving `A` to `NewIndex=2` produces `[B, Depth, A]`. Exec and self pins do not count toward this index. `ListBlueprintMembers` displays parameters alphabetically; its `DeclarationIndex` gives their actual signature positions.
 
@@ -271,6 +271,23 @@ For example, copy the Blueprint path, function graph GUID, and declared pin ID i
 
 Review the default dry-run, then send the same request with `bDryRun=false` and `bApproveReferenceUpdates=true`. Moving a parameter to its current position makes no change. `MovePin` accepts no rename, type, default, or parameter-flag edits and needs no potential-data-loss approval. It preserves parameter identities, types, defaults, flags, and connections, updates ordinary same-Blueprint, recursive, and supported external calls, and moves a selected output across all matching Result declarations. Each Result keeps its own literal and pin identity; inconsistent Result signatures reject. Use normal Undo/Redo to undo or reapply a move, and save the affected assets when ready. Derived/override and delegate-bound function changes are unsupported.
 
+Use `Operation="SetPinFlags"` to edit the declaration's reference and const flags. Supply both `bIsReference` and `bIsConst` as booleans. Select an input with its Entry `PinId`, or an output with any Result `PinId`. Outputs are matched by name across all Results, retaining each Result's own pin identity.
+
+```json
+{
+  "BlueprintPath": "/Game/Blueprints/BP_Calculator",
+  "FunctionName": "Evaluate",
+  "FunctionGraphGuid": "<function graph GUID>",
+  "Operation": "SetPinFlags",
+  "PinId": "<Entry or Result pin GUID>",
+  "bIsReference": true,
+  "bIsConst": true
+}
+```
+
+Review the default dry-run, then send the same request with `bDryRun=false`, `bApproveReferenceUpdates=true`, and `bAllowPotentialDataLoss=true`. A flag change clears the selected parameter's declaration default. When you save, Unreal can synchronize that declaration with the pin's current default, such as "0" for an integer output. If both flags already match, no default is cleared and no transaction is created; apply still requires those approvals. Approval does not permit removing caller overrides or connections. Mutable reference inputs need a valid variable connection; a literal alone cannot compile. The tool rejects or rolls back an uncompilable edit without creating variables or rewiring callers. A request with `bIsConst=false` is rejected when the native declaration requires const.
+
+`SetPinFlags` accepts no `PinName`, `TypeName`, `NewIndex`, or `DefaultValue`; other operations accept neither flags field. Arrays can remain implicitly referenced with raw `bIsReference=false`, and an output's raw reference flag does not guarantee a compiled reference flag. Use normal Undo/Redo after a successful edit, and save the affected assets when ready.
 ### SetPinDefaults: graph pin defaults
 
 Use a returned NodeGuid and a nonempty PinDefaults object mapping pin names to UE text literals. This changes one node's input literal—not the function signature, variable default, or CDO. Read back that graph and compile. Invalid, non-input, or read-only pins reject. A connected input keeps its connection, so the stored literal is ignored at runtime.
@@ -403,7 +420,7 @@ These four actions support scalar dispatchers declared in the target Blueprint i
 
 ### Change local function presentation and editor properties
 
-`ListBlueprintMembers` returns function `Inputs` and `Outputs` in alphabetical order. Each function pin also includes `DeclarationIndex` (the zero-based position in its own entry or result terminal declaration array), `bIsReference` and `bIsConst`. The index is local to each terminal, not a unique sequence across the whole function. Existing pagination, 16-pin signature limits and default-value truncation remain in effect. CustomEvent and EventDispatcher results retain their existing fields.
+`ListBlueprintMembers` returns function `Inputs` and `Outputs` in alphabetical order. Each function pin also includes `DeclarationIndex` (the zero-based position in its own entry or result terminal declaration array), `bIsReference` and `bIsConst`. The index is local to each terminal, not a unique sequence across the whole function. `bIsReference` and `bIsConst` are raw declaration flags. When `bCompiledFlagsKnown=true`, `bCompiledReference`, `bCompiledConst`, and `bCompiledOutParm` describe the current owned compiled function. Unavailable metadata returns only `bCompiledFlagsKnown=false`, without replacing unknown flags with false. The query never compiles; compile the Blueprint normally before reading when needed. Reference inputs can also carry OutParm while remaining logical inputs. Existing pagination, 16-pin signature limits and default-value truncation remain in effect. CustomEvent and EventDispatcher results retain their existing fields.
 
 Call `ListBlueprintMembers` with `MemberKind: "Function"`. Copy the function's `Name` and `FunctionGraphGuid` into a `Target` with `Kind: "Function"`; `NodeGuid` identifies the entry node and cannot replace the graph GUID. Use that target with `GetBlueprintDetails` to inspect supported values and editing restrictions, then call `ModifyFunctionDetails`:
 
