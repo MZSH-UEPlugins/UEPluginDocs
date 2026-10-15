@@ -92,7 +92,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `ModifyMacroDetails` | 修改普通蓝图或原生宏库本地宏的分类、提示、关键词和紧凑标题。 | 使用 `Target.Kind: "Macro"`、`Name` 和 `GraphGuid`；不改签名，不自动保存；宏库展示编辑保全已加载权威资产图中的消费者。 |
 | `CreateFunction` | 创建蓝图函数及其参数。 | 需要蓝图路径、函数名和参数定义。 |
 | `RenameFunction` | 重命名用户函数，并更新可安全更新的引用。 | 先使用 dry-run；更新引用必须显式批准。 |
-| `ModifyFunctionSignature` | 添加、重命名、删除、排序或修改函数参数类型。 | 默认 dry-run；删除参数或改类型可能造成数据丢失，须显式批准。 |
+| `ModifyFunctionSignature` | 添加、重命名、删除、排序或修改函数参数类型、标志与输入默认值。 | 默认 dry-run；删除参数或改类型可能造成数据丢失，须显式批准。 |
 | `RemoveFunction` | 删除用户函数。 | 有引用或无法安全恢复时会被阻止。 |
 | `CreateCustomEvent` | 在 Event Graph 中创建自定义事件。 | 目标必须是实际的 Event Graph。 |
 | `ModifyCustomEvent` | 修改自定义事件的编辑器调用、弃用和 RPC 声明属性。 | 使用 `Target.Kind: "CustomEvent"` 与 `NodeGuid`；只修改本蓝图可编辑的事件，遗漏字段保持原值。 |
@@ -240,7 +240,7 @@ UE 5.2 的 Widget 不允许对 ReadOnly 成员启用 FieldNotify；5.2 MVVM 还�
 
 ### 2. `ModifyFunctionSignature`：函数参数不是普通节点 Pin
 
-使用 `GetGraphDetail` 找到函数图及 Entry/Result 的所需标识；不要用显示名称代替这些标识。选择一个操作：`AddInput`、`AddOutput`、`RenamePin`、`RemovePin`、`ChangePinType` 、`MovePin` 或 `SetPinFlags`。默认 `bDryRun=true`；更新引用时必须设置 `bApproveReferenceUpdates=true`。删除参数、改参数类型或设置参数标志还须设置 `bAllowPotentialDataLoss=true`。工具会处理可安全更新的调用点，失败时尝试回滚；不会自动保存。
+使用 `GetGraphDetail` 找到函数图及 Entry/Result 的所需标识；不要用显示名称代替这些标识。选择一个操作：`AddInput`、`AddOutput`、`RenamePin`、`RemovePin`、`ChangePinType`、`MovePin`、`SetPinFlags` 或 `SetPinDefault`。默认 `bDryRun=true`；更新引用时必须设置 `bApproveReferenceUpdates=true`。删除参数、改参数类型或设置参数标志还须设置 `bAllowPotentialDataLoss=true`。工具会处理可安全更新的调用点，失败时尝试回滚；不会自动保存。
 
 用 `Operation="MovePin"` 调整参数在输入组或输出组内的位置。从 `GetGraphDetail` 的函数 Entry 或 Result 取得参数 `PinId`，再指定 `NewIndex`，表示移动后在该组内从 0 开始的位置。例如输入为 `[A, B, Depth]`，把 `A` 移到 `NewIndex=2` 后得到 `[B, Depth, A]`。Exec 和 self Pin 不计入索引。`ListBlueprintMembers` 按名称显示参数，其中的 `DeclarationIndex` 表示参数在签名中的实际位置。
 
@@ -276,6 +276,23 @@ UE 5.2 的 Widget 不允许对 ReadOnly 成员启用 FieldNotify；5.2 MVVM 还�
 先查看默认 dry-run，再在同一请求中设置 `bDryRun=false`、`bApproveReferenceUpdates=true` 和 `bAllowPotentialDataLoss=true`。修改标志会清空所选参数的声明默认值。保存时，UE 可能将 Pin 当前的默认值同步回声明，例如整数输出的 `0`。两个标志都与当前值相同时，不清默认值，也不产生事务，Apply 仍需要上述批准。调用点的显式值和连线不会因批准而被清除。可写 ref 输入需要接到有效变量，单靠字面量无法通过编译；工具会拒绝或回滚不可编译的修改，不会替你补变量或改连线。原生声明若强制要求 const，与 `bIsConst=false` 冲突的请求会被拒绝。
 
 `SetPinFlags` 不接受 `PinName`、`TypeName`、`NewIndex` 或 `DefaultValue`，其他操作也不接受这两个 flags 字段。数组即使声明的 `bIsReference=false`，仍可能隐式按引用传递；输出声明的 raw ref 也不保证编译后具有引用标志。修改成功后可正常 Undo/Redo，并自行保存受影响资产。
+
+用 `Operation="SetPinDefault"` 修改函数输入参数的声明默认值。从 Entry 取得该参数的 `PinId`，并显式提供字符串 `DefaultValue`；允许空字符串。输出参数的各 Result 节点字面量使用 `SetPinDefaults`。
+
+```json
+{
+  "BlueprintPath": "/Game/Blueprints/BP_Example",
+  "FunctionName": "Evaluate",
+  "FunctionGraphGuid": "<GetGraphDetail 返回的 GraphGuid>",
+  "Operation": "SetPinDefault",
+  "PinId": "<Entry 中输入参数的 PinId>",
+  "DefaultValue": "17"
+}
+```
+
+先查看 dry-run，再加入 `bDryRun=false` 和 `bApproveReferenceUpdates=true` 执行；此操作不需要 `bAllowPotentialDataLoss`。声明字符串已相同且编译基线一致时，不产生事务。调用点原来继承声明默认值时会采用新值，显式覆盖值会保留；已连接参数保留连线，运行值仍由连线提供。成功后自行保存受影响资产，空值及结构体文本的具体表示以 Unreal 原生解析和保存后的读回为准。
+
+此操作不接受 `PinName`、`TypeName`、`NewIndex`、`bIsReference` 或 `bIsConst`。只支持普通非引用输入；容器、编译后隐式引用、硬对象/Class/Interface、soft Actor 及 exec 参数会被拒绝。已加载的原生 CreateDelegate 绑定必须能只读证明其签名、选择器与连线稳定；会修正或清除绑定选择器的请求会在修改前拒绝。派生、覆写和其他不完整引用场景仍受原有安全检查限制。 修改前须有当前可验证的编译基线；Undo/Redo 后若相关蓝图显示待编译，先正常编译，再提交新的默认值编辑。
 ### 3. `SetPinDefaults`：只改未连接输入 Pin 的字面量
 
 从 `GetGraphDetail` 取得目标节点标识，传入非空 `PinDefaults` 映射，例如 `{\"Duration\": \"2.0\", \"InString\": \"Hello\"}`。对象/Class Pin 需要完整对象路径。该工具不改变节点、连线或图结构；若输入 Pin 已连接，运行时会忽略它的默认值。结构变化请改用 `ApplyGraphPatch`。

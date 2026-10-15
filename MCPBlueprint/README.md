@@ -83,7 +83,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | ModifyMacroDetails | Edits a local ordinary or native MacroLibrary macro's category, tooltip, keywords and compact title. | Uses `Target.Kind: "Macro"`, `Name`, and `GraphGuid`; preserves signatures and does not save automatically; library presentation edits preserve loaded authored-graph consumers. |
 | CreateFunction | Creates a function graph with inputs and outputs. | Can create pure functions or overrides. |
 | RenameFunction | Renames a declared function and safe loaded callers. | Dry-run by default; applying needs explicit reference approval and unsafe bindings block it. |
-| ModifyFunctionSignature | Adds, renames, removes, reorders, or changes the type of a function parameter. | Dry-run by default; changing/removing a parameter requires explicit approvals. |
+| ModifyFunctionSignature | Adds, renames, removes, reorders, or edits a function parameter type, flags, or input default. | Dry-run by default; changing/removing a parameter requires explicit approvals. |
 | RemoveFunction | Removes a declared function graph. | References and unsafe unloaded descendants block removal. |
 | CreateCustomEvent | Adds a Custom Event node. | Optional input parameters are supported. |
 | ModifyCustomEvent | Changes editor-callable, deprecation, and RPC declaration properties of a CustomEvent. | Use `Target.Kind: "CustomEvent"` and `NodeGuid`. Supports local editable events; omitted fields keep their values. |
@@ -288,6 +288,23 @@ Use `Operation="SetPinFlags"` to edit the declaration's reference and const flag
 Review the default dry-run, then send the same request with `bDryRun=false`, `bApproveReferenceUpdates=true`, and `bAllowPotentialDataLoss=true`. A flag change clears the selected parameter's declaration default. When you save, Unreal can synchronize that declaration with the pin's current default, such as "0" for an integer output. If both flags already match, no default is cleared and no transaction is created; apply still requires those approvals. Approval does not permit removing caller overrides or connections. Mutable reference inputs need a valid variable connection; a literal alone cannot compile. The tool rejects or rolls back an uncompilable edit without creating variables or rewiring callers. A request with `bIsConst=false` is rejected when the native declaration requires const.
 
 `SetPinFlags` accepts no `PinName`, `TypeName`, `NewIndex`, or `DefaultValue`; other operations accept neither flags field. Arrays can remain implicitly referenced with raw `bIsReference=false`, and an output's raw reference flag does not guarantee a compiled reference flag. Use normal Undo/Redo after a successful edit, and save the affected assets when ready.
+
+Use `Operation="SetPinDefault"` to change an input parameter's declaration default. Get its `PinId` from the function Entry and explicitly provide `DefaultValue` as a string, including an empty string. Use `SetPinDefaults` for an individual Result node's output literal.
+
+```json
+{
+  "BlueprintPath": "/Game/Blueprints/BP_Example",
+  "FunctionName": "Evaluate",
+  "FunctionGraphGuid": "<GraphGuid returned by GetGraphDetail>",
+  "Operation": "SetPinDefault",
+  "PinId": "<input parameter PinId from Entry>",
+  "DefaultValue": "17"
+}
+```
+
+Review the dry-run, then add `bDryRun=false` and `bApproveReferenceUpdates=true`. This operation needs no `bAllowPotentialDataLoss`. An identical declaration string with a consistent compiled baseline creates no transaction. Calls inheriting the old default receive the new value; explicit overrides remain intact. Wired inputs retain their links and still obtain their runtime values from those links. Save the affected assets when ready; read back Unreal's native representation after parsing and saving empty or struct values.
+
+`SetPinDefault` accepts no `PinName`, `TypeName`, `NewIndex`, `bIsReference`, or `bIsConst`. It requires an ordinary non-reference input and rejects containers, compiled effective references, hard object/class/interface types, soft Actor references, and exec pins. Loaded native CreateDelegate bindings must pass a read-only proof that their signatures, selectors, and connections remain stable. A binding that would repair or clear its selector rejects before mutation. Existing derived, override, and incomplete-reference safety checks still apply. A current verifiable compile baseline is required. If a related Blueprint needs compilation after Undo/Redo, compile it normally before submitting another default edit.
 ### SetPinDefaults: graph pin defaults
 
 Use a returned NodeGuid and a nonempty PinDefaults object mapping pin names to UE text literals. This changes one node's input literal—not the function signature, variable default, or CDO. Read back that graph and compile. Invalid, non-input, or read-only pins reject. A connected input keeps its connection, so the stored literal is ignored at runtime.
