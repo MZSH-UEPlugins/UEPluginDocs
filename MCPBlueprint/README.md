@@ -112,15 +112,15 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | AddCommentBox | Adds a native comment around nodes. | Dry-run can preview bounds. |
 | GetComponents | Shows an Actor Blueprint component hierarchy. | Works with the Actor Blueprint construction script. |
 | AddComponent | Adds a component to an Actor Blueprint. | A parent attachment must be a scene component. |
-| SetComponentProperties | Sets local component-template properties. | Uses editable non-array UE-text properties; requires an editor transaction. |
+| SetComponentProperties | Sets local or identified inherited SCS template defaults; resets inherited values. | Optional `Properties`, `ResetProperties`, and `bDryRun`; actual edits require an editor transaction. |
 | RenameComponent | Renames a local component. | Updates Blueprint member references. |
 | RemoveComponent | Removes a local component and promotes its children. | References and unchecked derived Blueprints block removal. |
 | ReparentComponent | Moves a local SceneComponent below another SceneComponent. | Cannot create cycles; use SetRootComponent for an actual local root. |
 | SetRootComponent | Makes a local SceneComponent the root. | Inherited and native roots cannot be replaced. |
 | DuplicateComponent | Duplicates a local component and its template properties. | The actual local scene root cannot be duplicated. |
-| GetComponentProperties | Shows editable component-template properties. | Values use UE text. |
-| GetClassDefaults | Shows editable Blueprint Class Default Object properties. | Values use UE text. |
-| SetClassDefaults | Sets supported Class Default Object properties. | Uses editable non-array UE-text properties; requires an editor transaction. |
+| GetComponentProperties | Shows editable component-template properties and parent comparisons. | UE-text values, bounded parent metadata, and actual local override-record state. |
+| GetClassDefaults | Shows editable Blueprint Class Default Object properties and parent comparisons. | UE-text values and bounded reset availability metadata. |
+| SetClassDefaults | Sets supported Class Default Object values or resets inherited properties. | Optional `Properties`, `ResetProperties`, and `bDryRun`; actual edits require an editor transaction. |
 | CreateBlueprint | Creates a Blueprint asset in memory. | Provide an asset path and parent class; optional BlueprintKind is Normal (default) or MacroLibrary with a legal native parent; save explicitly. |
 | ReparentBlueprint | Changes a Blueprint's parent class. | Start with dry-run; hierarchy changes need potential-data-loss approval. |
 | CompileBlueprint | Explicitly compiles a Blueprint. | Supports warnings-as-errors. |
@@ -330,7 +330,15 @@ Use a returned NodeGuid and a nonempty PinDefaults object mapping pin names to U
 
 ### SetComponentProperties and ReparentComponent
 
-SetComponentProperties writes editable non-array **local SCS component-template** values from a nonempty UE-text Properties map. Read with GetComponentProperties first, then reread and compile. ReparentComponent changes the **attachment parent**; both sides must be local SceneComponents and cycles reject. An actual local root must use SetRootComponent. Neither changes the Blueprint parent class.
+`SetComponentProperties` accepts `BlueprintPath`, `ComponentName`, and a UE-text `Properties` map. For an inherited SCS component, also copy the paired `DeclaringBlueprintPath` and `ComponentGuid` from `GetComponents`. Actual changes create an override only in the target Blueprint when needed; ancestor templates are not the write target. Read with `GetComponentProperties` before and after editing.
+
+Use `ResetProperties` to copy selected properties from the nearest verified parent template. For example, call the tool with the inherited component identity and `"ResetProperties":["RelativeLocation"]`. Other property overrides remain. Resetting a property does not request deletion of the whole override record; UE may discard an unnecessary record during normal compilation. Local SCS templates do not support Reset.
+
+Both setters accept `bDryRun:true` to validate and preview `Changes` without a transaction, handler/template creation, compilation, or saving. At least one of `Properties` or `ResetProperties` must be nonempty; names must be unique and must not appear in both. Existing `Properties`-only calls remain valid. The inherited/Reset paths reject config and instanced subobject values, fixed arrays, native default subobjects, and non-editable inherited templates. Dry-run also excludes config and instanced subobject properties for local/CDO edits. Whole-array values such as `ComponentTags` use UE text as a single property.
+
+Edits affect target defaults and do not actively propagate to existing descendant defaults or placed instances. Normal UE notification and compilation can have their usual editor effects. If automatic compilation is disabled, or Undo/Redo leaves the target dirty, compile normally before the next inherited query/edit. The tools do not save; call `SaveAsset` separately when desired.
+
+`ReparentComponent` changes the attachment parent; both sides must be local SceneComponents and cycles reject. An actual local root must use `SetRootComponent`. It does not change the Blueprint parent class.
 
 ### GetComponentProperties: inherited SCS templates
 
@@ -340,11 +348,15 @@ SetComponentProperties writes editable non-array **local SCS component-template*
 {"BlueprintPath":"/Game/MyActorChild","ComponentName":"InheritedRoot","DeclaringBlueprintPath":"/Game/MyActorParent","ComponentGuid":"11111111-2222-3333-4444-555555555555"}
 ```
 
-Use the actual GUID returned by `GetComponents`. Both optional identity fields must be supplied together; without them, `GetComponentProperties` continues to read local SCS templates. Inherited reads require an existing, successfully compiled target and consistent ancestor chain. The effective value comes from the nearest existing override or the original declaration; the response names its source. Missing generated state, ambiguous GUIDs, or inconsistent owners/templates return a reason and require separate repair. Queries do not create CDOs, handlers or overrides. These inherited identities are for reading; `SetComponentProperties` continues to accept local SCS components only.
+Use the actual GUID returned by `GetComponents`. Both optional identity fields must be supplied together; without them, `GetComponentProperties` continues to read local SCS templates. Inherited reads require an existing, successfully compiled target and consistent ancestor chain. The effective value comes from the nearest existing override or the original declaration; the response names its source. Missing generated state, ambiguous GUIDs, or inconsistent owners/templates return a reason and require separate repair. Queries do not create CDOs, handlers or overrides. The same paired identity selects an inherited target for `SetComponentProperties`.
+
+`PropertyMetadata` reports a bounded `ParentDefaultValue`, `bDiffersFromParent`, `bCanReset`, and a reason when Reset is unavailable. `ParentTemplatePath` identifies the comparison source. `bHasLocalOverrideRecord` describes the whole local record; equal property values do not prove that no record exists. The response does not expose per-property override flags.
 
 ### SetClassDefaults: CDO defaults
 
-Read GetClassDefaults, inspect the returned UE-text property map, apply supported editable non-array Properties, reread, compile, then save. These are class defaults—not instance overrides, graph literals, variable declarations, or component templates.
+Read `GetClassDefaults` for case-sensitive editable property names and UE-text values. Its `PropertyMetadata` includes parent values, differences, Reset availability, and rejection reasons; `ParentDefaultPath` identifies the source. Supply a `Properties` map to `SetClassDefaults`, or `ResetProperties` to restore selected inherited properties from the current CDO archetype. A property declared only in the target Blueprint has no matching parent default and cannot be reset this way. Config and instanced subobject values are outside the Reset support domain.
+
+For example, `{"BlueprintPath":"/Game/MyActorChild","ResetProperties":["InheritedNumber"],"bDryRun":true}` previews an inherited integer Reset. Remove `bDryRun` to execute after checking the preview. The same collection and preview rules above apply. Class-default changes supply defaults for new target-class instances; the tool does not actively update existing descendants or placed instances. Reread, compile when needed, then save separately.
 
 ### ReparentBlueprint: parent class
 

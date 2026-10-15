@@ -121,15 +121,15 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `AddCommentBox` | 添加原生 Comment Box。 | 指定文字和范围或目标节点。 |
 | `GetComponents` | 查看 Actor Blueprint 的组件树、父级和模板信息。 | 仅适用于 Actor Blueprint。 |
 | `AddComponent` | 添加本地 SCS 组件。 | 指定组件类、名称和可选父组件。 |
-| `SetComponentProperties` | 修改本蓝图 SCS 组件模板属性。 | 属性使用 UE 文本格式；任一属性无效时整次修改回滚。 |
+| `SetComponentProperties` | 修改本地或指定继承 SCS 模板默认值，恢复继承属性。 | 支持 `Properties`、`ResetProperties`、`bDryRun`；实际修改需要编辑器事务。 |
 | `RenameComponent` | 重命名本地 SCS 组件并更新成员引用。 | 新名称必须唯一。 |
 | `RemoveComponent` | 删除组件。 | 有引用或无法安全恢复时会被阻止。 |
 | `ReparentComponent` | 修改本地 SceneComponent 的附着父级。 | 不能形成循环；根组件请用 `SetRootComponent`。 |
 | `SetRootComponent` | 将本地 SceneComponent 设为根组件。 | 目标必须是本地 SceneComponent。 |
 | `DuplicateComponent` | 复制本地 SCS 组件及模板属性。 | 实际本地根组件不能复制。 |
-| `GetComponentProperties` | 分页查看可编辑的组件模板属性。 | 需要蓝图路径、组件名和分页参数。 |
-| `GetClassDefaults` | 分页查看可编辑的 CDO 默认值。 | 大型属性集请使用分页。 |
-| `SetClassDefaults` | 修改蓝图 CDO（含继承属性）的默认值。 | 属性名区分大小写，值使用 UE 文本格式。 |
+| `GetComponentProperties` | 分页查看组件模板属性及父默认值比较。 | 返回有界父值元数据和本地整条覆盖记录状态。 |
+| `GetClassDefaults` | 分页查看 CDO 默认值及父默认值比较。 | 返回 UE 文本值和 Reset 可用性；大型属性集请分页。 |
+| `SetClassDefaults` | 修改蓝图 CDO 默认值，恢复继承属性。 | 支持 `Properties`、`ResetProperties`、`bDryRun`；属性名区分大小写。 |
 | `CreateBlueprint` | 创建受支持类型的 Blueprint 资产。 | 指定资产路径和父类；BlueprintKind 可选 Normal（默认）或原生父类 MacroLibrary；创建后不会自动保存。 |
 | `ReparentBlueprint` | 更改 Blueprint 类的父类。 | 先使用 `bDryRun`；层级或接口冲突可能需要 `bAllowPotentialDataLoss`。 |
 | `CompileBlueprint` | 编译指定蓝图并返回诊断。 | 用于处理编辑器报告的错误或警告。 |
@@ -318,7 +318,13 @@ UE 5.2 的 Widget 不允许对 ReadOnly 成员启用 FieldNotify；5.2 MVVM 还�
 
 ### 4. `SetComponentProperties`：改 SCS 模板，不改实例
 
-先用 `GetComponents` 找到本地 SCS `ComponentName`。把 `Properties` 作为“属性名 → UE 文本值”映射，例如 `RelativeLocation: \"(X=0,Y=0,Z=50)\"`、`bHiddenInGame: \"True\"`。工具只改此 Blueprint 添加的组件模板；任一属性不合法，整次调用会回滚并给出属性名与格式提示。按需使用 `SaveAsset` 保存。
+先用 `GetComponents` 找到 `ComponentName`，用 `GetComponentProperties` 查看属性。把 `Properties` 作为“属性名 → UE 文本值”映射，例如 `RelativeLocation: \"(X=0,Y=0,Z=50)\"`。修改继承 SCS 组件时，还要复制成对的 `DeclaringBlueprintPath` 和 `ComponentGuid`。实际变化只在目标蓝图按需创建覆盖，祖先模板不是写入目标。
+
+传入 `ResetProperties` 可从最近且已核验的父模板恢复指定属性，例如在继承组件身份参数中加入 `"ResetProperties":["RelativeLocation"]`。其他属性覆盖保留。恢复属性不等于要求删除整条覆盖记录；正常编译时，UE 可能剔除已经不再需要的记录。本地 SCS 模板不支持 Reset。
+
+两个 setter 都支持 `bDryRun:true`，校验并预览 `Changes`，不创建事务、handler 或模板，不编译、不保存。`Properties` 与 `ResetProperties` 至少有一项非空；属性名不能重复，也不能同时出现在两处。原有只传 `Properties` 的调用仍可使用。继承编辑／Reset 路径不支持配置属性、实例化子对象、固定数组、原生默认子对象及不可继承编辑的模板。本地模板和 CDO 的 dry-run 也不支持配置属性与实例化子对象。`ComponentTags` 这类动态数组按一个完整属性使用 UE 文本值。
+
+工具编辑目标默认值，不主动传播到已有后代默认值或已放置实例；UE 正常通知和编译仍可能产生编辑器自身的关联更新。关闭自动编译，或 Undo/Redo 使目标变脏后，应正常编译，再调用继承查询或编辑。工具不自动保存，需要落盘时另调 `SaveAsset`。
 
 ### `GetComponentProperties`：读取继承 SCS 模板
 
@@ -328,11 +334,15 @@ UE 5.2 的 Widget 不允许对 ReadOnly 成员启用 FieldNotify；5.2 MVVM 还�
 {"BlueprintPath":"/Game/MyActorChild","ComponentName":"InheritedRoot","DeclaringBlueprintPath":"/Game/MyActorParent","ComponentGuid":"11111111-2222-3333-4444-555555555555"}
 ```
 
-GUID 使用 `GetComponents` 实际返回的值。两个可选身份字段必须成对提供；不提供时仍读取本地 SCS 模板。继承读取要求已有编译成功的目标及一致的祖先链，返回最近已有覆盖或原始声明的有效值，并注明来源。缺少生成状态、GUID 歧义、owner／模板不一致时返回原因，需另行修复。查询不创建 CDO、handler 或覆盖模板。这组继承身份用于读取；`SetComponentProperties` 仍只接受本地 SCS 组件。
+GUID 使用 `GetComponents` 实际返回的值。两个可选身份字段必须成对提供；不提供时仍读取本地 SCS 模板。继承读取要求已有编译成功的目标及一致的祖先链，返回最近已有覆盖或原始声明的有效值，并注明来源。缺少生成状态、GUID 歧义、owner／模板不一致时返回原因，需另行修复。查询不创建 CDO、handler 或覆盖模板。`SetComponentProperties` 使用相同的成对身份选择继承目标。
+
+`PropertyMetadata` 返回有界的 `ParentDefaultValue`、`bDiffersFromParent`、`bCanReset` 和 Reset 不可用原因，`ParentTemplatePath` 标明比较来源。`bHasLocalOverrideRecord` 表示整条本地记录是否存在；属性值相等不能证明记录不存在。返回值不提供逐属性覆盖标记。
 
 ### 5. `SetClassDefaults`：改 CDO，可覆盖继承属性
 
-使用 `GetClassDefaults` 找到可编辑且**大小写敏感**的反射属性名。传入 `Properties` 的 UE 文本映射，如 `bReplicates: \"True\"` 或 `JumpMaxCount: \"2\"`。它改的是该 Blueprint CDO，作用于以后放置/生成且未覆写的实例；不会追溯改变已存在实例。工具还能访问父 C++/父 Blueprint 的属性，这是 `ModifyVariable` 做不到的。按需使用 `SaveAsset` 保存。
+使用 `GetClassDefaults` 找到可编辑且大小写敏感的反射属性名及 UE 文本值。`PropertyMetadata` 给出父值、差异、Reset 可用性和拒绝原因，`ParentDefaultPath` 标明来源。`SetClassDefaults` 可传 `Properties` 修改值，也可传 `ResetProperties` 从当前 CDO 原型恢复继承属性。只在目标蓝图声明、父类没有对应属性的字段不能这样恢复；Reset 不支持配置属性和实例化子对象。
+
+例如 `{"BlueprintPath":"/Game/MyActorChild","ResetProperties":["InheritedNumber"],"bDryRun":true}` 可预览继承整数的恢复结果，检查后去掉 `bDryRun` 执行。集合和预览规则与前述组件 setter 相同。CDO 修改为以后创建的目标类实例提供默认值，不主动更新已有后代默认值或已放置实例。修改后回读，按需编译，再单独保存。
 
 ### 6. `ReparentBlueprint` 与 `ReparentComponent`：两个“父级”完全不同
 
