@@ -83,7 +83,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | ModifyMacroDetails | Edits a local ordinary or native MacroLibrary macro's category, tooltip, keywords and compact title. | Uses `Target.Kind: "Macro"`, `Name`, and `GraphGuid`; preserves signatures and does not save automatically; library presentation edits preserve loaded authored-graph consumers. |
 | CreateFunction | Creates a function graph with inputs and outputs. | Can create pure functions or overrides. |
 | RenameFunction | Renames a declared function and safe loaded callers. | Dry-run by default; applying needs explicit reference approval and unsafe bindings block it. |
-| ModifyFunctionSignature | Adds, renames, removes, or changes one function parameter. | Dry-run by default; changing/removing a parameter requires explicit approvals. |
+| ModifyFunctionSignature | Adds, renames, removes, reorders, or changes the type of a function parameter. | Dry-run by default; changing/removing a parameter requires explicit approvals. |
 | RemoveFunction | Removes a declared function graph. | References and unsafe unloaded descendants block removal. |
 | CreateCustomEvent | Adds a Custom Event node. | Optional input parameters are supported. |
 | ModifyCustomEvent | Changes editor-callable, deprecation, and RPC declaration properties of a CustomEvent. | Use `Target.Kind: "CustomEvent"` and `NodeGuid`. Supports local editable events; omitted fields keep their values. |
@@ -253,6 +253,23 @@ UE 5.2 Widgets cannot enable FieldNotify on ReadOnly members. UE 5.2 MVVM also r
 ### ModifyFunctionSignature: function signature pins
 
 Address the declaration with FunctionName plus stable FunctionGraphGuid, and a declared parameter only by stable PinId. Submit exactly one operation. Dry-run is default; apply requires reference approval, and remove/type change also requires potential-data-loss approval. The tool scans callers, rejects unsafe override/interface/RepNotify/delegate/AnimGraph cases, updates ordinary calls transactionally, compiles affected Blueprints, and never saves automatically.
+
+Use `Operation="MovePin"` to reorder a parameter within its input or output group. Get its `PinId` from the function Entry or a Result in `GetGraphDetail`, then provide `NewIndex`, the final zero-based position in that group. For inputs `[A, B, Depth]`, moving `A` to `NewIndex=2` produces `[B, Depth, A]`. Exec and self pins do not count toward this index. `ListBlueprintMembers` displays parameters alphabetically; its `DeclarationIndex` gives their actual signature positions.
+
+For example, copy the Blueprint path, function graph GUID, and declared pin ID into this request:
+
+```json
+{
+  "BlueprintPath": "/Game/Blueprints/BP_Example",
+  "FunctionName": "Evaluate",
+  "FunctionGraphGuid": "<function graph GUID>",
+  "Operation": "MovePin",
+  "PinId": "<Entry or Result pin GUID>",
+  "NewIndex": 2
+}
+```
+
+Review the default dry-run, then send the same request with `bDryRun=false` and `bApproveReferenceUpdates=true`. Moving a parameter to its current position makes no change. `MovePin` accepts no rename, type, default, or parameter-flag edits and needs no potential-data-loss approval. It preserves parameter identities, types, defaults, flags, and connections, updates ordinary same-Blueprint, recursive, and supported external calls, and moves a selected output across all matching Result declarations. Each Result keeps its own literal and pin identity; inconsistent Result signatures reject. Use normal Undo/Redo to undo or reapply a move, and save the affected assets when ready. Derived/override and delegate-bound function changes are unsupported.
 
 ### SetPinDefaults: graph pin defaults
 

@@ -92,7 +92,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `ModifyMacroDetails` | 修改普通蓝图或原生宏库本地宏的分类、提示、关键词和紧凑标题。 | 使用 `Target.Kind: "Macro"`、`Name` 和 `GraphGuid`；不改签名，不自动保存；宏库展示编辑保全已加载权威资产图中的消费者。 |
 | `CreateFunction` | 创建蓝图函数及其参数。 | 需要蓝图路径、函数名和参数定义。 |
 | `RenameFunction` | 重命名用户函数，并更新可安全更新的引用。 | 先使用 dry-run；更新引用必须显式批准。 |
-| `ModifyFunctionSignature` | 添加、重命名、删除或改类型函数参数。 | 默认 dry-run；删除参数或改类型可能造成数据丢失，须显式批准。 |
+| `ModifyFunctionSignature` | 添加、重命名、删除、排序或修改函数参数类型。 | 默认 dry-run；删除参数或改类型可能造成数据丢失，须显式批准。 |
 | `RemoveFunction` | 删除用户函数。 | 有引用或无法安全恢复时会被阻止。 |
 | `CreateCustomEvent` | 在 Event Graph 中创建自定义事件。 | 目标必须是实际的 Event Graph。 |
 | `ModifyCustomEvent` | 修改自定义事件的编辑器调用、弃用和 RPC 声明属性。 | 使用 `Target.Kind: "CustomEvent"` 与 `NodeGuid`；只修改本蓝图可编辑的事件，遗漏字段保持原值。 |
@@ -240,7 +240,24 @@ UE 5.2 的 Widget 不允许对 ReadOnly 成员启用 FieldNotify；5.2 MVVM 还�
 
 ### 2. `ModifyFunctionSignature`：函数参数不是普通节点 Pin
 
-使用 `GetGraphDetail` 找到函数图及 Entry/Result 的所需标识；不要用显示名称代替这些标识。选择一个操作：`AddInput`、`AddOutput`、`RenamePin`、`RemovePin` 或 `ChangePinType`。默认 `bDryRun=true`；更新引用时必须设置 `bApproveReferenceUpdates=true`。删除参数或改参数类型还须设置 `bAllowPotentialDataLoss=true`。工具会处理可安全更新的调用点，失败时尝试回滚；不会自动保存。
+使用 `GetGraphDetail` 找到函数图及 Entry/Result 的所需标识；不要用显示名称代替这些标识。选择一个操作：`AddInput`、`AddOutput`、`RenamePin`、`RemovePin`、`ChangePinType` 或 `MovePin`。默认 `bDryRun=true`；更新引用时必须设置 `bApproveReferenceUpdates=true`。删除参数或改参数类型还须设置 `bAllowPotentialDataLoss=true`。工具会处理可安全更新的调用点，失败时尝试回滚；不会自动保存。
+
+用 `Operation="MovePin"` 调整参数在输入组或输出组内的位置。从 `GetGraphDetail` 的函数 Entry 或 Result 取得参数 `PinId`，再指定 `NewIndex`，表示移动后在该组内从 0 开始的位置。例如输入为 `[A, B, Depth]`，把 `A` 移到 `NewIndex=2` 后得到 `[B, Depth, A]`。Exec 和 self Pin 不计入索引。`ListBlueprintMembers` 按名称显示参数，其中的 `DeclarationIndex` 表示参数在签名中的实际位置。
+
+将蓝图路径、函数图 GUID 和声明 Pin ID 填入以下请求：
+
+```json
+{
+  "BlueprintPath": "/Game/Blueprints/BP_Example",
+  "FunctionName": "Evaluate",
+  "FunctionGraphGuid": "<函数图 GUID>",
+  "Operation": "MovePin",
+  "PinId": "<Entry 或 Result 的 Pin GUID>",
+  "NewIndex": 2
+}
+```
+
+查看默认 dry-run 返回的影响范围后，在同一请求中设置 `bDryRun=false` 和 `bApproveReferenceUpdates=true` 执行移动。移到当前位置不会产生变更。`MovePin` 不接受重命名、类型、默认值或参数标志修改，也不需要潜在数据丢失批准。移动保留参数身份、类型、默认值、标志和连线，并更新同蓝图普通调用、递归调用及支持的外部普通调用。输出参数会在所有匹配的 Result 声明中同步排序，各 Result 保留自己的字面量和 Pin 身份；Result 签名不一致时拒绝移动。可用正常 Undo/Redo 撤销或重做，完成后自行保存受影响资产。派生、覆写及委托绑定函数的修改暂不支持。
 
 ### 3. `SetPinDefaults`：只改未连接输入 Pin 的字面量
 
