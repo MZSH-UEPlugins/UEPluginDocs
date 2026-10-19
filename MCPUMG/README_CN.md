@@ -17,7 +17,7 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 
 更新 MCPUMG 时，请先关闭编辑器，再使用匹配版本的新安装包完整替换现有 `MCPUMG` 目录。不要混用不同引擎版本的文件。
 
-## 工具（58 个）
+## 工具（基础版 71 个；主动启用 MVVM 增强模块后另增 6 个）
 
 ### 发现与读取
 
@@ -36,6 +36,12 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | CompareUIImages | 在不自动缩放、裁剪或对齐的前提下比较两张 UI 图片并返回热图 |
 | CaptureWidgetPreviewMatrix | 按命名状态和尺寸渲染临时预览矩阵 |
 | InspectWidgetPerformance | 读取有界的设计态 WidgetTree 复杂度信号 |
+| ListRuntimeWidgets | 为同类运行中 Widget 实例签发短期令牌 |
+| InspectWidgetRuntime | 读取命名的运行中 Widget 或分页 WidgetTree |
+| GetRuntimeOperation | 查询有界运行时操作的进度与结果 |
+| CancelRuntimeOperation | 请求取消尚未完成的运行时操作 |
+| MeasureWidgetPerformance | 对运行中 Widget 子树采样 Slate CPU 工作 |
+| CaptureWidgetTrace | 捕获有界的原生 Slate Trace |
 | GetUIFrameworkCapabilities | 读取可用的 CommonUI 与 MVVM 操作 |
 | GetMVVMView | 读取 Widget Blueprint 的 MVVM Context 与 Binding |
 | ValidateMVVMBinding | 只读验证一个直接的 OneTime MVVM 属性关系 |
@@ -59,18 +65,23 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | SetWidgetNavigation | 局部设置原生 UMG 导航方向，不自动保存 |
 | GetWidgetNavigation | 读取全部六个原生 UMG 导航方向 |
 | SetWidgetInstanceProperties | 设置嵌套 UserWidget 实例的可编辑属性 |
-| SetNamedSlotContent | 为一个空 Named Slot 创建内容 |
+| InteractWithWidget | 向运行中 Widget 发送限定范围的点击、滚轮、文本、拖动、拖放或导航输入 |
+| ControlWidgetList | 查看或修改运行中列表的选择、展开与滚动 |
+| SetNamedSlotContent | 创建、替换、清空或移动 Named Slot 内容 |
 | CaptureWidgetPreview | 渲染临时 Widget 实例并返回离屏 PNG |
-| ExtractWidgetComponent | 将无依赖 Widget 子树复制为新的 Widget Blueprint |
+| ExtractWidgetComponent | 复制 Widget 子树，或提取后以新实例替换；可迁移受支持的依赖 |
 | ApplyWidgetTheme | 预检并应用可移植的样式/主题对象 |
 | ExportWidgetTheme | 导出指定 Widget 的可移植样式 |
 | BatchSetWidgetProperties | 预检并批量应用多个 Widget Blueprint 的属性改动 |
 | ConfigureCommonUIWidget | 配置一个受支持的既有 CommonUI Widget 实例 |
 | AddMVVMViewModelContext | 添加受支持的 MVVM ViewModel Context |
+| InspectCommonUI | 检查运行中的 CommonUI Widget |
+| ControlCommonUI | 激活、停用、压入或移除受支持的运行中 CommonUI Widget |
+| ConfigureCommonUIInput | 配置白名单内既有 CommonUI 输入资产引用 |
 
 `SetListViewEntryClass` 只持久化条目类。Unreal 将 `UListView::ListItems` 标记为瞬态，因此条目数据仍应在 Blueprint 或运行时通过 `SetListItems`/`AddItem` 注入。
 
-### UMG 动画（9 个工具）
+### UMG 动画（11 个工具）
 
 | 工具 | 说明 |
 |------|------|
@@ -83,6 +94,8 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | SetAnimationKeys | 设置动画关键帧 |
 | DuplicateAnimation | 复制动画、轨道及 Widget 绑定 |
 | SetAnimationPlaybackRange | 以秒设置动画播放区间 |
+| EditAnimationKeys | 预演并精确删除、清空或平移选定关键帧 |
+| RenameAnimation | 重命名现有动画 |
 
 ### 事件逻辑
 
@@ -99,7 +112,9 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | ImportUIFont | 从本地 TTF/OTF 导入配套的 FontFace 与 UFont 资产 |
 | SaveUIAsset | 精确保存一个 Texture2D、FontFace 或 UFont 资产包 |
 
-图片到 UMG 的完整顺序与 Schema 见 [参考图到 UMG 工作流](./ImageToUMG.md)。导航、组件、预览、样式与字体的使用说明分别见 [导航](./Navigation.md)、[组件](./Components.md)、[预览](./Preview.md)、[通用控件样式](./CommonStyles.md)；主题、预览矩阵、动画和组件提取见 [主题](./Themes.md)、[预览矩阵](./PreviewMatrix.md)、[动画工作流](./AnimationWorkflow.md)、[组件提取](./ComponentExtraction.md)；批量迁移、性能与可选框架见 [批量属性迁移](./BatchMigration.md)、[性能结构诊断](./Performance.md)、[可选 UI 框架](./OptionalUIFrameworks.md)，英文指南见 [Reuse Workflow](./ReuseWorkflow_EN.md) 与 [Advanced Workflow](./AdvancedWorkflow_EN.md)。
+主动启用的 Editor 模块 `MCPUMGMVVM` 另注册 `GetMVVMViewDetails`、`ValidateMVVMBindingAdvanced`、`SetMVVMBinding`、`RemoveMVVMBinding`、`UpdateMVVMViewModelContext`、`RemoveMVVMViewModelContext`。原生 MVVM 可用并不代表增强模块已加载；详见[可选 UI 框架](./OptionalUIFrameworks.md)。
+
+图片到 UMG 的完整顺序与 Schema 见 [参考图到 UMG 工作流](./ImageToUMG.md)；运行中实例的令牌、输入、列表、操作与诊断见[运行时交互与诊断](./RuntimeWorkflow.md)。导航、组件、预览、样式与字体见 [导航](./Navigation.md)、[组件](./Components.md)、[预览](./Preview.md)、[通用控件样式](./CommonStyles.md)；主题、预览矩阵、动画和组件提取见 [主题](./Themes.md)、[预览矩阵](./PreviewMatrix.md)、[动画工作流](./AnimationWorkflow.md)、[组件提取](./ComponentExtraction.md)；批量迁移、性能与可选框架见 [批量属性迁移](./BatchMigration.md)、[性能结构诊断](./Performance.md)、[可选 UI 框架](./OptionalUIFrameworks.md)。
 
 ## 配置
 

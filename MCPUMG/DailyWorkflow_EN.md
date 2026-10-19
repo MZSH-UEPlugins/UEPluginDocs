@@ -80,7 +80,7 @@ Use `SetWidgetInstanceProperties` to edit fields on one nested UserWidget instan
 
 Only editor-writable fields that pass `CanEditChange` are accepted; `ExposeOnSpawn` is not required. `ResetToClassDefault: true` starts each supplied field from the nested widget class default before importing the supplied text. Empty properties, structural fields, and a request that changes no value are rejected. Save the owning Blueprint with `SaveWidgetBlueprint` when ready.
 
-Use `SetNamedSlotContent` to create a widget in one empty Named Slot. Required fields are `BlueprintPath`, `HostWidgetName`, `SlotName`, `WidgetClass`, and `WidgetName`; optional `bIsVariable` defaults to `true`, and optional `dryRun` defaults to `false`.
+Use `SetNamedSlotContent` to create, replace, clear, or move content in a Named Slot. `BlueprintPath`, `HostWidgetName`, and `SlotName` are always required. `Operation` defaults to `Create`. For `Create` or `Replace`, also provide `WidgetClass` and a unique `WidgetName`; `bIsVariable` defaults to `true` for the new widget. `Replace` and `Clear` require the current `ExpectedContentName`. `Move` requires `ExistingWidgetName` for a widget in the same owner tree and an empty target slot. Optional `dryRun` defaults to `false`.
 
 ```json
 {
@@ -94,7 +94,7 @@ Use `SetNamedSlotContent` to create a widget in one empty Named Slot. Required f
 }
 ```
 
-The host must implement `INamedSlotInterface`; native hosts and compiled nested UserWidget hosts are supported. Start with `dryRun: true` to check the host, slot, class, name, compiled state, and circular references. The tool refuses occupied slots and cannot clear, replace, move, or destroy existing content. Inspect the result, then use `SaveWidgetBlueprint` explicitly.
+The host must implement `INamedSlotInterface`; native hosts and compiled nested UserWidget hosts are supported. `Create` requires an empty slot. `Replace` and `Clear` can discard existing content only when its dependencies allow it. Start with `dryRun: true` to check the operation and dependencies. Inspect the result, then use `SaveWidgetBlueprint` explicitly.
 
 ## 4. Set keyboard or gamepad navigation
 
@@ -137,3 +137,5 @@ Set `dryRun` to `false` (or omit it) to write the validated directions in one tr
 ```
 
 Creating a temporary UUserWidget runs its Blueprint construction lifecycle. MCPUMG does not call project-specific configuration or arbitrary Blueprint functions, but user-authored Construct logic may still have side effects. Use `CaptureRuntimeWidgetScreenshot` when you need an image of an existing runtime widget instead.
+
+For Widget Material animation previews, each material location used by a track receives a private dynamic material instance (MID) with the source instance's parameter overrides. Only the corresponding brush on the temporary widget is replaced; sampling leaves the shared source MID and other widgets unchanged. The brush must use a valid MID with a valid parent that is not another MID. Preview is rejected if the MID has runtime virtual texture, sparse volume texture, texture collection, or parameter collection overrides, which cannot be copied completely.

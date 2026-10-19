@@ -22,4 +22,4 @@
 - `bDuplicateReferenceDetected`：已经统计过的 Widget 又从另一条路径可达时为 `true`。共享引用会去重，不会被误报为循环。
 - `bTruncated`：分析节点达到 `MaxWidgets` 时为 `true`。
 
-这些指标不能给出毫秒、CPU、GPU、内存、Slate Tick/Paint 开销或实际运行时失效行为。它们用于找出值得进一步观察的结构，例如过深的层级、大量直接子控件、过多绑定或易失控件。需要实测时，请在目标场景中使用 Unreal Insights；需要检查实际 Slate 层级、无效化和绘制行为时，请使用 Widget Reflector。
+这些指标不能给出毫秒、CPU、GPU、内存、Slate Tick/Paint 开销或实际运行时失效行为。它们用于找出值得进一步观察的结构，例如过深的层级、大量直接子控件、过多绑定或易失控件。需要在运行中的 Widget 上取样时，使用 `MeasureWidgetPerformance`；需要有限时长的原生 Trace 时，使用 `CaptureWidgetTrace`，并遵循[运行时工作流](./RuntimeWorkflow.md)中的目标与清理规则。进一步分析可使用 Unreal Insights；检查实际 Slate 层级、无效化和绘制行为可使用 Widget Reflector。

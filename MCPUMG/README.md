@@ -17,7 +17,7 @@ MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via 
 
 To update MCPUMG, close the editor and replace the entire existing `MCPUMG` directory with the matching new package. Do not mix files from different engine versions.
 
-## Tools (58)
+## Tools (71 base tools; 6 more with the opt-in MVVM module)
 
 ### Discovery & Reading
 | Tool | Description |
@@ -35,6 +35,12 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | CompareUIImages | Compare two UI images without hidden resizing, cropping, or alignment |
 | CaptureWidgetPreviewMatrix | Render named temporary states at named sizes as a PNG matrix |
 | InspectWidgetPerformance | Read bounded authored WidgetTree complexity indicators |
+| ListRuntimeWidgets | Issue short-lived tokens for exact-class live Widget instances |
+| InspectWidgetRuntime | Read a named live Widget or paged runtime WidgetTree |
+| GetRuntimeOperation | Read progress and results of a bounded runtime operation |
+| CancelRuntimeOperation | Request cancellation of a pending runtime operation |
+| MeasureWidgetPerformance | Sample bounded Slate CPU work for a live Widget subtree |
+| CaptureWidgetTrace | Capture a bounded native Slate trace for a live Widget |
 | GetUIFrameworkCapabilities | Read the available CommonUI and MVVM operations |
 | GetMVVMView | Read MVVM contexts and bindings on a Widget Blueprint |
 | ValidateMVVMBinding | Validate one direct OneTime MVVM property relationship without editing bindings |
@@ -57,18 +63,23 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | SetWidgetNavigation | Patch selected native UMG navigation directions without saving |
 | GetWidgetNavigation | Read all six native UMG navigation directions |
 | SetWidgetInstanceProperties | Set editable properties on a nested UserWidget instance |
-| SetNamedSlotContent | Add content to one empty Named Slot |
+| InteractWithWidget | Send scoped click, wheel, text, drag, drag-drop, or navigation input to a live Widget |
+| ControlWidgetList | Inspect or change selection, expansion and scrolling on a live list |
+| SetNamedSlotContent | Create, replace, clear, or move Named Slot content |
 | CaptureWidgetPreview | Render a temporary Widget instance and return an off-screen PNG |
-| ExtractWidgetComponent | Copy one dependency-free widget subtree into a new Widget Blueprint |
+| ExtractWidgetComponent | Copy a Widget subtree or replace it with an extracted instance, with optional supported-dependency migration |
 | ApplyWidgetTheme | Preflight and apply a portable style/theme object |
 | ExportWidgetTheme | Export portable styles for explicit widgets |
 | BatchSetWidgetProperties | Preflight and apply bounded property changes across Widget Blueprints |
 | ConfigureCommonUIWidget | Configure a supported existing CommonUI widget instance |
 | AddMVVMViewModelContext | Add a supported MVVM viewmodel context |
+| InspectCommonUI | Inspect a live CommonUI widget |
+| ControlCommonUI | Activate, deactivate, push or remove supported live CommonUI widgets |
+| ConfigureCommonUIInput | Set allowlisted existing CommonUI input asset references |
 
 `SetListViewEntryClass` persists only the entry class. Unreal marks `UListView::ListItems` as transient, so populate items from Blueprint or runtime data with `SetListItems`/`AddItem`.
 
-### UMG Animations (9 tools)
+### UMG Animations (11 tools)
 | Tool | Description |
 |------|-------------|
 | ListAnimations | List all animations |
@@ -80,6 +91,8 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | SetAnimationKeys | Set animation keyframes |
 | DuplicateAnimation | Copy an animation with its tracks and widget bindings |
 | SetAnimationPlaybackRange | Set an animation's playback range in seconds |
+| EditAnimationKeys | Dry-run and precisely delete, clear or shift selected keys |
+| RenameAnimation | Rename an existing animation |
 
 ### Event Logic
 | Tool | Description |
@@ -95,7 +108,9 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | ImportUIFont | Import one local TTF/OTF file as paired FontFace and UFont assets |
 | SaveUIAsset | Save exactly one Texture2D, FontFace, or UFont package |
 
-See [Reference Image to UMG](./ImageToUMG.md) for the workflow and schema. For practical navigation, component, preview, style, font, reuse, themes, animation, batch, performance, and optional framework use, see [Daily Workflow](./DailyWorkflow_EN.md), [Reuse Workflow](./ReuseWorkflow_EN.md), [Advanced Workflow](./AdvancedWorkflow_EN.md), [component extraction](./ComponentExtraction.md), [Common styles](./CommonStyles.md), [components](./Components.md), [navigation](./Navigation.md), [previews](./Preview.md), [themes](./Themes.md), [preview matrices](./PreviewMatrix.md), [animation workflow](./AnimationWorkflow.md), [batch migration](./BatchMigration.md), [performance](./Performance.md), and [optional UI frameworks](./OptionalUIFrameworks.md).
+The opt-in `MCPUMGMVVM` Editor module adds `GetMVVMViewDetails`, `ValidateMVVMBindingAdvanced`, `SetMVVMBinding`, `RemoveMVVMBinding`, `UpdateMVVMViewModelContext`, and `RemoveMVVMViewModelContext`. Native MVVM availability alone does not load this module. See [optional UI frameworks](./OptionalUIFrameworks.md).
+
+See [Reference Image to UMG](./ImageToUMG.md) for the workflow and schema, and [runtime interaction and diagnostics](./RuntimeWorkflow_EN.md) for live tokens, input, lists, operations, sampling and tracing. For the remaining workflows, use [Daily Workflow](./DailyWorkflow_EN.md), [Reuse Workflow](./ReuseWorkflow_EN.md), [Advanced Workflow](./AdvancedWorkflow_EN.md), [component extraction](./ComponentExtraction.md), [Common styles](./CommonStyles.md), [components](./Components.md), [navigation](./Navigation.md), [previews](./Preview.md), [themes](./Themes.md), [preview matrices](./PreviewMatrix.md), [animation workflow](./AnimationWorkflow.md), [batch migration](./BatchMigration.md), [performance](./Performance.md), and [optional UI frameworks](./OptionalUIFrameworks.md).
 
 ## Configuration
 

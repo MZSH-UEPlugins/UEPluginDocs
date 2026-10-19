@@ -2,7 +2,7 @@
 
 ## 为 Named Slot 创建内容
 
-`SetNamedSlotContent` 在指定 Widget Blueprint 的控件树中查找 `HostWidgetName`，并为其一个空的 `SlotName` 创建 `WidgetClass` 内容。宿主可以是原生实现 `INamedSlotInterface` 的控件，也可以是已经成功编译、公开 Named Slot 的嵌套 UserWidget。
+`SetNamedSlotContent` 在指定 Widget Blueprint 的控件树中查找 `HostWidgetName`，对其 `SlotName` 执行 `Create`（默认）、`Replace`、`Clear` 或 `Move`。宿主可以是原生实现 `INamedSlotInterface` 的控件，也可以是已经成功编译、公开 Named Slot 的嵌套 UserWidget。
 
 ```json
 {
@@ -18,7 +18,7 @@
 
 先以 `dryRun: true` 检查宿主、槽名、类、名称、编译状态和循环引用，再将它改为 `false` 执行。成功后使用 `GetWidgetTree` 或 `GetWidgetProperties` 读回，并显式调用 `SaveWidgetBlueprint`；工具自身不会保存。
 
-为避免静默破坏绑定、动画或图表引用，非空槽一律拒绝。该工具也不提供 clear、replace 或 move；需要移除现有内容时，应在编辑器中核对所有依赖后处理。
+`Create` 要求目标槽为空；`Replace` 和 `Clear` 必须提供当前内容的 `ExpectedContentName`，以防状态过期。`Move` 用 `ExistingWidgetName` 指定同一控件树内的现有控件，目标槽须为空。先按操作执行 dry run，核对依赖与返回状态，再应用并保存。
 
 ## 设置嵌套 UserWidget 的实例参数
 

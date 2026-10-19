@@ -1,6 +1,6 @@
 # Widget Reuse Workflow
 
-This workflow covers extracting a dependency-free widget subtree, moving portable styles between Widget Blueprints, comparing temporary states at multiple sizes, and extending UMG animations.
+This workflow covers extracting a widget subtree, moving portable styles between Widget Blueprints, comparing temporary states at multiple sizes, and extending UMG animations.
 
 ## Extract a component
 
@@ -15,7 +15,7 @@ This workflow covers extracting a dependency-free widget subtree, moving portabl
 }
 ```
 
-Native widgets and internal slot properties are copied. The source is not changed. The subtree may use ordinary `bIsVariable` widgets, but extraction rejects graph, BindWidget, delegate, animation, desired-focus, cross-subtree widget/navigation, Named Slot content, and UI-component dependencies. After a non-dry run, save the newly created Widget Blueprint explicitly with `SaveWidgetBlueprint`.
+Native widgets and internal slot properties are copied. By default, `ReplaceSource:false` leaves the source unchanged. `ReplaceSource:true` installs an instance of the new component at the source position in one editor transaction; optional `InstanceName` defaults to the original widget name. `DependencyMode` defaults to `Reject`. `MigrateSupported` can move Named Slot content contained within the subtree and closed property animations whose bindings all stay within it and have no dynamic binding function. Graph, BindWidget, delegate, desired-focus, UI-component, external/custom navigation, cross-subtree animation, and non-property-track dependencies remain rejected. The dry run reports `WouldChange`, `Dependencies`, and any `PreflightError`. After applying, explicitly save the new Widget Blueprint and, if replaced, the source with `SaveWidgetBlueprint`.
 
 ## Export and apply a theme
 
@@ -69,3 +69,11 @@ Each cell is a `TemporaryNewInstance`, not a PIE/Game screenshot. Asset-path lis
 `SetAnimationKeys` supports `TangentMode` (`Auto`, `User`, or `Break`) and finite `ArriveTangent`/`LeaveTangent` for Cubic keys. Linear and Constant keys reject tangent values. These animation changes are not saved automatically; call `SaveWidgetBlueprint` when ready.
 
 `GetAnimationDetail` also returns Cubic tangent modes and arrive/leave slopes. `Auto` lets the engine calculate slopes; use `User` or `Break` for manual slopes. Tangents must be JSON numbers representable as float.
+
+`GetAnimationDetail` pages through bindings, tracks, sections, and Float/Bool/Byte channel keys. Use its `BindingGuid` and indices for `EditAnimationKeys`, which edits one exact channel. Supply `WidgetName` and, for a slot binding, `SlotWidgetName`, plus `TrackIndex`, `SectionIndex`, `ChannelType`, and `ChannelIndex`. Choose `Operation: Delete`, `Clear`, or `Shift`; select integer tick `Frames` or an inclusive `StartSeconds`/`EndSeconds` range. `Clear` without a selector clears the channel. `Shift` requires `ShiftSeconds` and rejects occupied or out-of-range destinations. `bDryRun` defaults to `true`; pass its `Fingerprint` as `ExpectedFingerprint` with `bDryRun:false` to apply. Save intended changes explicitly.
+
+`RenameAnimation` takes `BlueprintPath`, the existing `AnimationName`, and a unique `NewAnimationName` that does not conflict with a widget, another animation, or a Blueprint member. It rejects an old name used by a parent native `BindWidgetAnim` or `BindWidgetAnimOptional` property, known external assets referencing the Widget Blueprint, and graph string pins containing the old animation name. Review those dependencies before renaming, then save the Widget Blueprint explicitly.
+
+```json
+{"BlueprintPath":"/Game/UI/WBP_Menu","AnimationName":"FadeIn","NewAnimationName":"FadeInFast"}
+```
