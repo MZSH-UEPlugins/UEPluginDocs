@@ -45,11 +45,11 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 
 - 大型资产、成员、图表和 Pin 读取的稳定有界分页。
 - 使用 Action Registry 返回的节点 ID，而不是编造节点类型。
-- 单事务图表 Patch：创建、连接、断开、删除、移动、默认值和布局；失败时尝试自动回滚，恢复无法证明会明确报告。
+- 单事务图表 Patch：创建、连接、断开、删除、移动、默认值和布局；失败后保留已发生的修改，可使用 UE 原生 Undo 撤销。
 - `Balanced`、`Straight`、`Compact` 三种确定性布局风格。
 - 局部和全图布局中的原生 Comment Box 包围关系保护。
 - 高风险修改的 dry-run 影响分析和显式批准门禁。
-- 事务回滚，以及 Unreal 支持范围内的单步 Undo。
+- Unreal 原生事务和 Undo；部分声明编辑工具另有自动回滚检查。
 - 显式持久化：普通编辑工具只把资产标脏；`SaveAsset` 明确写盘，`DeleteAsset` 在更严格门禁后明确删除磁盘资产。
 - 无需项目声明即可从引擎目录自动发现并加载。
 
@@ -115,7 +115,7 @@ MCPBlueprint 会自动启用，并在编辑器启动时自动启动本机 MCP �
 | `ModifyClassSettings` | 修改或清空普通蓝图的显示名、描述与分类。 | 省略字段保留原值，不修改实例默认值。 |
 | `AddEventDispatcher` | 添加事件分发器。 | 指定名称和签名。 |
 | `RemoveEventDispatcher` | 删除事件分发器。 | 有引用或无法安全恢复时会被阻止。 |
-| `ApplyGraphPatch` | 在一次操作中创建、连线、断线、删除、移动节点，设置默认值并布局。 | 先搜索节点；支持 dry-run；失败时会尝试回滚。 |
+| `ApplyGraphPatch` | 在一次操作中创建、连线、断线、删除、移动节点，设置默认值并布局。 | 先搜索节点；支持 dry-run；失败可能保留修改，可使用原生 Undo。 |
 | `SetPinDefaults` | 修改现有节点输入 Pin 的字面量。 | 已连线的输入 Pin 在运行时会忽略字面量。 |
 | `FormatGraph` | 用 `Balanced`、`Straight` 或 `Compact` 整理图表布局。 | 可按图或范围指定布局。 |
 | `AddCommentBox` | 添加原生 Comment Box。 | 指定文字和范围或目标节点。 |
@@ -461,7 +461,13 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 - 通过节点标识和图坐标定位的 `MoveNodes`。
 - 可选的 `PinDefaults`、`PromotedType`、布局范围和布局风格。
 
-整个 Patch 只使用自己的事务，失败时会检查 Undo 记录归属并尝试恢复。`ApplyGraphPatch`、`ModifyVariable`、`ModifyLocalVariable` 和 `ModifyFunctionSignature` 的恢复响应带有 `RecoveryContractVersion: 2`，仍作为错误返回。查看以下字段后再决定下一步：
+整个 Patch 使用 UE 原生事务。执行或编译失败时，工具返回错误并保留已发生的修改，不会自动撤销或重新编译旧状态。重试前先读回图内容；需要放弃本次修改时，可使用原生 Undo。
+
+支持动画蓝图中的普通 K2 函数图和事件图；AnimGraph 和动画状态机图应使用动画专用工具。编辑不要求完整捕获动画运行时缓存，也不要求已有生成类 CDO。
+
+`ApplyGraphPatch` 的执行错误返回 `NativeTransactionStatus`、`ChangesMayRemain` 和 `bUndoAttempted: false`，说明事务状态及是否可能留有修改，不表示已完整恢复。撤销前应检查图内容与编辑器的 Undo 历史，尤其是事务归属已丢失时。
+
+`ModifyVariable`、`ModifyLocalVariable` 和 `ModifyFunctionSignature` 的恢复响应带有 `RecoveryContractVersion: 2`，仍作为错误返回。查看以下字段后再决定下一步：
 
 | 字段 | 含义 |
 |---|---|
@@ -474,7 +480,7 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 | `DefaultRepairResult`、`DefaultRepairProperties` | 变量恢复编译后对指定成员默认值的恢复结果和属性路径；`Applied` 仍须通过最终全量比较。 |
 | `AuthoringDifference`、`RuntimeDifference`、`RecoveryError` | 未恢复内容或无法检查的位置和原因。 |
 
-若出现内容差异、运行时差异或无法证明恢复，请停止修改并检查当前资产。Dirty 或已有编译错误的图仍可建图；蓝图缺少 Undo 所需的实际生成类/CDO 时会返回 `RecoveryUnavailable`，不会偷偷先编译。
+上述声明编辑工具若报告内容差异、运行时差异或无法证明恢复，请停止修改并检查当前资产。它们的恢复要求与 `ApplyGraphPatch` 不同；后者允许编辑 Dirty 或已有编译错误的图，不以完整恢复快照作为编辑前提。
 
 ## 成员、函数、Struct 与 Enum
 
@@ -522,7 +528,7 @@ FinalScore = (BaseScore + Bonus) × Multiplier
 - 函数：`{"Kind":"Function","Name":"ExistingHandler","FunctionGraphGuid":"<ListBlueprintMembers 返回的 FunctionGraphGuid>"}`。
 - Custom Event：`{"Kind":"CustomEvent","NodeGuid":"<已有 Custom Event 的 NodeGuid>"}`。
 
-目标必须是当前蓝图自身已有、且签名兼容的处理函数或事件。把 Create Event 的 `OutputDelegate` 连到 Bind 或 Unbind 的 `Delegate`；需要对象连接时也在同一 Patch 中提供。工具完成连接后选择目标并检查签名，失败时回滚整个 Patch，包括 Assign 的伴生事件。目标使用稳定 GUID 识别，GUID 失效时不会按同名目标回退。
+目标必须是当前蓝图自身已有、且签名兼容的处理函数或事件。把 Create Event 的 `OutputDelegate` 连到 Bind 或 Unbind 的 `Delegate`；需要对象连接时也在同一 Patch 中提供。工具完成连接后选择目标并检查签名，失败时可能保留 Patch 的修改，包括 Assign 的伴生事件；需要放弃修改时使用原生 Undo。目标使用稳定 GUID 识别，GUID 失效时不会按同名目标回退。
 
 这五种分发器操作支持目标蓝图自身声明的标量分发器。`Delegate:<操作>:self:<声明GUID>` 标识在编译和保存后保持稳定；删除后同名重建会产生新 GUID，旧标识会被拒绝，应重新搜索。节点创建仍不支持继承或跨蓝图目标。已有本地声明的签名与改名操作见下节。
 

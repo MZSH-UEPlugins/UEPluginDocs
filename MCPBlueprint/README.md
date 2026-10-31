@@ -106,7 +106,7 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 | ModifyClassSettings | Changes or clears an ordinary Blueprint's display name, description and category. | Omitted fields keep their values; instance defaults are unaffected. |
 | AddEventDispatcher | Adds an Event Dispatcher. | Optional input signature; repeating it is safe. |
 | RemoveEventDispatcher | Removes a declared Event Dispatcher. | References and unsafe unloaded descendants block removal. |
-| ApplyGraphPatch | Applies one atomic graph edit. | Use legal SpawnerIds; start with dry-run; maximum 60 operations. |
+| ApplyGraphPatch | Edits a graph in one native Unreal transaction. | Use legal SpawnerIds; start with dry-run; maximum 60 operations. Failed edits may leave changes for native Undo. |
 | SetPinDefaults | Sets literal values on graph input pins. | Values use UE text; a connected pin keeps its connection. |
 | FormatGraph | Plans or applies graph layout. | Supports dry-run, scope, style, and optional reroutes. |
 | AddCommentBox | Adds a native comment around nodes. | Dry-run can preview bounds. |
@@ -139,9 +139,13 @@ The table is a quick guide. Live tools/list remains the source for the exact fie
 
 Call SearchGraphNodes first and use only returned `SpawnerId` values. A patch can create nodes with temporary IDs, connect or disconnect pins, remove or move already-present nodes by stable GUID, set pin defaults, and apply layout. Pin references use a patch temporary ID for new nodes or `@<NodeGuid>` for already-present nodes. The combined operation limit is 60 across node creation, connections, disconnections, removals, and moves.
 
-Start with `bDryRun=true`. Inspect normalized operations and every blocker; dry-run may explicitly say that Action Registry nodes, generated pins, type promotion, or exact post-layout state cannot be proven without mutation. Apply the same planned patch once. The write executes in one transaction and attempts automatic rollback on failure. If recovery cannot be proven, the response reports that explicitly; stop and read the graph back before any retry. Then call GetGraphDetail, compile, and explicitly save only when persistence is wanted. Use the default Auto layout for normal authored logic; use explicit positions or `LayoutScope=None` only for a real fixed-layout requirement.
+Start with `bDryRun=true`. Inspect normalized operations and every blocker; dry-run may explicitly say that Action Registry nodes, generated pins, type promotion, or exact post-layout state cannot be proven without mutation. Apply the same planned patch once. The write uses a native Unreal transaction. If execution or compilation fails after editing starts, the tool reports the error and keeps any changes for native Undo; it does not undo or recompile the previous state automatically. Read the graph back before retrying. Then call GetGraphDetail, compile, and explicitly save only when persistence is wanted. Use the default Auto layout for normal authored logic; use explicit positions or `LayoutScope=None` only for a real fixed-layout requirement.
 
-Recovery responses from `ApplyGraphPatch`, `ModifyVariable`, `ModifyLocalVariable`, and `ModifyFunctionSignature` use `RecoveryContractVersion: 2` and remain errors. Check these fields before deciding what to do next:
+Ordinary K2 function and event graphs in Animation Blueprints are supported. AnimGraph and animation state-machine graphs require animation-specific tools. Editing does not require a complete snapshot of animation runtime caches or an existing generated CDO.
+
+An `ApplyGraphPatch` execution error reports `NativeTransactionStatus`, `ChangesMayRemain`, and `bUndoAttempted: false`. These describe the transaction and whether edits may remain; they do not claim complete recovery. Inspect the graph and the editor's Undo history before undoing, especially if transaction ownership was lost.
+
+Recovery responses from `ModifyVariable`, `ModifyLocalVariable`, and `ModifyFunctionSignature` use `RecoveryContractVersion: 2` and remain errors. Check these fields before deciding what to do next:
 
 | Field | Meaning |
 |---|---|
@@ -154,7 +158,7 @@ Recovery responses from `ApplyGraphPatch`, `ModifyVariable`, `ModifyLocalVariabl
 | `DefaultRepairResult`, `DefaultRepairProperties` | Result and property paths for restoring a specified variable default after recovery compilation. `Applied` still requires the final complete comparison. |
 | `AuthoringDifference`, `RuntimeDifference`, `RecoveryError` | The location and cause of a difference or unavailable recovery proof. |
 
-Stop editing and inspect the current assets when content/runtime differs or recovery cannot be proven. Dirty graphs and graphs with existing compiler errors remain editable. A Blueprint without the actual generated class/CDO needed by native Undo returns `RecoveryUnavailable`; the tool does not compile it implicitly before the edit.
+For those declaration-editing tools, stop editing and inspect the current assets when content/runtime differs or recovery cannot be proven. Their recovery requirements are separate from `ApplyGraphPatch`, which permits dirty graphs and graphs with existing compiler errors without requiring a complete recovery snapshot.
 
 ### ModifyVariable: member-variable declarations and defaults
 
@@ -471,7 +475,7 @@ To use an existing function or Custom Event as a receiver, search with `Query="C
 - Function: `{"Kind":"Function","Name":"ExistingHandler","FunctionGraphGuid":"<FunctionGraphGuid from ListBlueprintMembers>"}`.
 - Custom Event: `{"Kind":"CustomEvent","NodeGuid":"<NodeGuid of the existing Custom Event>"}`.
 
-The target must already belong to the current Blueprint and have a compatible signature. Connect Create Event's `OutputDelegate` to Bind or Unbind's `Delegate`; provide any required object connection in the same Patch. The tool selects the target and checks its signature after making the connections. A failure rolls back the entire Patch, including any Assign companion event. Targets use stable GUIDs; an invalid GUID never falls back to a target with the same name.
+The target must already belong to the current Blueprint and have a compatible signature. Connect Create Event's `OutputDelegate` to Bind or Unbind's `Delegate`; provide any required object connection in the same Patch. The tool selects the target and checks its signature after making the connections. A failure may leave the Patch's changes, including an Assign companion event; use native Undo if you want to discard that edit. Targets use stable GUIDs; an invalid GUID never falls back to a target with the same name.
 
 These five dispatcher actions support scalar dispatchers declared in the target Blueprint itself. Their `Delegate:<operation>:self:<declarationGUID>` IDs survive compilation and saving. Deleting and recreating the same name produces a new GUID: old IDs are rejected, so search again. Node creation still excludes inherited or cross-Blueprint targets. Editing existing local declarations is covered below.
 
