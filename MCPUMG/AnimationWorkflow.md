@@ -6,6 +6,9 @@
 | 属性类型 | `Value` 格式 |
 |---|---|
 | `float` | 有限数字，例如 ProgressBar 的 `Percent` |
+| `double` | 有限数字，保留 double 精度 |
+| `int32` | -2147483648 至 2147483647 的整数；阶梯插值，省略 `Interp` 或使用 `Constant`，不得携带切线字段 |
+| 独立 2/3/4 维向量 | 完整的 `{X,Y}`、`{X,Y,Z}` 或 `{X,Y,Z,W}`，不得缺项、多项或使用单个数字 |
 | `bool` | `true` 或 `false` |
 | `uint8` | 0 至 255 的整数 |
 | 以 `uint8` 存储的枚举 | 该属性实际枚举中的名称，例如 `Visibility` 的 `Hidden` |
@@ -13,7 +16,9 @@
 | `FMargin` | `{Left,Top,Right,Bottom}`，四项都必填 |
 | `FWidgetTransform` 分量 | `.Translation`、`.Scale`、`.Shear` 使用 `{X,Y}` 或同时作用于两轴的单个数字；`.Angle` 使用角度数字 |
 
-路径可包含固定结构体字段，并使用实际属性名称保存。数组、集合、映射、固定数组、跨 UObject 路径、废弃属性，以及整数、double 和独立向量属性不受支持。属性还必须有可用的播放更新路线：匹配的引擎访问器、原生 setter、签名兼容的 `Set<Property>`，或可安全直接写入的 `Interp` 字段。嵌套字段若会误用根对象的同名 setter，或绕过父属性的刷新逻辑，会被拒绝。仅有可写字段不代表它能用于动画。
+路径可包含固定结构体字段，并使用实际属性名称保存。数组、集合、映射、固定数组、跨 UObject 路径、废弃属性，以及 `int32`、`uint8` 以外的整数属性不受支持。属性还必须有可用的播放更新路线：匹配的引擎访问器、原生 setter、签名兼容的 `Set<Property>`，或可安全直接写入的 `Interp` 字段。嵌套字段若会误用根对象的同名 setter，或绕过父属性的刷新逻辑，会被拒绝。仅有可写字段不代表它能用于动画。
+
+向量类型按真实反射结构区分：float 使用 `FVector2f`、`FVector3f`、`FVector4f`；double 使用 `FVector2D`、`FVector`、`FVector4`，以及显式的 `FVector3d`、`FVector4d`。float 分量必须在 float 可表示范围内，double 分量必须有限。已有向量轨道、区段和通道的维数必须与属性一致；已有整数通道若启用线性插值，也会被拒绝，不会自动修复。
 
 对没有原生 setter 或完整路径访问器、且名称以小写 `b` 开头的 bool 属性，只要存在 `Set` 加完整属性名或去掉 `b` 后名称的任一种函数，就会拒绝普通 setter 路线，以避免不同引擎版本产生不同播放行为；两种函数均不存在时，才可按 `Interp` 字段规则直接写入。大写 `B` 不作前缀处理，例如 `Busy` 对应 `SetBusy`，并检查其签名。
 
@@ -36,7 +41,9 @@
 
 `GetAnimationDetail` 同时返回 Cubic 键的切线模式与入/出切线。`Auto` 由引擎计算切线；手工斜率请使用 `User` 或 `Break`。切线必须是 JSON 数字且在 float 可表示范围内。
 
-`GetAnimationDetail` 还分页返回绑定 GUID、轨道/区段索引及 Float、Bool、Byte 通道的键详情。先用它确定精确位置，再用 `EditAnimationKeys` 删除、清空或平移一个通道中的键。请求需要 `BindingGuid`、`WidgetName`（Slot 绑定另传 `SlotWidgetName`）、`TrackIndex`、`SectionIndex`、`ChannelType` 和 `ChannelIndex`。`Operation` 为 `Delete`、`Clear` 或 `Shift`；用整数 tick 帧数组 `Frames`，或同时给出含端点的 `StartSeconds`、`EndSeconds` 选择键。`Clear` 不带选择器时清空整个通道；`Shift` 还需 `ShiftSeconds`，目标不得碰撞现有键或超出播放范围。
+`GetAnimationDetail` 使用 `DoubleChannels` 和 `IntegerChannels` 返回新通道，向量轨道另含 `Dimensions`；这些通道与其他轨道共用分页额度。
+
+`GetAnimationDetail` 还分页返回绑定 GUID、轨道/区段索引及 Float、Double、Integer、Bool、Byte 通道的键详情。先用它确定精确位置，再用 `EditAnimationKeys` 删除、清空或平移一个通道中的键。请求需要 `BindingGuid`、`WidgetName`（Slot 绑定另传 `SlotWidgetName`）、`TrackIndex`、`SectionIndex`、`ChannelType` 和 `ChannelIndex`。`Operation` 为 `Delete`、`Clear` 或 `Shift`；用整数 tick 帧数组 `Frames`，或同时给出含端点的 `StartSeconds`、`EndSeconds` 选择键。`Clear` 不带选择器时清空整个通道；`Shift` 还需 `ShiftSeconds`，目标不得碰撞现有键或超出播放范围。
 
 `bDryRun` 默认 `true`，返回本次区段的 `Fingerprint` 和受影响键数。实际应用时传 `bDryRun:false` 与该值作为 `ExpectedFingerprint`；过期指纹会被拒绝。修改后蓝图仍需显式保存。
 
@@ -54,7 +61,7 @@
 
 `GetAnimationDetail` 的 `RootTracks` 返回动画根轨道，包含事件轨道各区段的 `EventChannels`、`ChannelIndex`、键的 `Frame` 和 `Time`，以及可用的事件名称、端点 GUID 和编译状态。`TrackIndex` 是根轨道列表中的原始索引，不能按事件轨道过滤后重新编号。`Bindings` 中的轨道与 `RootTracks` 共用 `Offset`、`MaxItems` 和 `NextOffset`；`ContextOnly:true` 的父对象仅用于定位当前页的子项。
 
-编辑根事件通道时，显式传入 `TrackScope:"Root"` 和 `ChannelType:"Event"`，并使用返回的 `TrackIndex`、`SectionIndex`、`ChannelIndex`。请求中不得出现 `BindingGuid`、`WidgetName` 或 `SlotWidgetName`，空字符串也不允许。省略 `TrackScope` 时仍使用 `Binding`，只支持原有的 Float、Bool、Byte 通道及绑定地址。
+编辑根事件通道时，显式传入 `TrackScope:"Root"` 和 `ChannelType:"Event"`，并使用返回的 `TrackIndex`、`SectionIndex`、`ChannelIndex`。请求中不得出现 `BindingGuid`、`WidgetName` 或 `SlotWidgetName`，空字符串也不允许。省略 `TrackScope` 时仍使用 `Binding`，支持 Float、Double、Integer、Bool、Byte 通道及绑定地址。
 
 ```json
 {"BlueprintPath":"/Game/UI/WBP_Menu","AnimationName":"Intro","TrackScope":"Root","TrackIndex":0,"SectionIndex":0,"ChannelType":"Event","ChannelIndex":0,"Operation":"Shift","StartSeconds":0.25,"EndSeconds":0.25,"ShiftSeconds":0.25,"bDryRun":true}

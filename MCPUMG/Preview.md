@@ -37,7 +37,7 @@
 
 响应会明确给出 `PreviewState: TemporaryNewInstance`、`RuntimeState: NotRuntime`、`ProductionState: Unchanged` 与 `SaveStatus: NotSaved`，并附带 PNG。还会返回实际 RenderTarget 尺寸、像素数、两次布局渲染，以及实际应用的 Widget 覆盖和列表样本计数。
 
-指定动画时，工具在临时动画副本上以静默 MovieScene 评估器采样视觉轨道，移除事件轨道，并返回量化后的 `ActualTimeSeconds`。支持的视觉轨道包括 Float、Bool、Enum、Color、2D Transform、Margin 和 Widget Material；其他轨道不能当作通用脚本执行。此机制不阻止 Widget Construct 或列表回调中的项目代码。
+指定动画时，工具在临时动画副本上以静默 MovieScene 评估器采样视觉轨道，移除事件轨道，并返回量化后的 `ActualTimeSeconds`。支持的视觉轨道包括 Float、Double、Integer、Float Vector、Double Vector、Bool、Byte、Enum、Color、2D Transform、Margin 和 Widget Material；其他轨道不能当作通用脚本执行。此机制不阻止 Widget Construct 或列表回调中的项目代码。
 
 Widget Material 动画会为轨道实际使用的每个材质位置创建独立的动态材质实例（MID），复制原实例的参数覆盖，并只替换临时 Widget 的对应画刷。采样不会修改共享的源 MID 或其他 Widget。画刷必须使用有效的 MID，且其父材质必须有效、不能也是 MID。带有运行时虚拟纹理、稀疏体积纹理、纹理集合或参数集合覆盖的 MID 无法完整复制，工具会拒绝这类预览。
 

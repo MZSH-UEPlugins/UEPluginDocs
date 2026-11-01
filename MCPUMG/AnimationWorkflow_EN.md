@@ -6,6 +6,9 @@
 | Property type | `Value` format |
 |---|---|
 | `float` | A finite number, such as ProgressBar's `Percent` |
+| `double` | A finite number, preserving double precision |
+| `int32` | An integer from -2147483648 to 2147483647; step interpolation, with `Interp` omitted or set to `Constant`, and no tangent fields |
+| Standalone 2D/3D/4D vector | A complete `{X,Y}`, `{X,Y,Z}`, or `{X,Y,Z,W}` object; missing fields, extra fields, and scalar values are rejected |
 | `bool` | `true` or `false` |
 | `uint8` | An integer from 0 to 255 |
 | Enum stored as `uint8` | A name from that property's actual enum, such as `Hidden` for `Visibility` |
@@ -13,7 +16,9 @@
 | `FMargin` | `{Left,Top,Right,Bottom}`, with all four fields required |
 | `FWidgetTransform` component | `.Translation`, `.Scale`, and `.Shear` take `{X,Y}` or one number for both axes; `.Angle` takes a number in degrees |
 
-Paths may include fixed struct fields and are stored with their actual property names. Arrays, sets, maps, fixed arrays, UObject traversal, deprecated fields, integers, doubles, and standalone vectors are unsupported. Playback also requires a matching engine accessor, a native setter, a compatible `Set<Property>` function, or an `Interp` field that is safe to write directly. Nested fields are rejected if playback could call an unrelated root setter with the same leaf name or bypass a parent property's refresh logic. A writable field alone does not qualify it for animation.
+Paths may include fixed struct fields and are stored with their actual property names. Arrays, sets, maps, fixed arrays, UObject traversal, deprecated fields, and integer properties other than `int32` and `uint8` are unsupported. Playback also requires a matching engine accessor, a native setter, a compatible `Set<Property>` function, or an `Interp` field that is safe to write directly. Nested fields are rejected if playback could call an unrelated root setter with the same leaf name or bypass a parent property's refresh logic. A writable field alone does not qualify it for animation.
+
+Vector types are identified by their reflected structures: `FVector2f`, `FVector3f`, and `FVector4f` use float channels; `FVector2D`, `FVector`, `FVector4`, and the explicit `FVector3d` and `FVector4d` structures use double channels. Float components must fit in float; double components must be finite. Existing vector tracks, sections, and channel layouts must match the property dimension. Existing integer channels with linear interpolation enabled are rejected without repair.
 
 For a bool whose name starts with lowercase `b`, a native setter or full-path accessor is required if either `Set` plus the full property name or `Set` plus the name without `b` exists. The tools reject this fallback to keep playback consistent across supported engine versions. If neither function exists, the property may use the direct `Interp` field route. Uppercase `B` is kept: `Busy`, for example, uses `SetBusy`, whose signature must be compatible.
 
@@ -34,7 +39,9 @@ A full property path must identify one track within its binding. Duplicate track
 
 Cubic keys in `SetAnimationKeys` accept `TangentMode` (`Auto`, `User`, or `Break`) and finite `ArriveTangent` and `LeaveTangent` values. Linear or Constant keys with tangents are rejected without changing the asset. `GetAnimationDetail` returns cubic tangent modes and slopes. The engine calculates `Auto` tangents; use `User` or `Break` for manual slopes. Tangents must be JSON numbers within the float range.
 
-`GetAnimationDetail` pages through binding GUIDs, track and section indices, and Float, Bool, and Byte channel keys. Use these addresses with `EditAnimationKeys` to delete, clear, or shift keys in one channel. Binding requests need `BindingGuid`, `WidgetName`, `TrackIndex`, `SectionIndex`, `ChannelType`, and `ChannelIndex`; slot bindings also need `SlotWidgetName`. `Operation` accepts `Delete`, `Clear`, or `Shift`. Select integer tick frames with `Frames`, or an inclusive range with both `StartSeconds` and `EndSeconds`. `Clear` without a selector empties the channel. `Shift` also requires `ShiftSeconds`, and destinations must avoid existing keys and stay inside the playback range.
+`GetAnimationDetail` returns the new channels in `DoubleChannels` and `IntegerChannels`; vector tracks also include `Dimensions`. These channels share the pagination budget with other tracks.
+
+`GetAnimationDetail` pages through binding GUIDs, track and section indices, and Float, Double, Integer, Bool, and Byte channel keys. Use these addresses with `EditAnimationKeys` to delete, clear, or shift keys in one channel. Binding requests need `BindingGuid`, `WidgetName`, `TrackIndex`, `SectionIndex`, `ChannelType`, and `ChannelIndex`; slot bindings also need `SlotWidgetName`. `Operation` accepts `Delete`, `Clear`, or `Shift`. Select integer tick frames with `Frames`, or an inclusive range with both `StartSeconds` and `EndSeconds`. `Clear` without a selector empties the channel. `Shift` also requires `ShiftSeconds`, and destinations must avoid existing keys and stay inside the playback range.
 
 `bDryRun` defaults to `true` and returns the current section's `Fingerprint` and affected key count. To apply, send `bDryRun:false` and that value as `ExpectedFingerprint`. A stale fingerprint is rejected. Save the Blueprint explicitly after editing.
 
@@ -52,7 +59,7 @@ Cubic keys in `SetAnimationKeys` accept `TangentMode` (`Auto`, `User`, or `Break
 
 `GetAnimationDetail.RootTracks` lists animation root tracks. Event track sections include `EventChannels`, `ChannelIndex`, each key's `Frame` and `Time`, and the event name, endpoint GUID, and compilation status when available. `TrackIndex` is the original index in the root track list. Do not renumber a list filtered to event tracks. Binding tracks and root tracks share `Offset`, `MaxItems`, and `NextOffset`. A parent marked `ContextOnly:true` supplies the address of a child returned on that page.
 
-To edit a root event channel, explicitly send `TrackScope:"Root"` and `ChannelType:"Event"` with the returned `TrackIndex`, `SectionIndex`, and `ChannelIndex`. Omit `BindingGuid`, `WidgetName`, and `SlotWidgetName` entirely; even empty strings are rejected. Omitting `TrackScope` keeps the default `Binding` behavior for Float, Bool, and Byte channels and their binding addresses.
+To edit a root event channel, explicitly send `TrackScope:"Root"` and `ChannelType:"Event"` with the returned `TrackIndex`, `SectionIndex`, and `ChannelIndex`. Omit `BindingGuid`, `WidgetName`, and `SlotWidgetName` entirely; even empty strings are rejected. Omitting `TrackScope` keeps the default `Binding` behavior for Float, Double, Integer, Bool, and Byte channels and their binding addresses.
 
 ```json
 {"BlueprintPath":"/Game/UI/WBP_Menu","AnimationName":"Intro","TrackScope":"Root","TrackIndex":0,"SectionIndex":0,"ChannelType":"Event","ChannelIndex":0,"Operation":"Shift","StartSeconds":0.25,"EndSeconds":0.25,"ShiftSeconds":0.25,"bDryRun":true}
