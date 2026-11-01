@@ -16,7 +16,9 @@
 
 TreeView 快照包含根项和当前已生成条目对应的子项。根项的 `Index` 保留根列表索引；子项为 `Index: -1`、`IdentitySource: "GeneratedEntry"`。先展开父项，等待页面刷新后再取 Snapshot，即可对已生成子项选择、滚动、展开或折叠。子项滚出生成范围、被折叠回收或移除后，旧令牌可能失效，需要重新取快照；刷新期间不能用旧条目映射操作子项。`GeneratedItemsStatus: "RefreshPending"` 时快照只提供根项。隐藏、未生成子项及父子关系仍未知，`TreeHierarchy` 返回 `Unknown`；Snapshot 不会主动展开树或调用业务子级查询。
 
-`Navigate` 支持原生 Wrap 循环导航，方向包括 `Next`、`Previous` 和上下左右。循环范围由实际生效的导航规则决定，目标仍须位于令牌的原控件树和原窗口内。方向键 Wrap 要求静态规则与本次回调确定的边界一致，且源路径不包含导航模拟元数据；不满足时会拒绝。Custom、CustomBoundary 及硬件/CommonUI 输入处理不受支持。回调中换树、重建目标或改变预期焦点会使操作失败，并清理该工具的虚拟焦点。
+`Navigate` 支持原生 Wrap 循环导航和 Custom 导航，方向包括 `Next`、`Previous` 和上下左右，`Device` 可选 `Keyboard` 或 `Gamepad`。目标须位于令牌的原控件树和原窗口内。Wrap 的循环范围由实际生效的导航规则决定；方向键 Wrap 要求静态规则与本次回调确定的边界一致，且源路径不包含导航模拟元数据，不满足时会拒绝。
+
+Custom 业务委托及其绑定对象须从调用开始到原生 UMG 完成返回值转换始终有效，非空返回的 `UWidget` 也须在此期间保持有效。不支持在此过程中销毁这些对象或通过 GC 使其失效。委托只调用一次；目标须可见、启用并可聚焦。返回 null，或目标不满足原树、原窗口及上述焦点条件时，操作失败，不回退到自动导航。CustomBoundary 及硬件/CommonUI 输入处理不受支持。回调中换树、重建 Slate、改变源路径或预期焦点、撤销令牌都会使操作失败或失效，并清理该工具的虚拟焦点。
 
 每个新动作使用新的 `RequestId`；仅在重试完全相同的请求时复用。参数冲突的复用会被拒绝。启动后返回 `OperationId` 的工具可用 `GetRuntimeOperation` 查询 `Status`、`Data` 和错误；状态可能是 `Pending`、`Completed`、`Failed`、`Cancelled`、`TimedOut`、`Invalidated`，过期或未知编号返回 `Unknown`。`CancelRuntimeOperation` 只接受仍在等待的 `OperationId`。取消可能仍需清理，`bCleanupPending` 表示尚未确认最终状态；继续查询直至结束。已完成结果只短暂保留，不应把 `OperationId` 当永久记录。
 
