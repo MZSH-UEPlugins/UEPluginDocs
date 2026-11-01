@@ -16,6 +16,24 @@ These tools operate on an existing PIE/Game `UUserWidget` instance. Run the targ
 
 Use a new `RequestId` for each new action. Reuse it only for an identical retry; a reuse with conflicting parameters is rejected. For tools returning an `OperationId`, call `GetRuntimeOperation` to read `Status`, `Data`, and errors. Status may be `Pending`, `Completed`, `Failed`, `Cancelled`, `TimedOut`, or `Invalidated`; an expired or unknown ID reports `Unknown`. `CancelRuntimeOperation` accepts only a pending `OperationId`. Cancellation may still require cleanup; keep polling while `bCleanupPending` is true. Completed results have a short retention period, so do not treat an operation ID as permanent storage.
 
+## ComboBoxString
+
+`ControlWidgetComboBox` supports live `UComboBoxString` widgets. Supply `RuntimeInstanceToken`, `WidgetName`, and `Action: "Snapshot"` to read options, `OptionCount`, `SelectedText`, `SelectedIndex`, and `IsOpen`. `Offset` defaults to 0; `Limit` defaults to 64 and is capped at 128. Continue with `NextOffset` and `bHasMore`. Option and selection text is capped at 4096 characters with truncation flags. Snapshot does not create Slate or open or close a popup.
+
+```json
+{"RuntimeInstanceToken":"<token>","WidgetName":"BallType","Action":"Snapshot","Offset":0,"Limit":32}
+```
+
+`Select` requires `RequestId` and exactly one of `OptionText` or `OptionIndex`. Text matching is exact and case-sensitive; duplicate matches are rejected. Indices must be non-negative integers. The popup must be closed both when the request is submitted and when it executes. An open popup produces `PopupOpen`; the tool does not close it. Selecting the same item returns `NoChange` without another broadcast. Transitions between indices with the same label, including labels that differ only in case, are unsupported. Reselecting a cleared selection can also suppress the native callback because the stored label remains unchanged; the tool rejects these transitions before calling the setter. If options change after queuing, take another Snapshot and use a new `RequestId`. Select accepts at most 2048 options, 4096 characters per option, and 65536 characters in total; larger sets are rejected.
+
+```json
+{"RuntimeInstanceToken":"<token>","WidgetName":"BallType","Action":"Select","RequestId":"choose-butterfly-1","OptionText":"蝴蝶"}
+```
+
+Before using Select, ensure callbacks meet these preconditions: synchronous `FieldNotify` callbacks must not reenter and change selection or options. Selection and content-generation callbacks must not directly or indirectly clear options, destroy or rebuild the owning instance or target widget, or release or rebuild its Slate resources. These effects are unsupported. The plugin cannot inspect arbitrary callbacks or guarantee a safe return when these preconditions are violated. Ordinary `OnSelectionChanged` may change or clear the selection within these constraints; the tool reports the actual state after the native call returns safely.
+
+Results repeat these preconditions in `CallbackContract`. `Backend: "NativeUMG"` and `SelectionType: "Direct"` describe native semantic selection and do not prove a mouse click or Slate popup click. The tool does not inject global input or change the `ScopedSlate` boundary. Query `GetRuntimeOperation` for the final result, including state-validation errors. `bNativeCallIssued` means only that the native call was issued. If a callback changes the final state or invalidates the token, the tool does not report successful selection, replay delegates, or roll back business effects. Runtime selection has no Undo.
+
 ## Performance sampling and trace
 
 `InspectWidgetPerformance` reads authored structural signals; it is not a runtime measurement. `MeasureWidgetPerformance` requires `RuntimeInstanceToken` and `RequestId`, with optional `Frames` (default 30, maximum 120) and `MaxNodes` (default 100, maximum 500). It summarizes real Slate paint, invalidation, and update events as **inclusive GameThread CPU** time per widget, not exclusive or GPU time. Query its returned `OperationId` for the result.

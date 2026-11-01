@@ -17,7 +17,7 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 
 更新 MCPUMG 时，请先关闭编辑器，再使用匹配版本的新安装包完整替换现有 `MCPUMG` 目录。不要混用不同引擎版本的文件。
 
-## 工具（基础版 71 个；主动启用 MVVM 增强模块后另增 6 个）
+## 工具（基础版 72 个；主动启用 MVVM 增强模块后另增 6 个）
 
 ### 发现与读取
 
@@ -67,6 +67,7 @@ MCPUMG 通过运行在 Unreal Editor 内的 HTTP 服务器，向 AI 助手提供
 | SetWidgetInstanceProperties | 设置嵌套 UserWidget 实例的可编辑属性 |
 | InteractWithWidget | 向运行中 Widget 发送限定范围的点击、滚轮、文本、拖动、拖放或导航输入 |
 | ControlWidgetList | 查看或修改运行中列表的选择、展开与滚动 |
+| ControlWidgetComboBox | 读取 ComboBoxString 选项和选择状态，或在弹窗关闭时原生选择选项；须遵守回调限制 |
 | SetNamedSlotContent | 创建、替换、清空或移动 Named Slot 内容 |
 | CaptureWidgetPreview | 渲染临时 Widget 实例并返回离屏 PNG |
 | ExtractWidgetComponent | 复制 Widget 子树，或提取后以新实例替换；可迁移受支持的依赖 |

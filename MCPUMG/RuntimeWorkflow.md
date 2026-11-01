@@ -16,6 +16,24 @@
 
 每个新动作使用新的 `RequestId`；仅在重试完全相同的请求时复用。参数冲突的复用会被拒绝。启动后返回 `OperationId` 的工具可用 `GetRuntimeOperation` 查询 `Status`、`Data` 和错误；状态可能是 `Pending`、`Completed`、`Failed`、`Cancelled`、`TimedOut`、`Invalidated`，过期或未知编号返回 `Unknown`。`CancelRuntimeOperation` 只接受仍在等待的 `OperationId`。取消可能仍需清理，`bCleanupPending` 表示尚未确认最终状态；继续查询直至结束。已完成结果只短暂保留，不应把 `OperationId` 当永久记录。
 
+## ComboBoxString
+
+`ControlWidgetComboBox` 只支持运行中的 `UComboBoxString`。传入 `RuntimeInstanceToken`、`WidgetName` 和 `Action: "Snapshot"`，读取选项、`OptionCount`、`SelectedText`、`SelectedIndex` 和 `IsOpen`。`Offset` 默认 0，`Limit` 默认 64，最大 128；用 `NextOffset` 和 `bHasMore` 翻页。选项与当前选择的文本最多返回 4096 个字符，截断时带对应标记。Snapshot 不创建 Slate，也不打开或关闭弹窗。
+
+```json
+{"RuntimeInstanceToken":"<token>","WidgetName":"BallType","Action":"Snapshot","Offset":0,"Limit":32}
+```
+
+`Select` 必须提供 `RequestId`，并且只提供 `OptionText` 或 `OptionIndex` 中的一个。文本按大小写精确匹配，重复文本会被拒绝；索引须为非负整数。Select 要求弹窗在请求时和执行时都处于关闭状态，打开时返回 `PopupOpen`，不会替调用者关闭。选择同项返回 `NoChange`，不额外广播；同标签不同索引的转换，包括仅大小写不同的标签，均不受支持。清空当前选择后重选原标签，也可能被原生字符串判等跳过委托；工具会在调用前拒绝这类转换。选项在排队后发生变化时，请重新读取 Snapshot 并使用新的 `RequestId`。Select 最多处理 2048 项，每项最多 4096 个字符，合计最多 65536 个字符，超限会拒绝。
+
+```json
+{"RuntimeInstanceToken":"<token>","WidgetName":"BallType","Action":"Select","RequestId":"choose-butterfly-1","OptionText":"蝴蝶"}
+```
+
+调用 Select 前须确认回调满足以下前提：同步 `FieldNotify` 回调不重入修改当前选择或选项；选择和内容生成回调不直接或间接清空选项、销毁或重建所属实例或目标控件，也不释放或重建其 Slate 资源。这些场景不受支持，插件无法预检任意回调，也不能保证违反前提的原生调用安全返回。普通 `OnSelectionChanged` 在这些前提内可改选或清空当前选择，工具按安全返回后的实际状态报告结果。
+
+结果中的 `CallbackContract` 会重复说明这些前提。`Backend: "NativeUMG"`、`SelectionType: "Direct"` 表示原生语义选择，不能作为鼠标点击或 Slate 弹窗点击成功的证据。工具不会注入全局输入，也不会改变 `ScopedSlate` 的作用域。用 `GetRuntimeOperation` 查询最终结果；状态预检错误也会记录在操作中。`bNativeCallIssued` 只表示原生调用已发出；回调改变最终状态或使令牌失效时不报告选择成功，不重试委托，也不回滚业务副作用。运行时选择没有 Undo。
+
 ## 性能采样和 Trace
 
 `InspectWidgetPerformance` 读取设计态结构复杂度，不能代替运行时测量。`MeasureWidgetPerformance` 必填 `RuntimeInstanceToken`、`RequestId`；可设 `Frames`（默认 30，最大 120）和 `MaxNodes`（默认 100，最大 500）。它汇总实际 Slate paint、invalidation、update 事件的逐 Widget **包含式 GameThread CPU** 时间，不是独占时间或 GPU 时间。用返回的 `OperationId` 查询结果。

@@ -17,7 +17,7 @@ MCPUMG exposes Widget-specific visual editing capabilities to AI assistants via 
 
 To update MCPUMG, close the editor and replace the entire existing `MCPUMG` directory with the matching new package. Do not mix files from different engine versions.
 
-## Tools (71 base tools; 6 more with the opt-in MVVM module)
+## Tools (72 base tools; 6 more with the opt-in MVVM module)
 
 ### Discovery & Reading
 | Tool | Description |
@@ -65,6 +65,7 @@ To update MCPUMG, close the editor and replace the entire existing `MCPUMG` dire
 | SetWidgetInstanceProperties | Set editable properties on a nested UserWidget instance |
 | InteractWithWidget | Send scoped click, wheel, text, drag, drag-drop, or navigation input to a live Widget |
 | ControlWidgetList | Inspect or change selection, expansion and scrolling on a live list |
+| ControlWidgetComboBox | Read ComboBoxString options and selection, or select a native option while its popup is closed; callback restrictions apply |
 | SetNamedSlotContent | Create, replace, clear, or move Named Slot content |
 | CaptureWidgetPreview | Render a temporary Widget instance and return an off-screen PNG |
 | ExtractWidgetComponent | Copy a Widget subtree or replace it with an extracted instance, with optional supported-dependency migration |
