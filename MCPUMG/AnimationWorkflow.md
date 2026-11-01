@@ -19,3 +19,17 @@
 ```json
 {"BlueprintPath":"/Game/UI/WBP_Menu","AnimationName":"FadeIn","NewAnimationName":"FadeInFast"}
 ```
+
+## 编辑事件关键帧
+
+`GetAnimationDetail` 的 `RootTracks` 返回动画根轨道，包含事件轨道各区段的 `EventChannels`、`ChannelIndex`、键的 `Frame` 和 `Time`，以及可用的事件名称、端点 GUID 和编译状态。`TrackIndex` 是根轨道列表中的原始索引，不能按事件轨道过滤后重新编号。`Bindings` 中的轨道与 `RootTracks` 共用 `Offset`、`MaxItems` 和 `NextOffset`；`ContextOnly:true` 的父对象仅用于定位当前页的子项。
+
+编辑根事件通道时，显式传入 `TrackScope:"Root"` 和 `ChannelType:"Event"`，并使用返回的 `TrackIndex`、`SectionIndex`、`ChannelIndex`。请求中不得出现 `BindingGuid`、`WidgetName` 或 `SlotWidgetName`，空字符串也不允许。省略 `TrackScope` 时仍使用 `Binding`，只支持原有的 Float、Bool、Byte 通道及绑定地址。
+
+```json
+{"BlueprintPath":"/Game/UI/WBP_Menu","AnimationName":"Intro","TrackScope":"Root","TrackIndex":0,"SectionIndex":0,"ChannelType":"Event","ChannelIndex":0,"Operation":"Shift","StartSeconds":0.25,"EndSeconds":0.25,"ShiftSeconds":0.25,"bDryRun":true}
+```
+
+这个请求选择 0.25 秒处的事件并预览将其平移到 0.5 秒。应用时将同一请求中的 `bDryRun` 改为 `false`，并将返回的 `Fingerprint` 填入 `ExpectedFingerprint`。若轨道或区段被替换、地址重排、播放范围或区段内容发生变化，请重新预览。
+
+`Delete` 删除所选事件；`Clear` 不带选择器时清空该事件通道。`Frames` 使用整数 tick 帧，时间范围包含两个端点。平移目标不能与未选中的键碰撞，也不能超出播放范围。编辑保留剩余事件的端点和 payload，支持 Undo/Redo；工具不会保存资产，请在确认结果后显式保存蓝图。
