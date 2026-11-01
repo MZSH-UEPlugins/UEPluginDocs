@@ -36,6 +36,25 @@ MCPUMG 不在插件内部连接图片模型，也不保存模型密钥。AI 客�
 
 节点以稳定名称标识，包含 `class`、`parent`、`order`、`properties` 和 `slot`。插件在修改前验证单根、循环、容器兼容性、名称、属性、Slot、节点数量、深度和累计文本预算。错误应返回精确 JSON Pointer。
 
+## NamedSlot 内容与整树替换
+
+`ExportWidgetSpec` 用节点的 `parent` 和 `namedSlot` 标识命名槽关系。`parent` 是宿主控件名称，`namedSlot` 是宿主公开的槽名称。`create` 和 `move` 可以将内容放入空槽；不能同时指定 `namedSlot` 与 `order`，也不能附带 PanelSlot 的 `slot` 属性。目标槽已有其他内容时，请先明确移除旧内容。
+
+`remove` 可以直接删除 NamedSlot 中的内容及其完整子树；删除宿主控件时，也会删除注入该宿主命名槽的外部内容。组件 UserWidget 自身的内部控件不属于当前树的 Patch 节点，不会随外部内容一起编辑。宿主、内容和可能被修改的宿主内部树必须属于本次操作的隔离副本；跨树引用会被拒绝。
+
+没有外部依赖时，可以在同一 Patch 中先 `remove`，再用相同名称 `create` 内容或重建子树。例如，下列 `operations` 替换 `DetailsArea.Header` 中名为 `HeaderContent` 的内容：
+
+```json
+[
+  {"op":"remove","name":"HeaderContent"},
+  {"op":"create","name":"HeaderContent","class":"TextBlock","parent":"DetailsArea","namedSlot":"Header"}
+]
+```
+
+如果旧内容或任一后代被蓝图图表、事件绑定、动画、焦点或组件依赖引用，整次 Patch 会被拒绝；后续创建同名控件不能代替旧对象的引用。重复可达节点、循环和将节点移入自身后代也会被拒绝。先用 `dryRun:true` 预演，再按当前并发令牌和重新计算的 `inputHash` 正式应用。正式操作共用一个 Undo/Redo 事务，不自动保存；确认结果后调用 `SaveWidgetBlueprint`。
+
+Widget Spec v1 只支持一个根节点，不支持非空的 WidgetTree 顶层 `NamedSlotBindings`；含这种状态的树会在导出或 Patch 前被拒绝。安装后的编译或一致性检查失败时会恢复原树；若恢复无法完整验证，工具会禁止该会话保存此包，请先重载或重启恢复资产状态。
+
 ## 样式与素材
 
 ### 布局检查不等于布局通过

@@ -2,6 +2,25 @@
 
 This guide covers bounded batch edits, authored performance indicators, and optional CommonUI/MVVM tools. It assumes the target editor already has the optional framework enabled when you choose to use it; MCPUMG never enables plugins for you.
 
+## NamedSlot content and tree replacement
+
+`ExportWidgetSpec` identifies a named-slot relationship with the node's `parent` and `namedSlot`. `parent` names the host widget, and `namedSlot` names a slot exposed by that host. `create` and `move` can fill an empty slot. Do not combine `namedSlot` with `order` or PanelSlot `slot` properties. If another widget occupies the slot, explicitly remove that content first.
+
+`remove` can delete named-slot content and its complete subtree. Removing a host also removes external content injected into its named slots. A component UserWidget's internal widgets are outside the current tree's patch nodes and are not edited along with external content. The host, content, and any host internal tree that may be changed must belong to this operation's isolated copy. Cross-tree references are rejected.
+
+If the old objects have no external dependencies, one patch may `remove` content and then `create` content or a subtree with the same names. These `operations`, for example, replace `HeaderContent` in `DetailsArea.Header`:
+
+```json
+[
+  {"op":"remove","name":"HeaderContent"},
+  {"op":"create","name":"HeaderContent","class":"TextBlock","parent":"DetailsArea","namedSlot":"Header"}
+]
+```
+
+The entire patch is rejected if the old content or any descendant is referenced by Blueprint graphs, event bindings, animations, focus settings, or UI Components. Creating a widget with the same name afterward does not replace those object references. Repeatedly reachable nodes, cycles, and moving a node into its own descendants are also rejected. Preview with `dryRun:true`, then apply using the current concurrency tokens and a recalculated `inputHash`. The apply uses one Undo/Redo transaction and does not save. Call `SaveWidgetBlueprint` after checking the result.
+
+Widget Spec v1 supports one root and rejects nonempty top-level WidgetTree `NamedSlotBindings` during export or before a patch. If compilation or consistency checks fail after installation, the tool restores the original tree. If it cannot fully verify recovery, it blocks saving that package for the session. Reload or restart before recovering the asset state.
+
 ## Batch property updates
 
 `BatchSetWidgetProperties` changes ordinary widget properties across up to 16 Widget Blueprints and 256 widgets. It defaults to `dryRun: true`. Every target must include the current `expectedFingerprint` returned by `ExportWidgetSpec`; duplicate targets, stale fingerprints, unsafe properties, or an invalid request reject the whole batch before a change is made.
