@@ -1,4 +1,34 @@
 # Animation workflow
+## Generic property tracks
+
+`AddAnimationTrack`, `SetAnimationKeys`, and `RemoveAnimationTrack` resolve `PropertyPath` against the target object's reflected properties. `TargetKind` defaults to `"Widget"`. Use `"Slot"` for a property of the widget's current PanelSlot, such as `HorizontalBoxSlot.Padding`. Optional `SlotWidgetName` must match the current slot object's name. A root widget has no slot. After reparenting a widget into another slot, repair the old binding before editing; the tools reject it.
+
+| Property type | `Value` format |
+|---|---|
+| `float` | A finite number, such as ProgressBar's `Percent` |
+| `bool` | `true` or `false` |
+| `uint8` | An integer from 0 to 255 |
+| Enum stored as `uint8` | A name from that property's actual enum, such as `Hidden` for `Visibility` |
+| `FLinearColor`, `FColor`, `FSlateColor` | `{R,G,B,A}` with linear floating point components; `A` is optional and defaults to 1 |
+| `FMargin` | `{Left,Top,Right,Bottom}`, with all four fields required |
+| `FWidgetTransform` component | `.Translation`, `.Scale`, and `.Shear` take `{X,Y}` or one number for both axes; `.Angle` takes a number in degrees |
+
+Paths may include fixed struct fields and are stored with their actual property names. Arrays, sets, maps, fixed arrays, UObject traversal, deprecated fields, integers, doubles, and standalone vectors are unsupported. Playback also requires a matching engine accessor, a native setter, a compatible `Set<Property>` function, or an `Interp` field that is safe to write directly. Nested fields are rejected if playback could call an unrelated root setter with the same leaf name or bypass a parent property's refresh logic. A writable field alone does not qualify it for animation.
+
+For a bool whose name starts with lowercase `b`, a native setter or full-path accessor is required if either `Set` plus the full property name or `Set` plus the name without `b` exists. The tools reject this fallback to keep playback consistent across supported engine versions. If neither function exists, the property may use the direct `Interp` field route. Uppercase `B` is kept: `Busy`, for example, uses `SetBusy`, whose signature must be compatible.
+
+```json
+{"BlueprintPath":"/Game/UI/WBP_Menu","AnimationName":"Intro","WidgetName":"Progress","PropertyPath":"Percent","Keys":[{"Time":0,"Value":0},{"Time":1,"Value":1,"Interp":"Linear"}]}
+```
+
+```json
+{"BlueprintPath":"/Game/UI/WBP_Menu","AnimationName":"Intro","WidgetName":"Progress","TargetKind":"Slot","PropertyPath":"Padding","Keys":[{"Time":0,"Value":{"Left":0,"Top":0,"Right":0,"Bottom":0}},{"Time":1,"Value":{"Left":20,"Top":0,"Right":20,"Bottom":0}}]}
+```
+
+Create a track with `AddAnimationTrack`, then call `SetAnimationKeys` with the same target and path. `bReplaceAll` defaults to `true` and replaces keys in the addressed channels; `false` merges keys. The four `FWidgetTransform` components share one parent track. Replacing one component preserves keys in the others. Calling `RemoveAnimationTrack` with any component path removes the whole parent track. Existing `RenderTransform` component paths and `CanvasPanelSlot.LayoutData.Offsets` remain supported.
+
+A full property path must identify one track within its binding. Duplicate tracks, mismatched types or enums, multiple sections, and incompatible channels are rejected before mutation. Add, Set, and Remove support Undo/Redo and do not save assets. Save the Blueprint explicitly after editing.
+
 
 `DuplicateAnimation` deep-copies the source animation's MovieScene, tracks, and widget bindings. The source stays unchanged, and the new name must be unique. `SetAnimationPlaybackRange` sets `[StartSeconds, EndSeconds)` in seconds after validating all parameters, in one transaction. Neither tool saves the asset.
 
