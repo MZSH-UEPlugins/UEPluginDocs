@@ -19,7 +19,15 @@ If the old objects have no external dependencies, one patch may `remove` content
 
 The entire patch is rejected if the old content or any descendant is referenced by Blueprint graphs, event bindings, animations, focus settings, or UI Components. Creating a widget with the same name afterward does not replace those object references. Repeatedly reachable nodes, cycles, and moving a node into its own descendants are also rejected. Preview with `dryRun:true`, then apply using the current concurrency tokens and a recalculated `inputHash`. The apply uses one Undo/Redo transaction and does not save. Call `SaveWidgetBlueprint` after checking the result.
 
-Widget Spec v1 supports one root and rejects nonempty top-level WidgetTree `NamedSlotBindings` during export or before a patch. If compilation or consistency checks fail after installation, the tool restores the original tree. If it cannot fully verify recovery, it blocks saving that package for the session. Reload or restart before recovering the asset state.
+A child Blueprint that inherits its parent's root can export and edit its own top-level WidgetTree `NamedSlotBindings`. Use `parentScope:"Tree"` with `namedSlot` and omit `parent`, `order`, and `slot`:
+
+```json
+{"op":"create","name":"ChildHeader","class":"TextBlock","parentScope":"Tree","namedSlot":"Header"}
+```
+
+Omitting `parentScope` keeps the existing widget relationship behavior. Ordinary trees keep one root. Inherited trees use the parent root and may own zero or more top-level bindings. Compile the parent chain first. The target must be a public empty inherited named slot; slots with default content, instance-only exposure, or existing content cannot be overwritten. Child widget names must not collide with parent template widgets. `set`, `rename`, and `remove` still address child widgets by name. Removing the last binding retains inheritance. The tool never changes, compiles, or saves the parent Blueprint.
+
+The exported `treeContext` records the parent chain and slots and participates in `revision` and `fingerprint`. Re-export after the parent chain changes. If the parent's source tree and compiled template disagree after its first save, explicitly recompile the parent chain and, if needed, the child Blueprint, then export again. Recompiling does not save those changes. If compilation or consistency checks fail after installation, the tool restores the original tree. If it cannot fully verify recovery, it blocks saving that package for the session. Reload or restart before recovering the asset state.
 
 ## Batch property updates
 
