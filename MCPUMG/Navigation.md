@@ -12,7 +12,7 @@
 
 ## 局部更新与预检
 
-`Rules` 只更新提供的方向，其余原有方向不变。支持 `Escape`、`Stop`、`Wrap`、`Explicit` 和 `Custom`。`Explicit` 的目标必须是同一个 `WidgetTree` 内、且不是自身的控件；`Custom` 必须提供 Widget Blueprint 生成类中已有、签名为 `UWidget* Function(EUINavigation)` 的 `CustomFunction`。
+`Rules` 只更新提供的方向，其余原有方向不变。支持 `Escape`、`Stop`、`Wrap`、`Explicit`、`Custom` 和 `CustomBoundary`。`Explicit` 的目标必须是同一个 `WidgetTree` 内、且不是自身的控件；`Custom` 和 `CustomBoundary` 均须提供 Widget Blueprint 生成类中已有、签名为 `UWidget* Function(EUINavigation)` 的 `CustomFunction`。使用下例前，请先在蓝图中定义符合该签名的 `ChooseBoundaryTarget`。
 
 ```json
 {
@@ -20,7 +20,8 @@
   "WidgetName":"PlayButton",
   "Rules":{
     "Down":{"Rule":"Explicit","TargetWidget":"OptionsButton"},
-    "Next":{"Rule":"Wrap"}
+    "Next":{"Rule":"Wrap"},
+    "Right":{"Rule":"CustomBoundary","CustomFunction":"ChooseBoundaryTarget"}
   },
   "dryRun":true
 }
@@ -33,3 +34,5 @@
 ```
 
 无效方向、缺失/跨树/自身显式目标，或不存在的自定义函数都会在写入前失败，且不会修改任何对象。
+
+`CustomBoundary` 保存的是原生“到达边界时使用自定义导航”的配置。上下左右导航到达边界时可调用该委托；`Next`、`Previous` 使用引擎原生的顺序焦点导航，不执行这个边界委托。模板 Set/Get 不执行导航委托；`InteractWithWidget` 的运行时 `Navigate` 仍拒绝 `CustomBoundary`。切回 `Escape` 会清除该方向的旧函数绑定，其余方向保持不变。

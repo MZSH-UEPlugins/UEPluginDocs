@@ -106,18 +106,20 @@ The host must implement `INamedSlotInterface`; native hosts and compiled nested 
 
 A widget without a navigation object reports `Escape` for every direction.
 
-`SetWidgetNavigation` changes only the directions present in its non-empty `Rules` object. Each rule is `Escape`, `Stop`, or `Wrap`; `Explicit` also requires a different widget in the same WidgetTree as `TargetWidget`; `Custom` requires `CustomFunction` with the generated Widget Blueprint signature `UWidget* Function(EUINavigation)`.
+`SetWidgetNavigation` changes only the directions present in its non-empty `Rules` object. Each rule is `Escape`, `Stop`, or `Wrap`; `Explicit` also requires a different widget in the same WidgetTree as `TargetWidget`. Both `Custom` and `CustomBoundary` require an existing `CustomFunction` with the generated Widget Blueprint signature `UWidget* Function(EUINavigation)`. Define `ChooseBoundaryTarget` with that signature before using this example.
 
 ```json
 {
   "BlueprintPath":"/Game/UI/WBP_Menu",
   "WidgetName":"PlayButton",
-  "Rules":{"Down":{"Rule":"Explicit","TargetWidget":"OptionsButton"},"Next":{"Rule":"Wrap"}},
+  "Rules":{"Down":{"Rule":"Explicit","TargetWidget":"OptionsButton"},"Next":{"Rule":"Wrap"},"Right":{"Rule":"CustomBoundary","CustomFunction":"ChooseBoundaryTarget"}},
   "dryRun":true
 }
 ```
 
 Set `dryRun` to `false` (or omit it) to write the validated directions in one transaction. The tool does not send input, change runtime focus, compile, or save. Use `SaveWidgetBlueprint` to persist it. Invalid directions, self/cross-tree targets, and unavailable custom functions are rejected before any modification.
+
+`CustomBoundary` stores the native rule for custom navigation when a boundary is reached. Arrow navigation may invoke that delegate at a boundary. `Next` and `Previous` use the engine's sequential focus navigation and do not execute this boundary delegate. Template Set/Get never executes navigation delegates; runtime `Navigate` in `InteractWithWidget` still rejects `CustomBoundary`. Restoring a direction to `Escape` clears its old function binding and leaves other directions unchanged.
 
 ## 5. Render a temporary preview
 
