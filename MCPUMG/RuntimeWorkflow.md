@@ -14,7 +14,17 @@
 
 `ControlWidgetList` 必填 `RuntimeInstanceToken`、`ListName` 和 `Action`。先用 `Action: "Snapshot"` 取得列表项 `ItemToken`；随后可 `Select`、`AddSelection`、`Deselect`、`ClearSelection`、`ScrollIntoView`、`Expand`、`Collapse`，或对 ScrollBox 使用 `ScrollWidgetIntoView` 与 `TargetWidgetName`。除 `Snapshot` 外，修改操作需要 `RequestId`；除 `Snapshot`、`ClearSelection` 外，需要快照中的 `ItemToken`。
 
-TreeView 快照包含根项和当前已生成条目对应的子项。根项的 `Index` 保留根列表索引；子项为 `Index: -1`、`IdentitySource: "GeneratedEntry"`。先展开父项，等待页面刷新后再取 Snapshot，即可对已生成子项选择、滚动、展开或折叠。子项滚出生成范围、被折叠回收或移除后，旧令牌可能失效，需要重新取快照；刷新期间不能用旧条目映射操作子项。`GeneratedItemsStatus: "RefreshPending"` 时快照只提供根项。隐藏、未生成子项及父子关系仍未知，`TreeHierarchy` 返回 `Unknown`；Snapshot 不会主动展开树或调用业务子级查询。
+默认 TreeView 快照包含根项和当前已生成条目对应的子项。根项的 `Index` 保留根列表索引；子项为 `Index: -1`、`IdentitySource: "GeneratedEntry"`。先展开父项，等待页面刷新后再取 Snapshot，即可对已生成子项选择、滚动、展开或折叠。子项滚出生成范围、被折叠回收或移除后，旧令牌可能失效，需要重新取快照；刷新期间不能用旧条目映射操作子项。`GeneratedItemsStatus: "RefreshPending"` 时快照只提供根项。隐藏、未生成子项及父子关系仍未知，`TreeHierarchy` 返回 `Unknown`；Snapshot 不会主动展开树或调用子级 getter。
+
+要读取折叠、未生成条目的层级，在 TreeView 的 `Snapshot` 请求中加入布尔参数 `IncludeHierarchy: true`。默认值为 `false`，ListView 和 TileView 不支持开启，其他 Action 不接受这个字段。读取会同步调用树的子级 getter，不主动展开树、选择条目或生成界面。
+
+```json
+{"RuntimeInstanceToken":"<token>","ListName":"QuestTree","Action":"Snapshot","IncludeHierarchy":true}
+```
+
+成功时，`TreeHierarchy` 为 `ObservedTraversal`，`Hierarchy` 包含 `Scope: "ProviderReturnedItems"`、`Consistency: "ObservedTraversal"`、`Complete: true`、有序 `RootIds` 和 `Nodes`。每个节点提供 `NodeId`、`ParentId`、`ChildIds`、`ChildIndex`、`Depth`、`ItemName`、`ItemClass`；根的 `ParentId` 为 null、`Depth` 为 0，根的 `ChildIndex` 表示根列表顺序。子级顺序采用 getter 的返回顺序。`NodeId` 只在本次结果中标识节点，不能作为 `ItemToken` 用于选择、展开或其他操作。`Items` 的身份范围仍是根项与当前已生成条目。
+
+getter 应按正常只读查询约定返回子项。结果描述本次遍历观察到的层级，不保证整棵树在同一时刻的原子状态。最多读取 2048 个唯一节点、深度 64；遇到空项、无效项、环、重复节点或多父关系会失败。约 100 ms 的合作式预算在 getter 前后及处理节点时检查，无法中断正在执行的单个 getter，因此不保证请求的硬时限。读取期间令牌、控件树、目标列表、根顺序或已缓存的 Slate 身份变化，以及重入读取，都会终止请求；失败不会签发新的 ItemToken。getter 的只读约定由项目实现遵守。
 
 `Navigate` 支持原生 Wrap 循环导航和 Custom 导航，方向包括 `Next`、`Previous` 和上下左右，`Device` 可选 `Keyboard` 或 `Gamepad`。目标须位于令牌的原控件树和原窗口内。Wrap 的循环范围由实际生效的导航规则决定；方向键 Wrap 要求静态规则与本次回调确定的边界一致，且源路径不包含导航模拟元数据，不满足时会拒绝。
 
